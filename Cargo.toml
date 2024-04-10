@@ -1,0 +1,8 @@
+[workspace]
+members = ["libp2p/batman-adv", "engine"]
+default-members = ["engine"]
+resolver = "2"
+
+[workspace.dependencies]
+libp2p = { version = "0.53.2", features = ["tokio"] }
+tokio =  { version = "1.37" }
