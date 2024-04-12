@@ -1,4 +1,4 @@
-use libp2p::gossipsub::{IdentTopic, Message, MessageId, PublishError, SubscriptionError};
+use libp2p::gossipsub::{IdentTopic, MessageId, PublishError, SubscriptionError};
 use tokio::sync::{broadcast, oneshot};
 
 use crate::p2p::client::{RequestError, SpecialClient};

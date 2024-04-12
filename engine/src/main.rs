@@ -5,17 +5,15 @@ use libp2p::{
     identity::Keypair,
     kad::{
         BootstrapError, BootstrapOk, GetProvidersError, GetProvidersOk, GetRecordError,
-        GetRecordOk, Record, RecordKey,
+        GetRecordOk, RecordKey,
     },
 };
 use p2p::FullActor;
 use rustyline::{
     error::ReadlineError,
     hint::{Hint, Hinter},
-    history::DefaultHistory,
-    DefaultEditor, Editor,
+    history::DefaultHistory, Editor,
 };
-use tokio::io::AsyncBufReadExt;
 use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 

@@ -4,7 +4,6 @@ use libp2p::{
     kad::{self, store::MemoryStore},
     mdns, ping,
     swarm::NetworkBehaviour,
-    PeerId,
 };
 
 #[derive(NetworkBehaviour)]

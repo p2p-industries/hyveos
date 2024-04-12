@@ -1,5 +1,5 @@
-use libp2p::gossipsub::{IdentTopic, Message, MessageId, PublishError, SubscriptionError};
-use tokio::sync::{broadcast, mpsc, oneshot};
+use libp2p::gossipsub::{IdentTopic, MessageId, PublishError, SubscriptionError};
+use tokio::sync::{broadcast, oneshot};
 
 use super::actor::ReceivedMessage;
 

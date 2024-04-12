@@ -1,9 +1,6 @@
 use std::{
     error::Error,
-    future::poll_fn,
     marker::PhantomData,
-    pin::Pin,
-    task::{Context, Poll},
     time::Duration,
 };
 

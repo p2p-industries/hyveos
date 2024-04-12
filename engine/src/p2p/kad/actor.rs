@@ -6,7 +6,6 @@ use libp2p::kad::{
     PutRecordOk, QueryId, QueryResult,
 };
 use tokio::sync::mpsc::error::TrySendError;
-use void::Void;
 
 use crate::p2p::{
     actor::SubActor,
