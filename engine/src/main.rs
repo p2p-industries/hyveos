@@ -281,8 +281,15 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn help_message(explains: &[(&str, &str)]) {
+    let cmd_width_max = explains.iter().map(|(cmd, _)| cmd.len()).max().unwrap_or(0) + 5;
+    let explains_width_max = explains
+        .iter()
+        .map(|(_, explain)| explain.len())
+        .max()
+        .unwrap_or(0)
+        + 5;
     println!("Available commands:");
     for (cmd, explain) in explains {
-        println!("{cmd:<10}: {explain:>15}");
+        println!("{cmd:<cmd_width_max$}: {explain:>explains_width_max$}");
     }
 }
