@@ -1,4 +1,8 @@
-use std::env::args;
+use std::{
+    array::from_fn,
+    env::args,
+    mem::{size_of, transmute},
+};
 
 use libp2p::{
     gossipsub::IdentTopic,
@@ -12,8 +16,10 @@ use p2p::FullActor;
 use rustyline::{
     error::ReadlineError,
     hint::{Hint, Hinter},
-    history::DefaultHistory, Editor,
+    history::DefaultHistory,
+    Editor,
 };
+use tokio::time::Instant;
 use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 
@@ -100,10 +106,12 @@ fn diy_hints() -> DiyHinter {
         CommandHint::new("KAD PROVIDERS key", "KAD PROVIDERS"),
     );
     tree.insert("GOS HELP", CommandHint::new("GOS HELP", "GOS HELP"));
+    tree.insert("GOS PING", CommandHint::new("GOS PING", "GOS PING"));
     tree.insert(
         "GOS PUB topic message",
         CommandHint::new("GOS PUB topic message", "GOS PUB"),
     );
+    tree.insert("GOS SUB PING", CommandHint::new("GOS SUB PING", "GOS SUB"));
     tree.insert(
         "GOS SUB topic",
         CommandHint::new("GOS SUB topic", "GOS SUB"),
@@ -229,12 +237,56 @@ async fn main() -> anyhow::Result<()> {
                             help_message(&[
                                 ("GOS PUB topic message", "Publish a message"),
                                 ("GOS SUB topic", "Subscribe to a topic"),
+                                ("GOS PING", "Ping the network"),
+                                ("GOS SUB PING", "Subscribe to ping topic"),
                             ]);
+                        }
+                        ["GOS", "PING"] => {
+                            let start = Instant::now();
+                            let topic_handle = gos.get_topic(IdentTopic::new("PING"));
+                            println!("Took {:?} to get topic handle", start.elapsed());
+                            let ping_start = Instant::now();
+                            let ping_start_bytes: [u8; size_of::<Instant>()] =
+                                unsafe { transmute(ping_start) };
+                            topic_handle
+                                .publish(ping_start_bytes.to_vec())
+                                .await
+                                .expect("Publish ping message");
+                            let took = ping_start.elapsed();
+                            println!("Took {took:?} to publish ping message");
                         }
                         ["GOS", "PUB", topic, message] => {
                             let topic_handle = gos.get_topic(IdentTopic::new(*topic));
                             let res = topic_handle.publish(message.as_bytes().to_vec()).await;
                             println!("Publish Result: {res:?}");
+                        }
+                        ["GOS", "SUB", "PING"] => {
+                            let topic_handle = gos.get_topic(IdentTopic::new("PING"));
+                            let mut res =
+                                topic_handle.subscribe().await.expect("Failed to subscribe");
+                            tokio::spawn(async move {
+                                loop {
+                                    match res.recv().await {
+                                        Ok(msg) => {
+                                            let data = msg.message.data;
+                                            if data.len() != size_of::<Instant>() {
+                                                println!("Invalid message length");
+                                                continue;
+                                            }
+                                            let ping_start_bytes: [u8; size_of::<Instant>()] =
+                                                from_fn(|i| data[i]);
+                                            let ping_start: Instant =
+                                                unsafe { transmute(ping_start_bytes) };
+                                            let took = ping_start.elapsed();
+                                            println!("Took {took:?} to receive ping message");
+                                        }
+                                        Err(err) => {
+                                            println!("Error: {:?}", err);
+                                            break;
+                                        }
+                                    }
+                                }
+                            });
                         }
                         ["GOS", "SUB", topic] => {
                             let topic_handle = gos.get_topic(IdentTopic::new(*topic));
