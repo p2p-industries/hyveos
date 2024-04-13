@@ -1,8 +1,4 @@
-use std::{
-    array::from_fn,
-    env::args,
-    mem::{size_of, transmute},
-};
+use std::env::args;
 
 use libp2p::{
     gossipsub::IdentTopic,

@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use libp2p::{
     gossipsub::{
@@ -7,7 +7,7 @@ use libp2p::{
     },
     PeerId,
 };
-use tokio::sync::{broadcast};
+use tokio::sync::broadcast;
 
 use crate::p2p::{actor::SubActor, behaviour::MyBehaviour};
 
