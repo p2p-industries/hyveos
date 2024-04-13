@@ -8,3 +8,5 @@ libp2p = { version = "0.53.2", features = ["tokio"] }
 tokio =  { version = "1.37" }
 thiserror = { version = "1" }
 tokio-stream = { version = "0.1.15" }
+rand = { version = "0.8.5" }
+

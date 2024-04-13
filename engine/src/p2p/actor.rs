@@ -1,17 +1,19 @@
-use std::{
-    error::Error,
-    marker::PhantomData,
-    time::Duration,
-};
+use std::{error::Error, marker::PhantomData, time::Duration};
 
 use libp2p::{
-    futures::StreamExt, identity::Keypair, kad::Mode, swarm::SwarmEvent, Swarm, SwarmBuilder,
+    futures::StreamExt,
+    identity::Keypair,
+    kad::Mode,
+    swarm::{NetworkBehaviour, SwarmEvent},
+    Swarm, SwarmBuilder,
 };
 use tokio::sync::mpsc;
 
 use crate::p2p::behaviour::MyBehaviour;
 
-use super::{behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad};
+use super::{
+    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, round_trip,
+};
 
 const CHANNEL_CAP: usize = 10;
 
@@ -38,18 +40,19 @@ pub trait SubActor {
     }
 }
 
-pub struct Actor<Kad, Mdns, Gossipsub, EventError, CommandError> {
+pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, EventError, CommandError> {
     swarm: Swarm<MyBehaviour>,
     receiver: mpsc::Receiver<Command>,
     kad: Kad,
     mdns: Mdns,
     gossipsub: Gossipsub,
+    round_trip: RoundTrip,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
 
-impl<Kad, Mdns, Gossipsub, EventError, CommandError>
-    Actor<Kad, Mdns, Gossipsub, EventError, CommandError>
+impl<Kad, Mdns, Gossipsub, RoundTrip, EventError, CommandError>
+    Actor<Kad, Mdns, Gossipsub, RoundTrip, EventError, CommandError>
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
     Mdns: SubActor<
@@ -60,6 +63,12 @@ where
         > + Default,
     Gossipsub:
         SubActor<SubCommand = gossipsub::Command, Event = libp2p::gossipsub::Event> + Default,
+    RoundTrip: SubActor<
+            SubCommand = round_trip::Command,
+            Event = <round_trip::Behaviour as NetworkBehaviour>::ToSwarm,
+            EventError = void::Void,
+            CommandError = void::Void,
+        > + Default,
     EventError:
         Error + From<<Kad as SubActor>::EventError> + From<<Gossipsub as SubActor>::EventError>,
     CommandError:
@@ -83,6 +92,7 @@ where
                 kad: Default::default(),
                 mdns: Default::default(),
                 gossipsub: Default::default(),
+                round_trip: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -137,6 +147,10 @@ where
                 .gossipsub
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(Into::into),
+            SwarmEvent::Behaviour(MyBehaviourEvent::RoundTrip(event)) => self
+                .round_trip
+                .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
             e => {
                 // println!("Unhandled swarm event: {:?}", e);
                 Ok(())
@@ -154,6 +168,10 @@ where
                 .gossipsub
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(Into::into),
+            Command::RoundTrip(command) => self
+                .round_trip
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
         }
     }
 }

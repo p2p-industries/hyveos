@@ -10,4 +10,5 @@ pub type SendMultipleResult<T, E> = mpsc::Sender<Result<T, E>>;
 pub enum Command {
     Kad(kad::Command),
     Gossipsub(gossipsub::Command),
+    RoundTrip(super::round_trip::Command),
 }

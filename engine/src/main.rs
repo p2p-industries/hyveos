@@ -242,18 +242,26 @@ async fn main() -> anyhow::Result<()> {
                             ]);
                         }
                         ["GOS", "PING"] => {
-                            let start = Instant::now();
                             let topic_handle = gos.get_topic(IdentTopic::new("PING"));
-                            println!("Took {:?} to get topic handle", start.elapsed());
-                            let ping_start = Instant::now();
-                            let ping_start_bytes: [u8; size_of::<Instant>()] =
-                                unsafe { transmute(ping_start) };
-                            topic_handle
-                                .publish(ping_start_bytes.to_vec())
-                                .await
-                                .expect("Publish ping message");
-                            let took = ping_start.elapsed();
-                            println!("Took {took:?} to publish ping message");
+                            let nonce = rand::random();
+                            let round_trip = client.round_trip();
+                            let mut recv = round_trip.register(nonce).await;
+                            let start = Instant::now();
+                            let res = topic_handle.publish(nonce.to_le_bytes().to_vec()).await;
+                            println!("Ping Send Result: {res:?}");
+                            if res.is_err() {
+                                continue;
+                            }
+                            tokio::spawn(async move {
+                                loop {
+                                    let msg = recv.recv().await.expect("Failed to receive");
+                                    let from = msg.from;
+                                    println!(
+                                        "Round trip to {from} ({nonce}) took {:?}",
+                                        start.elapsed()
+                                    );
+                                }
+                            });
                         }
                         ["GOS", "PUB", topic, message] => {
                             let topic_handle = gos.get_topic(IdentTopic::new(*topic));
@@ -264,21 +272,22 @@ async fn main() -> anyhow::Result<()> {
                             let topic_handle = gos.get_topic(IdentTopic::new("PING"));
                             let mut res =
                                 topic_handle.subscribe().await.expect("Failed to subscribe");
+                            let round_trip = client.round_trip();
                             tokio::spawn(async move {
                                 loop {
                                     match res.recv().await {
                                         Ok(msg) => {
-                                            let data = msg.message.data;
-                                            if data.len() != size_of::<Instant>() {
-                                                println!("Invalid message length");
+                                            if let Some(source) = msg.message.source {
+                                                let nonce = u64::from_le_bytes(
+                                                    msg.message.data.try_into().unwrap(),
+                                                );
+                                                round_trip.report_round_trip(source, nonce).await;
+                                            } else {
+                                                println!(
+                                                    "Received pong message from unkonwn source"
+                                                );
                                                 continue;
                                             }
-                                            let ping_start_bytes: [u8; size_of::<Instant>()] =
-                                                from_fn(|i| data[i]);
-                                            let ping_start: Instant =
-                                                unsafe { transmute(ping_start_bytes) };
-                                            let took = ping_start.elapsed();
-                                            println!("Took {took:?} to receive ping message");
                                         }
                                         Err(err) => {
                                             println!("Error: {:?}", err);

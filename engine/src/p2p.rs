@@ -6,6 +6,7 @@ mod command;
 mod gossipsub;
 mod kad;
 mod mdns;
+mod round_trip;
 
 pub use actor::Actor;
 
@@ -25,4 +26,5 @@ pub enum CommandError {
     Gossipsub(#[from] gossipsub::CommandError),
 }
 
-pub type FullActor = Actor<kad::Actor, mdns::Actor, gossipsub::Actor, EventError, CommandError>;
+pub type FullActor =
+    Actor<kad::Actor, mdns::Actor, gossipsub::Actor, round_trip::Actor, EventError, CommandError>;
