@@ -107,7 +107,6 @@ fn diy_hints() -> DiyHinter {
         "GOS PUB topic message",
         CommandHint::new("GOS PUB topic message", "GOS PUB"),
     );
-    tree.insert("GOS SUB PING", CommandHint::new("GOS SUB PING", "GOS SUB"));
     tree.insert(
         "GOS SUB topic",
         CommandHint::new("GOS SUB topic", "GOS SUB"),
@@ -127,6 +126,34 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move {
         actor.drive().await;
+    });
+
+    let gos = client.gossipsub();
+
+    let topic_handle = gos.get_topic(IdentTopic::new("PING"));
+
+    let mut res = topic_handle.subscribe().await.expect("Failed to subscribe");
+    let round_trip = client.round_trip();
+    tokio::spawn(async move {
+        loop {
+            match res.recv().await {
+                Ok(msg) => {
+                    if let Some(source) = msg.message.source {
+                        if let Ok(nonce_data) = msg.message.data.try_into() {
+                            let nonce = u64::from_le_bytes(nonce_data);
+                            round_trip.report_round_trip(source, nonce).await;
+                        }
+                    } else {
+                        println!("Received pong message from unkonwn source");
+                        continue;
+                    }
+                }
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break;
+                }
+            }
+        }
     });
 
     let mut builder = rustyline::Config::builder();
@@ -234,7 +261,6 @@ async fn main() -> anyhow::Result<()> {
                                 ("GOS PUB topic message", "Publish a message"),
                                 ("GOS SUB topic", "Subscribe to a topic"),
                                 ("GOS PING", "Ping the network"),
-                                ("GOS SUB PING", "Subscribe to ping topic"),
                             ]);
                         }
                         ["GOS", "PING"] => {
@@ -263,35 +289,6 @@ async fn main() -> anyhow::Result<()> {
                             let topic_handle = gos.get_topic(IdentTopic::new(*topic));
                             let res = topic_handle.publish(message.as_bytes().to_vec()).await;
                             println!("Publish Result: {res:?}");
-                        }
-                        ["GOS", "SUB", "PING"] => {
-                            let topic_handle = gos.get_topic(IdentTopic::new("PING"));
-                            let mut res =
-                                topic_handle.subscribe().await.expect("Failed to subscribe");
-                            let round_trip = client.round_trip();
-                            tokio::spawn(async move {
-                                loop {
-                                    match res.recv().await {
-                                        Ok(msg) => {
-                                            if let Some(source) = msg.message.source {
-                                                let nonce = u64::from_le_bytes(
-                                                    msg.message.data.try_into().unwrap(),
-                                                );
-                                                round_trip.report_round_trip(source, nonce).await;
-                                            } else {
-                                                println!(
-                                                    "Received pong message from unkonwn source"
-                                                );
-                                                continue;
-                                            }
-                                        }
-                                        Err(err) => {
-                                            println!("Error: {:?}", err);
-                                            break;
-                                        }
-                                    }
-                                }
-                            });
                         }
                         ["GOS", "SUB", topic] => {
                             let topic_handle = gos.get_topic(IdentTopic::new(*topic));
