@@ -4,7 +4,10 @@ use libp2p::kad::{
     RecordKey,
 };
 
-use crate::{impl_from_special_command, p2p::command::{SendMultipleResult, SendResult}};
+use crate::{
+    impl_from_special_command,
+    p2p::command::{SendMultipleResult, SendResult},
+};
 
 #[non_exhaustive]
 pub enum Command {

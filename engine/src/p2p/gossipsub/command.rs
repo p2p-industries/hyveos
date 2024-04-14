@@ -1,7 +1,6 @@
 use libp2p::gossipsub::{IdentTopic, MessageId, PublishError, SubscriptionError};
 use tokio::sync::{broadcast, oneshot};
 
-
 use crate::impl_from_special_command;
 
 use super::actor::ReceivedMessage;
