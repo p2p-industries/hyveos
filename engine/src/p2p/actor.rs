@@ -151,10 +151,7 @@ where
                 .round_trip
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
-            e => {
-                // println!("Unhandled swarm event: {:?}", e);
-                Ok(())
-            }
+            _ => Ok(()),
         }
     }
 

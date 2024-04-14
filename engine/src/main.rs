@@ -8,13 +8,8 @@ use libp2p::{
         GetRecordOk, RecordKey,
     },
 };
-use p2p::FullActor;
-use rustyline::{
-    error::ReadlineError,
-    hint::{Hint, Hinter},
-    history::DefaultHistory,
-    Editor,
-};
+use p2p::{gossipsub::ReceivedMessage, FullActor};
+use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 use tokio::time::Instant;
 use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
@@ -137,10 +132,15 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(async move {
         loop {
             match res.recv().await {
-                Ok(msg) => {
-                    if let Some(source) = msg.message.source {
-                        if let Ok(nonce_data) = msg.message.data.try_into() {
+                Ok(ReceivedMessage {
+                    propagation_source,
+                    message_id,
+                    message,
+                }) => {
+                    if let Some(source) = message.source {
+                        if let Ok(nonce_data) = message.data.try_into() {
                             let nonce = u64::from_le_bytes(nonce_data);
+                            tracing::debug!("Received pong message from {source} via {propagation_source} and message id: {message_id}");
                             round_trip.report_round_trip(source, nonce).await;
                         }
                     } else {

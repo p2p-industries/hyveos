@@ -3,10 +3,10 @@ mod behaviour;
 mod client;
 mod command;
 
-mod gossipsub;
-mod kad;
-mod mdns;
-mod round_trip;
+pub mod gossipsub;
+pub mod kad;
+pub mod mdns;
+pub mod round_trip;
 
 pub use actor::Actor;
 
