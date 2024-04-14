@@ -10,3 +10,13 @@ thiserror = { version = "1" }
 tokio-stream = { version = "0.1.15" }
 rand = { version = "0.8.5" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
+
+[profile.perf]
+inherits = "release"
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.size]
+inherits = "perf"
+opt-level = "z"
