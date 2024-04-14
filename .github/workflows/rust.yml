@@ -143,7 +143,7 @@ jobs:
           components: rust-src
 
       - name: Build ${{ matrix.profile }} binary for ${{ matrix.target }} with standard library
-        if: matrix.std
+        if: ${{ matrix.std }}
         run: cargo +nightly build -Z build-std --profile="$PROFILE" --target="$TARGET" --package engine
 
       - name: Build ${{ matrix.profile }} binary for ${{ matrix.target }} without standard library
