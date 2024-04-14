@@ -122,6 +122,7 @@ jobs:
 
   build-and-check-size:
     needs: test 
+    if: needs.test.status == 'success'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -147,7 +148,7 @@ jobs:
         run: cargo +nightly build -Z build-std --profile="$PROFILE" --target="$TARGET" --package engine
 
       - name: Build ${{ matrix.profile }} binary for ${{ matrix.target }} without standard library
-        if: ${{ !matrix.std }}
+        if: ${{ ! matrix.std }}
         run: cargo +nightly build --profile="$PROFILE" --package engine
 
 
