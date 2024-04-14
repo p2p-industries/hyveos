@@ -1,14 +1,25 @@
 [workspace]
-members = ["libp2p/batman-adv", "engine", "macaddress"]
+members = [
+    "batman-neighbors-core",
+    "batman-neighbors-daemon",
+    "libp2p/batman-adv",
+    "engine",
+    "macaddress",
+]
 default-members = ["engine"]
 resolver = "2"
 
 [workspace.dependencies]
+anyhow = { version = "1.0.82" }
 libp2p = { version = "0.53.2", features = ["tokio"] }
-tokio =  { version = "1.37" }
+tokio = { version = "1.37" }
 thiserror = { version = "1" }
 tokio-stream = { version = "0.1.15" }
 rand = { version = "0.8.5" }
+tarpc = { version = "0.34.0" }
+serde = { version = "1.0.197", features = ["derive"] }
+batman-neighbors-core = { version = "0.1.0", path = "batman-neighbors-core" }
+batman-neighbors-daemon = { version = "0.1.0", path = "batman-neighbors-daemon" }
 engine = { version = "0.1.0", path = "engine" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
 macaddress = { version = "0.1.0", path = "macaddress" }
