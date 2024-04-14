@@ -11,7 +11,7 @@ jobs:
     name: Test ${{ matrix.crate }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: gather_published_crates
+    needs: gather_crates
     strategy:
       fail-fast: false
       matrix:
