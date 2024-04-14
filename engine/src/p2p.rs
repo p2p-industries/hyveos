@@ -7,6 +7,7 @@ pub mod gossipsub;
 pub mod kad;
 pub mod location;
 pub mod mdns;
+pub mod ping;
 pub mod round_trip;
 
 pub use actor::Actor;
@@ -37,6 +38,7 @@ pub type FullActor = Actor<
     gossipsub::Actor,
     round_trip::Actor,
     location::Actor,
+    ping::Actor,
     EventError,
     CommandError,
 >;
