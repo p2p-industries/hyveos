@@ -9,4 +9,4 @@ tokio =  { version = "1.37" }
 thiserror = { version = "1" }
 tokio-stream = { version = "0.1.15" }
 rand = { version = "0.8.5" }
-
+libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
