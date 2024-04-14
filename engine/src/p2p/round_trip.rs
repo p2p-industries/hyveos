@@ -7,6 +7,8 @@ use libp2p::{
 };
 use tokio::sync::mpsc;
 
+use crate::impl_from_special_command;
+
 use super::{actor::SubActor, client::SpecialClient};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -38,11 +40,7 @@ pub enum Command {
     },
 }
 
-impl From<Command> for crate::p2p::command::Command {
-    fn from(command: Command) -> Self {
-        crate::p2p::command::Command::RoundTrip(command)
-    }
-}
+impl_from_special_command!(RoundTrip);
 
 #[derive(Default)]
 pub struct Actor {

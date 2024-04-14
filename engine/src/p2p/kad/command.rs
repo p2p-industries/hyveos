@@ -4,7 +4,7 @@ use libp2p::kad::{
     RecordKey,
 };
 
-use crate::p2p::command::{SendMultipleResult, SendResult};
+use crate::{impl_from_special_command, p2p::command::{SendMultipleResult, SendResult}};
 
 #[non_exhaustive]
 pub enum Command {
@@ -30,8 +30,4 @@ pub enum Command {
     },
 }
 
-impl From<Command> for crate::p2p::command::Command {
-    fn from(value: Command) -> Self {
-        crate::p2p::command::Command::Kad(value)
-    }
-}
+impl_from_special_command!(Kad);
