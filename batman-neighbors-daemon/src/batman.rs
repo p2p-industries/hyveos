@@ -147,7 +147,7 @@ impl MessageResponseCommand {
         Ok(Self::Neighbor(BatmanNeighbor {
             if_name,
             last_seen_msecs,
-            mac,
+            mac: mac.into(),
             throughput_kbps,
         }))
     }

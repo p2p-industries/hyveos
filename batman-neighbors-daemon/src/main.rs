@@ -96,7 +96,6 @@ async fn main() -> io::Result<()> {
         .filter_map(|r| future::ready(r.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
-            println!("Accepted connection");
             let server = BatmanNeighborsServerImpl {
                 genetlink_handle: genetlink_handle.clone(),
             };

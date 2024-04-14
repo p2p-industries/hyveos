@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 thiserror = { workspace = true, optional = true }
+serde_with = { version = "3.7.0", default-features = false, features = ["macros"], optional = true }
 
 [features]
-default = ["std"]
-std = ["dep:thiserror"]
+default = ["std", "serde"]
+std = ["dep:thiserror", "serde_with/std"]
+serde = ["dep:serde_with"]

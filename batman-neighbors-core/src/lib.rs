@@ -1,10 +1,11 @@
+use macaddress::MacAddress;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatmanNeighbor {
     pub if_name: String,
     pub last_seen_msecs: u32,
-    pub mac: [u8; 6],
+    pub mac: MacAddress,
     pub throughput_kbps: Option<u32>,
 }
 

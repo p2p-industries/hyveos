@@ -1,21 +1,26 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use core::{fmt::Display, net::Ipv6Addr, str::FromStr};
+#[cfg(feature = "serde")]
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 /// A EUI48 MAC address
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
 pub struct Eui48 {
     bytes: [u8; 6],
 }
 
 /// A EUI64 MAC address
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
 pub struct Eui64 {
     bytes: [u8; 8],
 }
 
 /// A MAC address
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
 pub enum MacAddress {
     Eui48(Eui48),
     Eui64(Eui64),
