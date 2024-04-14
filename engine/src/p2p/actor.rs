@@ -12,7 +12,8 @@ use tokio::sync::mpsc;
 use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
-    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, round_trip,
+    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location,
+    round_trip,
 };
 
 const CHANNEL_CAP: usize = 10;
@@ -40,19 +41,20 @@ pub trait SubActor {
     }
 }
 
-pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, EventError, CommandError> {
+pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandError> {
     swarm: Swarm<MyBehaviour>,
     receiver: mpsc::Receiver<Command>,
     kad: Kad,
     mdns: Mdns,
     gossipsub: Gossipsub,
     round_trip: RoundTrip,
+    location: Location,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
 
-impl<Kad, Mdns, Gossipsub, RoundTrip, EventError, CommandError>
-    Actor<Kad, Mdns, Gossipsub, RoundTrip, EventError, CommandError>
+impl<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandError>
+    Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandError>
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
     Mdns: SubActor<
@@ -69,10 +71,15 @@ where
             EventError = void::Void,
             CommandError = void::Void,
         > + Default,
-    EventError:
-        Error + From<<Kad as SubActor>::EventError> + From<<Gossipsub as SubActor>::EventError>,
-    CommandError:
-        Error + From<<Kad as SubActor>::CommandError> + From<<Gossipsub as SubActor>::CommandError>,
+    Location: SubActor<SubCommand = location::Command, Event = location::Event> + Default,
+    EventError: Error
+        + From<<Kad as SubActor>::EventError>
+        + From<<Gossipsub as SubActor>::EventError>
+        + From<<Location as SubActor>::EventError>,
+    CommandError: Error
+        + From<<Kad as SubActor>::CommandError>
+        + From<<Gossipsub as SubActor>::CommandError>
+        + From<<Location as SubActor>::CommandError>,
 {
     pub fn build(keypair: Keypair) -> (Client, Self) {
         let swarm = SwarmBuilder::with_existing_identity(keypair)
@@ -93,6 +100,7 @@ where
                 mdns: Default::default(),
                 gossipsub: Default::default(),
                 round_trip: Default::default(),
+                location: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -151,6 +159,10 @@ where
                 .round_trip
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            SwarmEvent::Behaviour(MyBehaviourEvent::Location(event)) => self
+                .location
+                .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(Into::into),
             _ => Ok(()),
         }
     }
@@ -169,6 +181,10 @@ where
                 .round_trip
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            Command::Location(command) => self
+                .location
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(Into::into),
         }
     }
 }

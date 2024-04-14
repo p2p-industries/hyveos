@@ -1,6 +1,9 @@
 use libp2p::gossipsub::{IdentTopic, MessageId, PublishError, SubscriptionError};
 use tokio::sync::{broadcast, oneshot};
 
+
+use crate::impl_from_special_command;
+
 use super::actor::ReceivedMessage;
 
 pub enum Command {
@@ -16,8 +19,4 @@ pub enum Command {
     },
 }
 
-impl From<Command> for crate::p2p::command::Command {
-    fn from(command: Command) -> Self {
-        crate::p2p::command::Command::Gossipsub(command)
-    }
-}
+impl_from_special_command!(Gossipsub);
