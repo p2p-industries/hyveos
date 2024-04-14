@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        crate: ${{ fromJSON(needs.gather_published_crates.outputs.members) }}
+        crate: ${{ fromJSON(needs.gather_crates.outputs.members) }}
     env:
       CRATE: ${{ matrix.crate }}
     steps:
