@@ -106,6 +106,7 @@ fn diy_hints() -> DiyHinter {
         "GOS SUB topic",
         CommandHint::new("GOS SUB topic", "GOS SUB"),
     );
+    tree.insert("PING", CommandHint::new("PING", "PING"));
     DiyHinter { tree }
 }
 
@@ -312,6 +313,24 @@ async fn main() -> anyhow::Result<()> {
                             println!("Invalid command");
                         }
                     }
+                } else if line.to_uppercase().trim() == "PING" {
+                    let ping = client.ping();
+                    if let Ok(mut sub) = ping.subscribe().await {
+                        tokio::spawn(async move {
+                            while let Ok(event) = sub.recv().await {
+                                let peer = event.peer;
+                                if let Ok(dur) = event.result {
+                                    println!("Ping to {peer} took {dur:?}");
+                                } else {
+                                    println!("Ping to {peer} failed");
+                                }
+                            }
+                        });
+                    } else {
+                        println!("Failed to subscribe");
+                    }
+                } else {
+                    println!("Invalid command");
                 }
             }
             Err(ReadlineError::Interrupted) => {

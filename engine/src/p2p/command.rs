@@ -1,6 +1,6 @@
 use tokio::sync::{mpsc, oneshot};
 
-use super::{gossipsub, kad, location, round_trip};
+use super::{gossipsub, kad, location, ping, round_trip};
 
 pub type SendResult<T, E> = oneshot::Sender<Result<T, E>>;
 pub type RecvResult<T, E> = oneshot::Receiver<Result<T, E>>;
@@ -23,4 +23,5 @@ pub enum Command {
     Gossipsub(gossipsub::Command),
     RoundTrip(round_trip::Command),
     Location(location::Command),
+    Ping(ping::Command),
 }

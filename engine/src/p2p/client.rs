@@ -5,7 +5,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::p2p::command::Command;
 
-use super::{command::RecvResult, gossipsub, kad, round_trip};
+use super::{command::RecvResult, gossipsub, kad, ping, round_trip};
 
 #[derive(Clone)]
 pub struct Client {
@@ -39,6 +39,10 @@ impl Client {
     }
 
     pub fn round_trip(&self) -> round_trip::Client {
+        self.special()
+    }
+
+    pub fn ping(&self) -> ping::Client {
         self.special()
     }
 }

@@ -3,7 +3,7 @@ use super::actor::SubActor;
 use libp2p::mdns;
 
 #[derive(Debug, Default)]
-pub struct Actor {}
+pub struct Actor;
 
 impl SubActor for Actor {
     type CommandError = void::Void;
