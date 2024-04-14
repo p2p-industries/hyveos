@@ -209,6 +209,16 @@ impl From<Eui64> for Ipv6Addr {
     }
 }
 
+impl From<MacAddress> for Ipv6Addr {
+    fn from(value: MacAddress) -> Self {
+        match value {
+            MacAddress::Eui48(mac) => Eui64::from(mac),
+            MacAddress::Eui64(mac) => mac,
+        }
+        .into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate alloc;
