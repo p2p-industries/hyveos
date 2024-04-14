@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-batman-neighbors-core = { workspace = true }
+batman-neighbours-core = { workspace = true }
 anyhow = { workspace = true }
 tarpc = { workspace = true, features = ["serde-transport", "serde-transport-bincode", "unix"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

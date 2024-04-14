@@ -2,7 +2,7 @@ mod batman;
 
 use std::{fs::Permissions, io, os::unix::fs::{self, PermissionsExt}, path::PathBuf, sync::Arc};
 
-use batman_neighbors_core::{BatmanNeighbor, BatmanNeighborsServer};
+use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServer};
 use clap::Parser;
 use futures::{future, Future, StreamExt as _, TryStreamExt as _};
 use genetlink::GenetlinkHandle;
@@ -20,19 +20,19 @@ use tokio::sync::Mutex;
 
 #[derive(Parser)]
 struct Args {
-    #[clap(long, default_value = "/var/run/batman-neighbors.sock")]
+    #[clap(long, default_value = "/var/run/batman-neighbours.sock")]
     socket_path: PathBuf,
 }
 
 #[derive(Clone)]
-struct BatmanNeighborsServerImpl {
+struct BatmanNeighboursServerImpl {
     genetlink_handle: Arc<Mutex<GenetlinkHandle>>,
 }
 
-impl BatmanNeighborsServer for BatmanNeighborsServerImpl {
-    async fn get_neighbors(self, _: Context) -> Result<Vec<BatmanNeighbor>, String> {
+impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
+    async fn get_neighbours(self, _: Context) -> Result<Vec<BatmanNeighbour>, String> {
         let message =
-            batman::Message::new_request(batman::MessageRequestCommand::GetNeighbors, "bat0")
+            batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, "bat0")
                 .map_err(|e| format!("Failed to create message: {}", e))?;
 
         let mut header = NetlinkHeader::default();
@@ -54,8 +54,8 @@ impl BatmanNeighborsServer for BatmanNeighborsServerImpl {
                     res.and_then(|message| match message.payload {
                         NetlinkPayload::InnerMessage(inner) => match inner.payload {
                             batman::Message::Response(batman::MessageResponse {
-                                cmd: batman::MessageResponseCommand::Neighbor(neighbor),
-                            }) => Ok(Some(neighbor)),
+                                cmd: batman::MessageResponseCommand::Neighbour(neighbour),
+                            }) => Ok(Some(neighbour)),
                             _ => Err("Expected response message but got request".into()),
                         },
                         NetlinkPayload::Error(err) => Err(format!("Received error: {:?}", err)),
@@ -89,14 +89,14 @@ async fn main() -> io::Result<()> {
     let transport = tarpc::serde_transport::unix::listen(&args.socket_path, Bincode::default)
         .await?;
 
-    fs::chown(&args.socket_path, None, users::get_group_by_name("batman-neighbors").map(|g| g.gid()))?;
-    tokio::fs::set_permissions(&args.socket_path, Permissions::from_mode(0o777)).await?;
+    fs::chown(&args.socket_path, None, users::get_group_by_name("batman-neighbours").map(|g| g.gid()))?;
+    tokio::fs::set_permissions(&args.socket_path, Permissions::from_mode(0o660)).await?;
 
     transport
         .filter_map(|r| future::ready(r.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
-            let server = BatmanNeighborsServerImpl {
+            let server = BatmanNeighboursServerImpl {
                 genetlink_handle: genetlink_handle.clone(),
             };
 

@@ -1,6 +1,6 @@
 use std::io;
 
-use batman_neighbors_core::BatmanNeighbor;
+use batman_neighbours_core::BatmanNeighbour;
 use byteorder::{ByteOrder as _, NativeEndian};
 use netlink_packet_generic::{GenlFamily, GenlHeader};
 use netlink_packet_utils::{
@@ -15,7 +15,7 @@ const BATADV_ATTR_LAST_SEEN_MSECS: u16 = 23;
 const BATADV_ATTR_NEIGH_ADDRESS: u16 = 24;
 const BATADV_ATTR_THROUGHPUT: u16 = 26;
 
-const BATADV_CMD_GET_NEIGHBORS: u8 = 9;
+const BATADV_CMD_GET_NEIGHBOURS: u8 = 9;
 
 fn if_name_to_index(name: impl Into<Vec<u8>>) -> io::Result<u32> {
     let ifname = std::ffi::CString::new(name)?;
@@ -65,13 +65,13 @@ impl TryFrom<&str> for MeshIfIndex {
 
 #[derive(Debug, Clone)]
 pub enum MessageRequestCommand {
-    GetNeighbors,
+    GetNeighbours,
 }
 
 impl MessageRequestCommand {
     fn get_cmd(&self) -> u8 {
         match self {
-            Self::GetNeighbors => BATADV_CMD_GET_NEIGHBORS,
+            Self::GetNeighbours => BATADV_CMD_GET_NEIGHBOURS,
         }
     }
 }
@@ -100,11 +100,11 @@ impl Emitable for MessageRequest {
 
 #[derive(Debug, Clone)]
 pub enum MessageResponseCommand {
-    Neighbor(BatmanNeighbor),
+    Neighbour(BatmanNeighbour),
 }
 
 impl MessageResponseCommand {
-    fn parse_neighbor(buffer: &[u8]) -> Result<Self, DecodeError> {
+    fn parse_neighbour(buffer: &[u8]) -> Result<Self, DecodeError> {
         let mut if_index = None;
         let mut if_name = None;
         let mut last_seen_msecs = None;
@@ -144,7 +144,7 @@ impl MessageResponseCommand {
         let last_seen_msecs = last_seen_msecs.ok_or("Missing attribute last_seen_msecs from kernel")?;
         let mac = mac.ok_or("Missing attribute mac from kernel")?;
 
-        Ok(Self::Neighbor(BatmanNeighbor {
+        Ok(Self::Neighbour(BatmanNeighbour {
             if_name,
             last_seen_msecs,
             mac: mac.into(),
@@ -165,7 +165,7 @@ impl ParseableParametrized<[u8], GenlHeader> for MessageResponse {
     ) -> Result<Self, DecodeError> {
         Ok(Self {
             cmd: match header.cmd {
-                BATADV_CMD_GET_NEIGHBORS => MessageResponseCommand::parse_neighbor(buffer)?,
+                BATADV_CMD_GET_NEIGHBOURS => MessageResponseCommand::parse_neighbour(buffer)?,
                 cmd => {
                     return Err(DecodeError::from(format!(
                         "Unsupported batadv response command: {}",

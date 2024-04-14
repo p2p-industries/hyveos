@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "batman-neighbors-core",
-    "batman-neighbors-daemon",
+    "batman-neighbours-core",
+    "batman-neighbours-daemon",
     "libp2p/batman-adv",
     "engine",
     "macaddress",
@@ -18,8 +18,8 @@ tokio-stream = { version = "0.1.15" }
 rand = { version = "0.8.5" }
 tarpc = { version = "0.34.0" }
 serde = { version = "1.0.197", features = ["derive"] }
-batman-neighbors-core = { version = "0.1.0", path = "batman-neighbors-core" }
-batman-neighbors-daemon = { version = "0.1.0", path = "batman-neighbors-daemon" }
+batman-neighbours-core = { version = "0.1.0", path = "batman-neighbours-core" }
+batman-neighbours-daemon = { version = "0.1.0", path = "batman-neighbours-daemon" }
 engine = { version = "0.1.0", path = "engine" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
 macaddress = { version = "0.1.0", path = "macaddress" }

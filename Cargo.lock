@@ -275,7 +275,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
-name = "batman-neighbors-core"
+name = "batman-neighbours-core"
 version = "0.1.0"
 dependencies = [
  "macaddress",
@@ -284,10 +284,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "batman-neighbors-daemon"
+name = "batman-neighbours-daemon"
 version = "0.1.0"
 dependencies = [
- "batman-neighbors-core",
+ "batman-neighbours-core",
  "byteorder",
  "clap",
  "futures",
@@ -1471,7 +1471,7 @@ name = "libp2p-batman-adv"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "batman-neighbors-core",
+ "batman-neighbours-core",
  "tarpc",
  "tokio",
 ]

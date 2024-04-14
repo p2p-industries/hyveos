@@ -2,7 +2,7 @@ use macaddress::MacAddress;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BatmanNeighbor {
+pub struct BatmanNeighbour {
     pub if_name: String,
     pub last_seen_msecs: u32,
     pub mac: MacAddress,
@@ -10,6 +10,6 @@ pub struct BatmanNeighbor {
 }
 
 #[tarpc::service]
-pub trait BatmanNeighborsServer {
-    async fn get_neighbors() -> Result<Vec<BatmanNeighbor>, String>;
+pub trait BatmanNeighboursServer {
+    async fn get_neighbours() -> Result<Vec<BatmanNeighbour>, String>;
 }
