@@ -12,14 +12,14 @@ use tokio::sync::mpsc;
 use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
-    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location,
+    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location, ping,
     round_trip,
 };
 
 const CHANNEL_CAP: usize = 10;
 
 pub trait SubActor {
-    type SubCommand;
+    type SubCommand: Send;
     type CommandError: Error;
     type Event;
     type EventError: Error;
@@ -41,7 +41,7 @@ pub trait SubActor {
     }
 }
 
-pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandError> {
+pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, CommandError> {
     swarm: Swarm<MyBehaviour>,
     receiver: mpsc::Receiver<Command>,
     kad: Kad,
@@ -49,12 +49,13 @@ pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandE
     gossipsub: Gossipsub,
     round_trip: RoundTrip,
     location: Location,
+    ping: Ping,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
 
-impl<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandError>
-    Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, EventError, CommandError>
+impl<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, CommandError>
+    Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, CommandError>
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
     Mdns: SubActor<
@@ -72,6 +73,12 @@ where
             CommandError = void::Void,
         > + Default,
     Location: SubActor<SubCommand = location::Command, Event = location::Event> + Default,
+    Ping: SubActor<
+            SubCommand = ping::Command,
+            Event = ping::Event,
+            CommandError = void::Void,
+            EventError = void::Void,
+        > + Default,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
         + From<<Gossipsub as SubActor>::EventError>
@@ -101,6 +108,7 @@ where
                 gossipsub: Default::default(),
                 round_trip: Default::default(),
                 location: Default::default(),
+                ping: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -163,6 +171,10 @@ where
                 .location
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(Into::into),
+            SwarmEvent::Behaviour(MyBehaviourEvent::Ping(ping)) => self
+                .ping
+                .handle_event(ping.into(), self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
             _ => Ok(()),
         }
     }
@@ -185,6 +197,10 @@ where
                 .location
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(Into::into),
+            Command::Ping(command) => self
+                .ping
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
         }
     }
 }
