@@ -1,5 +1,5 @@
 [workspace]
-members = ["libp2p/batman-adv", "engine"]
+members = ["libp2p/batman-adv", "engine", "macaddress"]
 default-members = ["engine"]
 resolver = "2"
 
@@ -11,6 +11,7 @@ tokio-stream = { version = "0.1.15" }
 rand = { version = "0.8.5" }
 engine = { version = "0.1.0", path = "engine" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
+macaddress = { version = "0.1.0", path = "macaddress" }
 
 [profile.perf]
 inherits = "release"
