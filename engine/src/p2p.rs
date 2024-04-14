@@ -5,6 +5,7 @@ mod command;
 
 pub mod gossipsub;
 pub mod kad;
+pub mod location;
 pub mod mdns;
 pub mod round_trip;
 
@@ -16,6 +17,8 @@ pub enum EventError {
     Kad(#[from] kad::EventError),
     #[error("Gossipsub error: `{0}`")]
     Gossipsub(#[from] gossipsub::EventError),
+    #[error("Location error: `{0}`")]
+    Location(#[from] location::EventError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -24,7 +27,16 @@ pub enum CommandError {
     Kad(#[from] kad::CommandError),
     #[error("Gossipsub error: `{0}`")]
     Gossipsub(#[from] gossipsub::CommandError),
+    #[error("Location error: `{0}`")]
+    Location(#[from] location::CommandError),
 }
 
-pub type FullActor =
-    Actor<kad::Actor, mdns::Actor, gossipsub::Actor, round_trip::Actor, EventError, CommandError>;
+pub type FullActor = Actor<
+    kad::Actor,
+    mdns::Actor,
+    gossipsub::Actor,
+    round_trip::Actor,
+    location::Actor,
+    EventError,
+    CommandError,
+>;
