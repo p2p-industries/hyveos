@@ -1,0 +1,11 @@
+[package]
+name = "macaddress"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = { workspace = true, optional = true }
+
+[features]
+default = ["std"]
+std = ["dep:thiserror"]

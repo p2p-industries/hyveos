@@ -1566,6 +1566,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "macaddress"
+version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
 name = "match_cfg"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
