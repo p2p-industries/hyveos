@@ -5,6 +5,9 @@ edition = "2021"
 
 [dependencies]
 batman-neighbours-core = { workspace = true }
+macaddress = { workspace = true }
 anyhow = { workspace = true }
+libp2p = { workspace = true }
 tarpc = { workspace = true, features = ["serde-transport", "serde-transport-bincode", "unix"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+void = "1.0.2"

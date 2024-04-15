@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+libp2p-batman-adv = { workspace = true }
 libp2p = { workspace = true, features = ["tokio", "quic", "identify", "kad", "gossipsub", "ping", "macros", "ed25519", "mdns", "serde", "request-response", "cbor"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "io-std", "io-util"] }
 thiserror = { workspace = true }

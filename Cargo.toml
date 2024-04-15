@@ -6,7 +6,7 @@ members = [
     "engine",
     "macaddress",
 ]
-default-members = ["engine"]
+default-members = ["batman-neighbours-daemon", "engine"]
 resolver = "2"
 
 [workspace.dependencies]

@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, time::Duration};
 
 use batman_neighbours_core::BatmanNeighbour;
 use byteorder::{ByteOrder as _, NativeEndian};
@@ -146,7 +146,7 @@ impl MessageResponseCommand {
 
         Ok(Self::Neighbour(BatmanNeighbour {
             if_name,
-            last_seen_msecs,
+            last_seen: Duration::from_millis(last_seen_msecs as u64),
             mac: mac.into(),
             throughput_kbps,
         }))
