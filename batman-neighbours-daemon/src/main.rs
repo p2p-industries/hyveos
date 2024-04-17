@@ -1,3 +1,5 @@
+#![warn(clippy::expect_used, clippy::unwrap_used)]
+
 mod batman;
 
 use std::{
@@ -8,7 +10,7 @@ use std::{
     sync::Arc,
 };
 
-use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServer};
+use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServer, Error};
 use clap::Parser;
 use futures::{future, Future, StreamExt as _, TryStreamExt as _};
 use genetlink::GenetlinkHandle;
@@ -40,10 +42,10 @@ impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
         self,
         _: Context,
         if_index: u32,
-    ) -> Result<Vec<BatmanNeighbour>, String> {
+    ) -> Result<Vec<BatmanNeighbour>, Error> {
         let message =
             batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, if_index)
-                .map_err(|e| format!("Failed to create message: {}", e))?;
+                .map_err(|e| Error::CreateMessage(e.to_string()))?;
 
         let mut header = NetlinkHeader::default();
         header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_ROOT | NLM_F_MATCH;
@@ -57,8 +59,8 @@ impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
             .await
             .request(message)
             .await
-            .map_err(|e| format!("Failed to send request: {}", e))?
-            .map_err(|e| format!("Failed to decode response: {}", e))
+            .map_err(|e| Error::FailedToSendRequest(e.to_string()))?
+            .map_err(|e| Error::FailedToDecodeResponse(e.to_string()))
             .filter_map(|res| {
                 future::ready(
                     res.and_then(|message| match message.payload {
@@ -66,9 +68,9 @@ impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
                             batman::Message::Response(batman::MessageResponse {
                                 cmd: batman::MessageResponseCommand::Neighbour(neighbour),
                             }) => Ok(Some(neighbour)),
-                            _ => Err("Expected response message but got request".into()),
+                            _ => Err(Error::ExpectedResponseMessage),
                         },
-                        NetlinkPayload::Error(err) => Err(format!("Received error: {:?}", err)),
+                        NetlinkPayload::Error(err) => Err(Error::NetlinkError(err.to_string())),
                         _ => Ok(None),
                     })
                     .transpose(),

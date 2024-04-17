@@ -1,22 +1,32 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-use batman_neighbours_core::BatmanNeighbour;
 use libp2p::PeerId;
 use macaddress::MacAddress;
 
-use crate::ResolvedNeighbour;
+use crate::{ResolvedNeighbour, UnresolvedNeighbour};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct NeighbourStoreUpdate {
-    pub discovered: Vec<BatmanNeighbour>,
-    pub lost_unresolved: Vec<BatmanNeighbour>,
-    pub lost_resolved: Vec<ResolvedNeighbour>,
-    pub lost_peers: Vec<PeerId>,
+    pub discovered: HashMap<MacAddress, UnresolvedNeighbour>,
+    pub resolved: HashMap<MacAddress, ResolvedNeighbour>,
+    pub lost_unresolved: HashMap<MacAddress, UnresolvedNeighbour>,
+    pub lost_resolved: HashMap<MacAddress, ResolvedNeighbour>,
+    pub lost_peers: HashSet<PeerId>,
 }
 
 impl NeighbourStoreUpdate {
+    pub fn combine(&mut self, other: NeighbourStoreUpdate) {
+        // TODO: check if this actually works as intended
+        self.discovered.extend(other.discovered);
+        self.resolved.extend(other.resolved);
+        self.lost_unresolved.extend(other.lost_unresolved);
+        self.lost_resolved.extend(other.lost_resolved);
+        self.lost_peers.extend(other.lost_peers);
+    }
+
     pub fn has_changes(&self) -> bool {
         !(self.discovered.is_empty()
+            && self.resolved.is_empty()
             && self.lost_unresolved.is_empty()
             && self.lost_resolved.is_empty()
             && self.lost_peers.is_empty())
@@ -25,16 +35,16 @@ impl NeighbourStoreUpdate {
 
 #[derive(Default)]
 pub struct NeighbourStore {
-    pub unresolved: HashMap<MacAddress, BatmanNeighbour>,
+    pub unresolved: HashMap<MacAddress, UnresolvedNeighbour>,
     pub resolved: HashMap<PeerId, HashMap<MacAddress, ResolvedNeighbour>>,
 }
 
 impl NeighbourStore {
     pub fn update_available_neighbours(
         &mut self,
-        neighbours: impl IntoIterator<Item = BatmanNeighbour>,
+        neighbours: impl IntoIterator<Item = UnresolvedNeighbour>,
     ) -> NeighbourStoreUpdate {
-        let mut discovered = Vec::new();
+        let mut discovered = HashMap::new();
 
         let mut lost_unresolved_macs = self.unresolved.keys().copied().collect::<HashSet<_>>();
         let mut lost_resolved_macs = self
@@ -55,21 +65,21 @@ impl NeighbourStore {
             }
 
             self.unresolved.insert(mac, neighbour.clone());
-            discovered.push(neighbour);
+            discovered.insert(mac, neighbour);
         }
 
-        let mut lost_unresolved = Vec::new();
+        let mut lost_unresolved = HashMap::new();
 
         for mac in lost_unresolved_macs {
             let Some(neighbour) = self.unresolved.remove(&mac) else {
                 continue;
             };
 
-            lost_unresolved.push(neighbour);
+            lost_unresolved.insert(mac, neighbour);
         }
 
-        let mut lost_resolved = Vec::new();
-        let mut lost_peers = Vec::new();
+        let mut lost_resolved = HashMap::new();
+        let mut lost_peers = HashSet::new();
 
         for (mac, id) in lost_resolved_macs {
             let Entry::Occupied(mut entry) = self.resolved.entry(id) else {
@@ -81,35 +91,57 @@ impl NeighbourStore {
                 continue;
             };
 
-            lost_resolved.push(neighbour);
+            lost_resolved.insert(mac, neighbour);
 
             if neighbours.is_empty() {
-                lost_peers.push(id);
+                lost_peers.insert(id);
                 entry.remove();
             }
         }
 
         NeighbourStoreUpdate {
             discovered,
+            resolved: HashMap::new(),
             lost_unresolved,
             lost_resolved,
             lost_peers,
         }
     }
 
-    pub fn resolve_neighbour(&mut self, neighbour: ResolvedNeighbour) {
+    pub fn resolve_neighbour(&mut self, neighbour: ResolvedNeighbour) -> NeighbourStoreUpdate {
         let mac = neighbour.mac;
-        self.unresolved.remove(&mac);
+
+        let mut discovered = HashMap::new();
+
+        if self.unresolved.remove(&mac).is_none() {
+            discovered.insert(mac, UnresolvedNeighbour {
+                if_index: neighbour.if_index,
+                mac,
+            });
+        }
+
         self.resolved
             .entry(neighbour.peer_id)
             .or_default()
-            .insert(mac, neighbour);
+            .insert(mac, neighbour.clone());
+
+        let mut resolved = HashMap::new();
+        resolved.insert(mac, neighbour);
+
+        NeighbourStoreUpdate {
+            discovered,
+            resolved,
+            ..Default::default()
+        }
     }
 
     pub fn remove_neighbour(&mut self, mac: MacAddress) -> NeighbourStoreUpdate {
         if let Some(neighbour) = self.unresolved.remove(&mac) {
+            let mut lost_unresolved = HashMap::new();
+            lost_unresolved.insert(mac, neighbour);
+
             NeighbourStoreUpdate {
-                lost_unresolved: vec![neighbour],
+                lost_unresolved,
                 ..Default::default()
             }
         } else {
@@ -121,7 +153,7 @@ impl NeighbourStore {
                         lost_peer = Some(*id);
                     }
 
-                    lost_neighbour = Some(neighbour);
+                    lost_neighbour = Some((neighbour.mac, neighbour));
                     break;
                 }
             }
@@ -131,8 +163,8 @@ impl NeighbourStore {
             }
 
             NeighbourStoreUpdate {
-                lost_resolved: Vec::from_iter(lost_neighbour),
-                lost_peers: Vec::from_iter(lost_peer),
+                lost_resolved: HashMap::from_iter(lost_neighbour),
+                lost_peers: HashSet::from_iter(lost_peer),
                 ..Default::default()
             }
         }

@@ -281,6 +281,7 @@ dependencies = [
  "macaddress",
  "serde",
  "tarpc",
+ "thiserror",
 ]
 
 [[package]]
@@ -1488,7 +1489,6 @@ dependencies = [
 name = "libp2p-batman-adv"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "batman-neighbours-core",
  "bincode",
  "futures",
@@ -1505,9 +1505,11 @@ dependencies = [
  "serde",
  "socket2",
  "tarpc",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "tokio-util",
+ "tracing",
  "void",
 ]
 

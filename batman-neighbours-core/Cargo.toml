@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 macaddress = { workspace = true }
 tarpc = { workspace = true }
+thiserror = { workspace = true }
 serde = { workspace = true }

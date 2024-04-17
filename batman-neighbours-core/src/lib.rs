@@ -1,7 +1,10 @@
+#![warn(clippy::expect_used, clippy::unwrap_used)]
+
 use std::time::Duration;
 
 use macaddress::MacAddress;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BatmanNeighbour {
@@ -11,7 +14,21 @@ pub struct BatmanNeighbour {
     pub throughput_kbps: Option<u32>,
 }
 
+#[derive(Debug, Clone, Error, Serialize, Deserialize)]
+pub enum Error {
+    #[error("Failed to create message: {0}")]
+    CreateMessage(String),
+    #[error("Failed to send netlink request: {0}")]
+    FailedToSendRequest(String),
+    #[error("Failed to decode netlink response: {0}")]
+    FailedToDecodeResponse(String),
+    #[error("Expected response message not request")]
+    ExpectedResponseMessage,
+    #[error("Received netlink error: {0}")]
+    NetlinkError(String),
+}
+
 #[tarpc::service]
 pub trait BatmanNeighboursServer {
-    async fn get_neighbours(if_index: u32) -> Result<Vec<BatmanNeighbour>, String>;
+    async fn get_neighbours(if_index: u32) -> Result<Vec<BatmanNeighbour>, Error>;
 }

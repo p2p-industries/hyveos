@@ -6,14 +6,15 @@ edition = "2021"
 [dependencies]
 batman-neighbours-core = { workspace = true }
 macaddress = { workspace = true }
-anyhow = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 rand = { workspace = true }
 serde = { workspace = true }
 tarpc = { workspace = true, features = ["serde-transport", "serde-transport-bincode", "unix"] }
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true }
+tracing = { workspace = true }
 void = "1.0.2"
 rtnetlink = "0.14.1"
 netlink-proto = "0.11.3"

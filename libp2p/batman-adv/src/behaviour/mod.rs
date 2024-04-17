@@ -12,12 +12,12 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServerClient};
+use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServerClient, Error as BatmanError};
 use futures::{
     stream::{self, StreamExt as _, TryStreamExt as _},
     Stream as _,
 };
-use itertools::Itertools;
+use itertools::Itertools as _;
 use libp2p::{
     core::Endpoint,
     multiaddr::Protocol,
@@ -29,7 +29,6 @@ use libp2p::{
 };
 use macaddress::MacAddress;
 use netlink_packet_route::address::AddressAttribute;
-use rtnetlink::Error as RtnetlinkError;
 use tarpc::{
     client::{self, RpcError},
     context,
@@ -44,7 +43,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::WatchStream;
 
-use crate::{Config, ResolvedNeighbour};
+use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeighbour};
 
 use self::{
     if_watcher::{IfAddr, IfEvent, IfWatcher},
@@ -53,7 +52,9 @@ use self::{
 };
 
 #[derive(Debug, Clone)]
-pub enum Event {}
+pub enum Event {
+    NeighbourUpdate(NeighbourStoreUpdate),
+}
 
 trait ListenAddressesExt {
     fn find_address(&self, p: impl FnMut(&Ipv6Addr) -> bool) -> Option<Multiaddr>;
@@ -78,7 +79,7 @@ impl ListenAddressesExt for ListenAddresses {
 }
 
 struct GettingBatmanAddrBehaviour {
-    receiver: oneshot::Receiver<anyhow::Result<Multiaddr>>,
+    receiver: oneshot::Receiver<Result<Multiaddr, Error>>,
 }
 
 impl GettingBatmanAddrBehaviour {
@@ -95,16 +96,20 @@ impl GettingBatmanAddrBehaviour {
             let res =
                 Self::run_task(batman_if_index, listen_addresses, listen_addresses_receiver).await;
 
-            sender.send(res).unwrap();
+            if sender.send(res).is_err() {
+                tracing::error!("Failed to send Batman address");
+            }
         });
 
         Self { receiver }
     }
 
-    fn poll(&mut self, cx: &mut Context<'_>) -> Poll<Result<Multiaddr, anyhow::Error>> {
+    fn poll(&mut self, cx: &mut Context<'_>) -> Poll<Result<Multiaddr, Error>> {
         match ready!(Pin::new(&mut self.receiver).poll(cx)) {
             Ok(res) => Poll::Ready(res),
-            Err(e) => Poll::Ready(Err(e.into())),
+            Err(_) => Poll::Ready(Err(Error::ChannelClosed(
+                "GettingBatmanAddrBehaviour".into(),
+            ))),
         }
     }
 
@@ -112,8 +117,9 @@ impl GettingBatmanAddrBehaviour {
         batman_if_index: u32,
         listen_addresses: Arc<RwLock<ListenAddresses>>,
         mut listen_addresses_receiver: watch::Receiver<()>,
-    ) -> anyhow::Result<Multiaddr> {
-        let (conn, handle, _) = rtnetlink::new_connection()?;
+    ) -> Result<Multiaddr, Error> {
+        let (conn, handle, _) = rtnetlink::new_connection()
+            .map_err(|e| Error::CreateNetlinkConnection(e.to_string()))?;
         tokio::spawn(conn);
 
         let addresses = handle
@@ -121,7 +127,8 @@ impl GettingBatmanAddrBehaviour {
             .get()
             .set_link_index_filter(batman_if_index)
             .execute()
-            .map_ok(|msg| stream::iter(msg.attributes).map(Ok::<_, RtnetlinkError>))
+            .map_err(|e| Error::GetAddresses(e.to_string()))
+            .map_ok(|msg| stream::iter(msg.attributes).map(Ok::<_, Error>))
             .try_flatten()
             .try_filter_map(|attr| async move {
                 Ok(if let AddressAttribute::Address(IpAddr::V6(local)) = attr {
@@ -136,13 +143,16 @@ impl GettingBatmanAddrBehaviour {
         loop {
             if let Some(multiaddr) = listen_addresses
                 .read()
-                .unwrap()
+                .unwrap_or_else(|e| e.into_inner())
                 .find_address(|addr| addresses.contains(addr))
             {
                 return Ok(multiaddr);
             }
 
-            listen_addresses_receiver.changed().await?;
+            listen_addresses_receiver
+                .changed()
+                .await
+                .map_err(|_| Error::ChannelClosed("ListenAddressesReceiver".into()))?;
         }
     }
 }
@@ -154,8 +164,10 @@ struct ResolvingNeighboursBehaviour {
     listen_addresses: Arc<RwLock<ListenAddresses>>,
     listen_addresses_notifier: WatchStream<()>,
     pending_neighbour_resolvers: HashSet<IfAddr>,
-    neighbour_resolvers: HashMap<u32, (JoinHandle<()>, Sender<Vec<MacAddress>>)>,
-    discovered_neighbour_receiver: Receiver<Result<Result<Vec<BatmanNeighbour>, String>, RpcError>>,
+    #[allow(clippy::type_complexity)]
+    neighbour_resolvers: HashMap<u32, (JoinHandle<()>, Sender<Vec<MacAddress>>, IfAddr)>,
+    discovered_neighbour_receiver:
+        Receiver<Result<Result<Vec<BatmanNeighbour>, BatmanError>, RpcError>>,
     resolved_neighbour_sender: Sender<Result<ResolvedNeighbour, MacAddress>>,
     resolved_neighbour_receiver: Receiver<Result<ResolvedNeighbour, MacAddress>>,
     neighbour_store: Arc<RwLock<NeighbourStore>>,
@@ -179,10 +191,11 @@ impl ResolvingNeighboursBehaviour {
         let refresh_interval = config.refresh_interval;
 
         tokio::spawn(async move {
-            let transport =
-                tarpc::serde_transport::unix::connect(socket_path.as_ref(), Bincode::default)
-                    .await
-                    .unwrap();
+            let Ok(transport) =
+                tarpc::serde_transport::unix::connect(socket_path.as_ref(), Bincode::default).await
+            else {
+                return;
+            };
 
             let client =
                 BatmanNeighboursServerClient::new(client::Config::default(), transport).spawn();
@@ -223,8 +236,6 @@ impl ResolvingNeighboursBehaviour {
         cx: &mut Context<'_>,
         config: &Config,
     ) -> Poll<ToSwarm<Event, THandlerInEvent<Behaviour>>> {
-        println!("Polling ResolvingNeighboursBehaviour");
-
         if self
             .listen_addresses_notifier
             .poll_next_unpin(cx)
@@ -252,7 +263,7 @@ impl ResolvingNeighboursBehaviour {
                     self.add_resolver(config.clone(), addr);
                 }
                 Ok(IfEvent::Down(addr)) => {
-                    if let Some((handle, _)) = self.neighbour_resolvers.remove(&addr.if_index) {
+                    if let Some((handle, _, _)) = self.neighbour_resolvers.remove(&addr.if_index) {
                         handle.abort();
                     } else {
                         self.pending_neighbour_resolvers.remove(&addr);
@@ -262,35 +273,51 @@ impl ResolvingNeighboursBehaviour {
             }
         }
 
-        while let Poll::Ready(Some(result)) = self.discovered_neighbour_receiver.poll_recv(cx) {
+        let mut neighbour_update = NeighbourStoreUpdate::default();
+
+        if let Poll::Ready(Some(result)) = self.discovered_neighbour_receiver.poll_recv(cx) {
             println!("Received discovered neighbours");
             match result {
                 Ok(Ok(neighbours)) => {
-                    let update = self
-                        .neighbour_store
-                        .write()
-                        .unwrap()
+                    let mut update = self.neighbour_store.write().unwrap_or_else(|e| e.into_inner())
                         .update_available_neighbours(
                             neighbours
                                 .into_iter()
-                                .filter(|n| n.last_seen < config.neighbour_timeout),
+                                .filter(|n| n.last_seen < config.neighbour_timeout)
+                                .map(Into::into),
                         );
 
                     for (if_index, discovered_neighbours) in update
                         .discovered
                         .iter()
-                        .map(|n| (n.if_index, n.mac))
+                        .map(|(mac, n)| (n.if_index, *mac))
                         .into_group_map()
                     {
-                        if let Some((_, sender)) = self.neighbour_resolvers.get_mut(&if_index) {
-                            sender.try_send(discovered_neighbours).unwrap();
+                        if let Some((_, sender, addr)) = self.neighbour_resolvers.get_mut(&if_index) {
+                            let addr = *addr;
+                            if let Some(discovered_neighbours) = match sender.try_send(discovered_neighbours) {
+                                Ok(_) => None,
+                                Err(TrySendError::Closed(discovered_neighbours)) => {
+                                    tracing::error!("Neighbour resolver dropped");
+                                    self.neighbour_resolvers.remove(&if_index);
+                                    self.add_resolver(config.clone(), addr);
+                                    Some(discovered_neighbours)
+                                }
+                                Err(TrySendError::Full(discovered_neighbours)) => {
+                                    tracing::error!("Neighbour resolver buffer full");
+                                    Some(discovered_neighbours)
+                                }
+                            } {
+                                // undiscover neighbours, so we can rediscover them later
+                                for mac in discovered_neighbours {
+                                    update.discovered.remove(&mac);
+                                    self.neighbour_store.write().unwrap_or_else(|e| e.into_inner()).unresolved.remove(&mac);
+                                }
+                            }
                         }
                     }
 
-                    // TODO: do something with the update
-                    if update.has_changes() {
-                        println!("\nUpdate: {:?}", update);
-                    }
+                    neighbour_update = update;
                 }
                 Ok(Err(e)) => {
                     eprintln!("Failed to get neighbours: {}", e);
@@ -303,7 +330,7 @@ impl ResolvingNeighboursBehaviour {
 
         while let Poll::Ready(Some(res)) = self.resolved_neighbour_receiver.poll_recv(cx) {
             println!("locking neighbour store");
-            let mut neighbour_store = self.neighbour_store.write().unwrap();
+            let mut neighbour_store = self.neighbour_store.write().unwrap_or_else(|e| e.into_inner());
 
             println!("locked neighbour store");
 
@@ -311,19 +338,24 @@ impl ResolvingNeighboursBehaviour {
                 Ok(neighbour) => {
                     println!("\nResolved neighbour: {:#?}", neighbour);
 
-                    neighbour_store.resolve_neighbour(neighbour);
+                    let update = neighbour_store.resolve_neighbour(neighbour);
 
-                    // TODO: do something with the resolved neighbour
+                    neighbour_update.combine(update);
                 }
                 Err(mac) => {
                     eprintln!("Failed to resolve neighbour: {}", mac);
 
                     let update = neighbour_store.remove_neighbour(mac);
 
-                    // TODO: do something with the update
-                    println!("\nUpdate: {:#?}", update);
+                    neighbour_update.combine(update);
                 }
             }
+        }
+
+        if neighbour_update.has_changes() {
+            return Poll::Ready(ToSwarm::GenerateEvent(Event::NeighbourUpdate(
+                neighbour_update,
+            )));
         }
 
         Poll::Pending
@@ -334,7 +366,7 @@ impl ResolvingNeighboursBehaviour {
             if let Some(direct_address) = self
                 .listen_addresses
                 .read()
-                .unwrap()
+                .unwrap_or_else(|e| e.into_inner())
                 .find_address(|a| a == &addr.addr)
             {
                 match NeighbourResolver::new(
@@ -346,20 +378,20 @@ impl ResolvingNeighboursBehaviour {
                     self.resolved_neighbour_sender.clone(),
                 ) {
                     Ok((resolver, sender)) => {
-                        let (_, sender) = entry.insert((tokio::spawn(resolver), sender));
+                        let (_, sender, _) = entry.insert((tokio::spawn(resolver), sender, addr));
 
                         let unresolved_neighbours = self
                             .neighbour_store
                             .read()
-                            .unwrap()
+                            .unwrap_or_else(|e| e.into_inner())
                             .unresolved
                             .values()
                             .filter(|n| n.if_index == addr.if_index)
                             .map(|n| n.mac)
                             .collect::<Vec<_>>();
 
-                        if !unresolved_neighbours.is_empty() {
-                            sender.try_send(unresolved_neighbours).unwrap();
+                        if !unresolved_neighbours.is_empty() && sender.try_send(unresolved_neighbours).is_err() {
+                            tracing::error!("Failed to send unresolved neighbours to NEWLY CREATED resolver");
                         }
                     }
                     Err(e) => eprintln!("Failed to create neighbour resolver: {}", e),
@@ -439,8 +471,8 @@ impl NetworkBehaviour for Behaviour {
         if matches!(
             event,
             FromSwarm::NewListenAddr(_) | FromSwarm::ExpiredListenAddr(_)
-        ) {
-            self.listen_addresses_notifier.send(()).unwrap();
+        ) && self.listen_addresses_notifier.send(()).is_err() {
+            eprintln!("Failed to notify listen addresses changed");
         }
     }
 
@@ -453,6 +485,7 @@ impl NetworkBehaviour for Behaviour {
         void::unreachable(ev)
     }
 
+    #[allow(clippy::expect_used)]
     fn poll(
         &mut self,
         cx: &mut Context<'_>,

@@ -100,6 +100,7 @@ impl NeighbourResolver {
             let sleep = Box::pin(tokio::time::sleep(self.config.request_timeout));
             let packet = Packet::new_request(id);
 
+            #[allow(clippy::expect_used)]
             let packet = bincode::serialize(&packet).expect("Failed to serialize packet");
 
             self.send_buffer.push_back((mac.into(), packet));
@@ -142,16 +143,16 @@ impl Future for NeighbourResolver {
                 }
             }
 
-            if !this.resolved.is_empty() && this.resolved_sender.poll_ready_unpin(cx).is_ready() {
-                if this
-                    .resolved_sender
-                    .send_item(this.resolved.pop_front().unwrap())
-                    .is_err()
-                {
-                    return Poll::Ready(());
-                }
+            if let Some(res) = this.resolved.pop_front() {
+                if this.resolved_sender.poll_ready_unpin(cx).is_ready() {
+                    if this.resolved_sender.send_item(res).is_err() {
+                        return Poll::Ready(());
+                    }
 
-                continue;
+                    continue;
+                } else {
+                    this.resolved.push_front(res);
+                }
             }
 
             match this
@@ -170,6 +171,7 @@ impl Future for NeighbourResolver {
                         &this.direct_addr,
                     );
 
+                    #[allow(clippy::expect_used)]
                     let packet = bincode::serialize(&packet).expect("Failed to serialize packet");
 
                     this.send_buffer.push_back((*from_addr.ip(), packet));
