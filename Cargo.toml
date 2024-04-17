@@ -22,6 +22,8 @@ rand = { version = "0.8.5" }
 tarpc = { version = "0.34.0" }
 serde = { version = "1.0.198", features = ["derive"] }
 batman-neighbours-core = { version = "0.1.0", path = "batman-neighbours-core" }
+batman-neighbours-daemon = { version = "0.1.0", path = "batman-neighbours-daemon" }
+engine = { version = "0.1.0", path = "engine" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
 macaddress = { version = "0.1.0", path = "macaddress" }
 
