@@ -52,6 +52,7 @@ pub struct MessageRequest {
     if_index: MeshIfIndex,
 }
 
+#[allow(clippy::match_single_binding)]
 impl Emitable for MessageRequest {
     fn buffer_len(&self) -> usize {
         self.if_index.buffer_len()

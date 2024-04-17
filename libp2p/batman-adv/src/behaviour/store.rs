@@ -102,7 +102,7 @@ impl NeighbourStore {
         self.unresolved.remove(&mac);
         self.resolved
             .entry(neighbour.peer_id)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .insert(mac, neighbour);
     }
 

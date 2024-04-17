@@ -142,18 +142,16 @@ impl Future for NeighbourResolver {
                 }
             }
 
-            if !this.resolved.is_empty() {
-                if this.resolved_sender.poll_ready_unpin(cx).is_ready() {
-                    if this
-                        .resolved_sender
-                        .send_item(this.resolved.pop_front().unwrap())
-                        .is_err()
-                    {
-                        return Poll::Ready(());
-                    }
-
-                    continue;
+            if !this.resolved.is_empty() && this.resolved_sender.poll_ready_unpin(cx).is_ready() {
+                if this
+                    .resolved_sender
+                    .send_item(this.resolved.pop_front().unwrap())
+                    .is_err()
+                {
+                    return Poll::Ready(());
                 }
+
+                continue;
             }
 
             match this
