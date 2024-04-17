@@ -1,10 +1,9 @@
 use std::{io, time::Duration};
 
 use batman_neighbours_core::BatmanNeighbour;
-use byteorder::{ByteOrder as _, NativeEndian};
 use netlink_packet_generic::{GenlFamily, GenlHeader};
 use netlink_packet_utils::{
-    nla::{Nla, NlasIterator},
+    nla::{Nla, NlaBuffer, NlasIterator},
     parsers, DecodeError, Emitable, ParseableParametrized,
 };
 
@@ -29,7 +28,7 @@ impl Nla for MeshIfIndex {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        NativeEndian::write_u32(buffer, self.0);
+        buffer[..4].copy_from_slice(&self.0.to_le_bytes())
     }
 }
 
@@ -77,32 +76,29 @@ pub enum MessageResponseCommand {
 
 impl MessageResponseCommand {
     fn parse_neighbour(buffer: &[u8]) -> Result<Self, DecodeError> {
-        let mut if_index = None;
-        let mut last_seen_msecs = None;
-        let mut mac = None;
-        let mut throughput_kbps = None;
+        let nlas = NlasIterator::new(buffer).collect::<Result<Vec<_>, _>>()?;
+        let find_nla = |kind| {
+            nlas.iter()
+                .find(|nla| nla.kind() == kind)
+                .map(NlaBuffer::value)
+        };
 
-        for nla in NlasIterator::new(buffer) {
-            let nla = &nla.map_err(|e| format!("Received invalid data from kernel: {}", e))?;
-            match nla.kind() {
-                BATADV_ATTR_HARD_IFINDEX => if_index = Some(parsers::parse_u32(nla.value())?),
-                BATADV_ATTR_LAST_SEEN_MSECS => {
-                    last_seen_msecs = Some(parsers::parse_u32(nla.value())?)
-                }
-                BATADV_ATTR_NEIGH_ADDRESS => mac = Some(parsers::parse_mac(nla.value())?),
-                BATADV_ATTR_THROUGHPUT => throughput_kbps = Some(parsers::parse_u32(nla.value())?),
-                _ => {}
-            }
-        }
-
-        let if_index = if_index.ok_or("Missing attribute if_name or if_index from kernel")?;
-        let last_seen_msecs =
-            last_seen_msecs.ok_or("Missing attribute last_seen_msecs from kernel")?;
-        let mac = mac.ok_or("Missing attribute mac from kernel")?;
+        let if_index = find_nla(BATADV_ATTR_HARD_IFINDEX)
+            .ok_or("Missing attribute if_index from kernel".into())
+            .and_then(parsers::parse_u32)?;
+        let last_seen_msecs = find_nla(BATADV_ATTR_LAST_SEEN_MSECS)
+            .ok_or("Missing attribute last_seen_msecs from kernel".into())
+            .and_then(parsers::parse_u32)?;
+        let mac = find_nla(BATADV_ATTR_NEIGH_ADDRESS)
+            .ok_or("Missing attribute mac from kernel".into())
+            .and_then(parsers::parse_mac)?;
+        let throughput_kbps = find_nla(BATADV_ATTR_THROUGHPUT)
+            .map(parsers::parse_u32)
+            .transpose()?;
 
         Ok(Self::Neighbour(BatmanNeighbour {
             if_index,
-            last_seen: Duration::from_millis(last_seen_msecs as u64),
+            last_seen: Duration::from_millis(last_seen_msecs.into()),
             mac: mac.into(),
             throughput_kbps,
         }))

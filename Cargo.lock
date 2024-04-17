@@ -289,7 +289,6 @@ name = "batman-neighbours-daemon"
 version = "0.1.0"
 dependencies = [
  "batman-neighbours-core",
- "byteorder",
  "clap",
  "futures",
  "genetlink",
