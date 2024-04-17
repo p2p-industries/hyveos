@@ -7,13 +7,21 @@ use netlink_packet_utils::{
     parsers, DecodeError, Emitable, ParseableParametrized,
 };
 
-const BATADV_ATTR_MESH_IFINDEX: u16 = 3;
-const BATADV_ATTR_HARD_IFINDEX: u16 = 6;
-const BATADV_ATTR_LAST_SEEN_MSECS: u16 = 23;
-const BATADV_ATTR_NEIGH_ADDRESS: u16 = 24;
-const BATADV_ATTR_THROUGHPUT: u16 = 26;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u16)]
+enum BatadvAttr {
+	MeshIfindex = 3,
+	HarIdIfindex = 6,
+	LastSeenMsecs = 23,
+	NeighAddress = 24,
+	Throughput = 26,
+}
 
-const BATADV_CMD_GET_NEIGHBOURS: u8 = 9;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+enum BatadvCmd {
+    GetNeighbours = 9,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct MeshIfIndex(u32);
@@ -24,7 +32,7 @@ impl Nla for MeshIfIndex {
     }
 
     fn kind(&self) -> u16 {
-        BATADV_ATTR_MESH_IFINDEX
+        BatadvAttr::MeshIfindex as u16
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
@@ -40,7 +48,7 @@ pub enum MessageRequestCommand {
 impl MessageRequestCommand {
     fn get_cmd(&self) -> u8 {
         match self {
-            Self::GetNeighbours => BATADV_CMD_GET_NEIGHBOURS,
+            Self::GetNeighbours => BatadvCmd::GetNeighbours as u8,
         }
     }
 }
@@ -79,20 +87,20 @@ impl MessageResponseCommand {
         let nlas = NlasIterator::new(buffer).collect::<Result<Vec<_>, _>>()?;
         let find_nla = |kind| {
             nlas.iter()
-                .find(|nla| nla.kind() == kind)
+                .find(|nla| nla.kind() == kind as u16)
                 .map(NlaBuffer::value)
         };
 
-        let if_index = find_nla(BATADV_ATTR_HARD_IFINDEX)
+        let if_index = find_nla(BatadvAttr::HarIdIfindex)
             .ok_or("Missing attribute if_index from kernel".into())
             .and_then(parsers::parse_u32)?;
-        let last_seen_msecs = find_nla(BATADV_ATTR_LAST_SEEN_MSECS)
+        let last_seen_msecs = find_nla(BatadvAttr::LastSeenMsecs)
             .ok_or("Missing attribute last_seen_msecs from kernel".into())
             .and_then(parsers::parse_u32)?;
-        let mac = find_nla(BATADV_ATTR_NEIGH_ADDRESS)
+        let mac = find_nla(BatadvAttr::NeighAddress)
             .ok_or("Missing attribute mac from kernel".into())
             .and_then(parsers::parse_mac)?;
-        let throughput_kbps = find_nla(BATADV_ATTR_THROUGHPUT)
+        let throughput_kbps = find_nla(BatadvAttr::Throughput)
             .map(parsers::parse_u32)
             .transpose()?;
 
@@ -112,16 +120,16 @@ pub struct MessageResponse {
 
 impl ParseableParametrized<[u8], GenlHeader> for MessageResponse {
     fn parse_with_param(buffer: &[u8], header: GenlHeader) -> Result<Self, DecodeError> {
+        let cmd = if header.cmd == BatadvCmd::GetNeighbours as u8 {
+            MessageResponseCommand::parse_neighbour(buffer)?
+        } else {
+            return Err(format!(
+                "Unsupported batadv response command: {}", header.cmd
+            ).into());
+        };
+
         Ok(Self {
-            cmd: match header.cmd {
-                BATADV_CMD_GET_NEIGHBOURS => MessageResponseCommand::parse_neighbour(buffer)?,
-                cmd => {
-                    return Err(DecodeError::from(format!(
-                        "Unsupported batadv response command: {}",
-                        cmd
-                    )))
-                }
-            },
+            cmd
         })
     }
 }

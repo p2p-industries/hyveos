@@ -51,6 +51,9 @@ use self::{
     store::NeighbourStore,
 };
 
+const DISCOVERED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;
+const RESOLVED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;
+
 #[derive(Debug, Clone)]
 pub enum Event {
     NeighbourUpdate(NeighbourStoreUpdate),
@@ -182,9 +185,9 @@ impl ResolvingNeighboursBehaviour {
         listen_addresses_notifier: watch::Receiver<()>,
     ) -> io::Result<Self> {
         let (discovered_neighbour_sender, discovered_neighbour_receiver) =
-            tokio::sync::mpsc::channel(1);
+            tokio::sync::mpsc::channel(DISCOVERED_NEIGHBOUR_CHANNEL_BUFFER);
         let (resolved_neighbour_sender, resolved_neighbour_receiver) =
-            tokio::sync::mpsc::channel(1);
+            tokio::sync::mpsc::channel(RESOLVED_NEIGHBOUR_CHANNEL_BUFFER);
 
         let batman_if_index = config.batman_if_index;
         let socket_path = config.socket_path.clone();
@@ -482,7 +485,6 @@ impl NetworkBehaviour for Behaviour {
         void::unreachable(ev)
     }
 
-    #[allow(clippy::expect_used)]
     fn poll(
         &mut self,
         cx: &mut Context<'_>,
@@ -493,16 +495,26 @@ impl NetworkBehaviour for Behaviour {
                     Poll::Ready(Ok(batman_addr)) => {
                         tracing::info!("Got Batman address: {}", batman_addr);
 
-                        self.state = BehaviourState::ResolvingNeighbours(
-                            ResolvingNeighboursBehaviour::new(
-                                &self.config,
-                                self.local_peer_id,
-                                batman_addr,
-                                self.listen_addresses.clone(),
-                                self.listen_addresses_notifier.subscribe(),
-                            )
-                            .expect("Failed to create ResolvingNeighboursBehaviour"),
-                        );
+                        let behaviour = match ResolvingNeighboursBehaviour::new(
+                            &self.config,
+                            self.local_peer_id,
+                            batman_addr,
+                            self.listen_addresses.clone(),
+                            self.listen_addresses_notifier.subscribe(),
+                        ) {
+                            Ok(behaviour) => behaviour,
+                            Err(e) => {
+                                tracing::error!("Failed to create ResolvingNeighboursBehaviour: {}", e);
+                                *behaviour = GettingBatmanAddrBehaviour::new(
+                                    &self.config,
+                                    self.listen_addresses.clone(),
+                                    self.listen_addresses_notifier.subscribe(),
+                                );
+                                continue;
+                            }
+                        };
+
+                        self.state = BehaviourState::ResolvingNeighbours(behaviour);
                     }
                     Poll::Ready(Err(e)) => {
                         tracing::error!("Failed to get Batman address: {}", e);

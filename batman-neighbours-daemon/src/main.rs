@@ -1,4 +1,4 @@
-#![warn(clippy::expect_used, clippy::unwrap_used)]
+#![warn(clippy::expect_used, clippy::unwrap_used, clippy::uninlined_format_args)]
 
 mod batman;
 

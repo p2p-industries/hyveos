@@ -1,4 +1,4 @@
-#![warn(clippy::expect_used, clippy::unwrap_used)]
+#![warn(clippy::expect_used, clippy::unwrap_used, clippy::uninlined_format_args)]
 mod behaviour;
 
 use std::{io, sync::Arc, time::Duration};
@@ -28,7 +28,7 @@ pub struct Config {
 }
 
 impl Default for Config {
-    #[allow(clippy::expect_used)]
+    #[allow(clippy::expect_used)] // We cannot implement Default otherwise
     fn default() -> Self {
         Self {
             batman_if_index: if_name_to_index("bat0").expect("Failed to resolve bat0"),

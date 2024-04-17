@@ -28,6 +28,7 @@ use self::{packet::Packet, socket::AsyncSocket as _};
 
 use super::if_watcher::IfAddr;
 
+const DISCOVERED_CHANNEL_BUFFER: usize = 2;
 const NEIGHBOUR_RESOLUTION_PORT: u16 = 5354; // TODO: select port
 
 pub struct NeighbourResolver {
@@ -70,7 +71,7 @@ impl NeighbourResolver {
             UdpSocket::from_std(socket)?
         };
 
-        let (discovered_sender, discovered_receiver) = tokio::sync::mpsc::channel(2);
+        let (discovered_sender, discovered_receiver) = tokio::sync::mpsc::channel(DISCOVERED_CHANNEL_BUFFER);
 
         Ok((
             Self {
@@ -100,8 +101,11 @@ impl NeighbourResolver {
             let sleep = Box::pin(tokio::time::sleep(self.config.request_timeout));
             let packet = Packet::new_request(id);
 
-            #[allow(clippy::expect_used)]
-            let packet = bincode::serialize(&packet).expect("Failed to serialize packet");
+            let Ok(packet) = bincode::serialize(&packet) else {
+                tracing::error!(if_index=%self.if_addr.if_index, "Failed to serialize packet");
+                self.resolved.push_back(Err(mac));
+                return;
+            };
 
             self.send_buffer.push_back((mac.into(), packet));
 
@@ -167,12 +171,14 @@ impl Future for NeighbourResolver {
                         let packet = Packet::new_response(
                             req.id,
                             this.local_peer_id,
-                            &this.batman_addr,
-                            &this.direct_addr,
+                            this.batman_addr.clone(),
+                            this.direct_addr.clone(),
                         );
 
-                        #[allow(clippy::expect_used)]
-                        let packet = bincode::serialize(&packet).expect("Failed to serialize packet");
+                        let Ok(packet) = bincode::serialize(&packet) else {
+                            tracing::error!(if_index=%this.if_addr.if_index, "Failed to serialize packet");
+                            continue;
+                        };
 
                         this.send_buffer.push_back((*from_addr.ip(), packet));
                         continue;
@@ -188,8 +194,8 @@ impl Future for NeighbourResolver {
                             peer_id: res.peer_id,
                             if_index: this.if_addr.if_index,
                             mac,
-                            direct_addr: res.direct_addr.into_owned(),
-                            batman_addr: res.batman_addr.into_owned(),
+                            direct_addr: res.direct_addr,
+                            batman_addr: res.batman_addr,
                         }));
                     }
                 }
