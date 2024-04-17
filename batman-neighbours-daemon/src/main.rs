@@ -30,9 +30,9 @@ struct BatmanNeighboursServerImpl {
 }
 
 impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
-    async fn get_neighbours(self, _: Context, if_name: Arc<str>) -> Result<Vec<BatmanNeighbour>, String> {
+    async fn get_neighbours(self, _: Context, if_index: u32) -> Result<Vec<BatmanNeighbour>, String> {
         let message =
-            batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, &if_name)
+            batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, if_index)
                 .map_err(|e| format!("Failed to create message: {}", e))?;
 
         let mut header = NetlinkHeader::default();

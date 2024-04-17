@@ -10,32 +10,11 @@ use netlink_packet_utils::{
 
 const BATADV_ATTR_MESH_IFINDEX: u16 = 3;
 const BATADV_ATTR_HARD_IFINDEX: u16 = 6;
-const BATADV_ATTR_HARD_IFNAME: u16 = 7;
 const BATADV_ATTR_LAST_SEEN_MSECS: u16 = 23;
 const BATADV_ATTR_NEIGH_ADDRESS: u16 = 24;
 const BATADV_ATTR_THROUGHPUT: u16 = 26;
 
 const BATADV_CMD_GET_NEIGHBOURS: u8 = 9;
-
-fn if_name_to_index(name: impl Into<Vec<u8>>) -> io::Result<u32> {
-    let ifname = std::ffi::CString::new(name)?;
-    #[allow(unsafe_code)]
-    match unsafe { libc::if_nametoindex(ifname.as_ptr()) } {
-        0 => Err(std::io::Error::last_os_error()),
-        otherwise => Ok(otherwise),
-    }
-}
-
-fn if_index_to_name(index: u32) -> io::Result<String> {
-    let ifname = unsafe { libc::if_indextoname(index, std::ptr::null_mut()) };
-    if ifname.is_null() {
-        Err(std::io::Error::last_os_error())
-    } else {
-        Ok(unsafe { std::ffi::CStr::from_ptr(ifname) }
-            .to_string_lossy()
-            .into_owned())
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct MeshIfIndex(u32);
@@ -51,15 +30,6 @@ impl Nla for MeshIfIndex {
 
     fn emit_value(&self, buffer: &mut [u8]) {
         NativeEndian::write_u32(buffer, self.0);
-    }
-}
-
-impl TryFrom<&str> for MeshIfIndex {
-    type Error = io::Error;
-
-    fn try_from(value: &str) -> io::Result<Self> {
-        let index = if_name_to_index(value)?;
-        Ok(Self(index))
     }
 }
 
@@ -106,7 +76,6 @@ pub enum MessageResponseCommand {
 impl MessageResponseCommand {
     fn parse_neighbour(buffer: &[u8]) -> Result<Self, DecodeError> {
         let mut if_index = None;
-        let mut if_name = None;
         let mut last_seen_msecs = None;
         let mut mac = None;
         let mut throughput_kbps = None;
@@ -116,9 +85,6 @@ impl MessageResponseCommand {
             match nla.kind() {
                 BATADV_ATTR_HARD_IFINDEX => {
                     if_index = Some(parsers::parse_u32(nla.value())?)
-                }
-                BATADV_ATTR_HARD_IFNAME => {
-                    if_name = Some(parsers::parse_string(nla.value())?)
                 }
                 BATADV_ATTR_LAST_SEEN_MSECS => {
                     last_seen_msecs = Some(parsers::parse_u32(nla.value())?)
@@ -133,19 +99,12 @@ impl MessageResponseCommand {
             }
         }
 
-        let if_name = if let Some(if_name) = if_name {
-            if_name
-        } else if let Some(if_index) = if_index {
-            if_index_to_name(if_index).unwrap_or("".into())
-        } else {
-            return Err("Missing attribute if_name or if_index from kernel".into())
-        };
-
+        let if_index = if_index.ok_or("Missing attribute if_name or if_index from kernel")?;
         let last_seen_msecs = last_seen_msecs.ok_or("Missing attribute last_seen_msecs from kernel")?;
         let mac = mac.ok_or("Missing attribute mac from kernel")?;
 
         Ok(Self::Neighbour(BatmanNeighbour {
-            if_name,
+            if_index,
             last_seen: Duration::from_millis(last_seen_msecs as u64),
             mac: mac.into(),
             throughput_kbps,
@@ -184,10 +143,10 @@ pub enum Message {
 }
 
 impl Message {
-    pub fn new_request(cmd: MessageRequestCommand, if_name: &str) -> io::Result<Self> {
+    pub fn new_request(cmd: MessageRequestCommand, if_index: u32) -> io::Result<Self> {
         Ok(Self::Request(MessageRequest {
             cmd,
-            if_index: if_name.try_into()?,
+            if_index: MeshIfIndex(if_index),
         }))
     }
 }
