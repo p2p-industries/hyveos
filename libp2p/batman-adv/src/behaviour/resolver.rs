@@ -71,7 +71,8 @@ impl NeighbourResolver {
             UdpSocket::from_std(socket)?
         };
 
-        let (discovered_sender, discovered_receiver) = tokio::sync::mpsc::channel(DISCOVERED_CHANNEL_BUFFER);
+        let (discovered_sender, discovered_receiver) =
+            tokio::sync::mpsc::channel(DISCOVERED_CHANNEL_BUFFER);
 
         Ok((
             Self {

@@ -1,4 +1,8 @@
-#![warn(clippy::expect_used, clippy::unwrap_used, clippy::uninlined_format_args)]
+#![warn(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::uninlined_format_args
+)]
 
 use std::time::Duration;
 

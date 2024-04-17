@@ -10,11 +10,11 @@ use netlink_packet_utils::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u16)]
 enum BatadvAttr {
-	MeshIfindex = 3,
-	HarIdIfindex = 6,
-	LastSeenMsecs = 23,
-	NeighAddress = 24,
-	Throughput = 26,
+    MeshIfindex = 3,
+    HarIdIfindex = 6,
+    LastSeenMsecs = 23,
+    NeighAddress = 24,
+    Throughput = 26,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -123,14 +123,10 @@ impl ParseableParametrized<[u8], GenlHeader> for MessageResponse {
         let cmd = if header.cmd == BatadvCmd::GetNeighbours as u8 {
             MessageResponseCommand::parse_neighbour(buffer)?
         } else {
-            return Err(format!(
-                "Unsupported batadv response command: {}", header.cmd
-            ).into());
+            return Err(format!("Unsupported batadv response command: {}", header.cmd).into());
         };
 
-        Ok(Self {
-            cmd
-        })
+        Ok(Self { cmd })
     }
 }
 

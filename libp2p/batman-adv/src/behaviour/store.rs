@@ -114,10 +114,13 @@ impl NeighbourStore {
         let mut discovered = HashMap::new();
 
         if self.unresolved.remove(&mac).is_none() {
-            discovered.insert(mac, UnresolvedNeighbour {
-                if_index: neighbour.if_index,
+            discovered.insert(
                 mac,
-            });
+                UnresolvedNeighbour {
+                    if_index: neighbour.if_index,
+                    mac,
+                },
+            );
         }
 
         self.resolved

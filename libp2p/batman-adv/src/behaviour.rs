@@ -282,7 +282,10 @@ impl ResolvingNeighboursBehaviour {
             tracing::info!("Received discovered neighbours");
             match result {
                 Ok(Ok(neighbours)) => {
-                    let mut update = self.neighbour_store.write().unwrap_or_else(|e| e.into_inner())
+                    let mut update = self
+                        .neighbour_store
+                        .write()
+                        .unwrap_or_else(|e| e.into_inner())
                         .update_available_neighbours(
                             neighbours
                                 .into_iter()
@@ -296,25 +299,32 @@ impl ResolvingNeighboursBehaviour {
                         .map(|(mac, n)| (n.if_index, *mac))
                         .into_group_map()
                     {
-                        if let Some((_, sender, addr)) = self.neighbour_resolvers.get_mut(&if_index) {
+                        if let Some((_, sender, addr)) = self.neighbour_resolvers.get_mut(&if_index)
+                        {
                             let addr = *addr;
-                            if let Some(discovered_neighbours) = match sender.try_send(discovered_neighbours) {
-                                Ok(_) => None,
-                                Err(TrySendError::Closed(discovered_neighbours)) => {
-                                    tracing::error!("Neighbour resolver dropped");
-                                    self.neighbour_resolvers.remove(&if_index);
-                                    self.add_resolver(config.clone(), addr);
-                                    Some(discovered_neighbours)
+                            if let Some(discovered_neighbours) =
+                                match sender.try_send(discovered_neighbours) {
+                                    Ok(_) => None,
+                                    Err(TrySendError::Closed(discovered_neighbours)) => {
+                                        tracing::error!("Neighbour resolver dropped");
+                                        self.neighbour_resolvers.remove(&if_index);
+                                        self.add_resolver(config.clone(), addr);
+                                        Some(discovered_neighbours)
+                                    }
+                                    Err(TrySendError::Full(discovered_neighbours)) => {
+                                        tracing::error!("Neighbour resolver buffer full");
+                                        Some(discovered_neighbours)
+                                    }
                                 }
-                                Err(TrySendError::Full(discovered_neighbours)) => {
-                                    tracing::error!("Neighbour resolver buffer full");
-                                    Some(discovered_neighbours)
-                                }
-                            } {
+                            {
                                 // undiscover neighbours, so we can rediscover them later
                                 for mac in discovered_neighbours {
                                     update.discovered.remove(&mac);
-                                    self.neighbour_store.write().unwrap_or_else(|e| e.into_inner()).unresolved.remove(&mac);
+                                    self.neighbour_store
+                                        .write()
+                                        .unwrap_or_else(|e| e.into_inner())
+                                        .unresolved
+                                        .remove(&mac);
                                 }
                             }
                         }
@@ -332,7 +342,10 @@ impl ResolvingNeighboursBehaviour {
         }
 
         while let Poll::Ready(Some(res)) = self.resolved_neighbour_receiver.poll_recv(cx) {
-            let mut neighbour_store = self.neighbour_store.write().unwrap_or_else(|e| e.into_inner());
+            let mut neighbour_store = self
+                .neighbour_store
+                .write()
+                .unwrap_or_else(|e| e.into_inner());
 
             match res {
                 Ok(neighbour) => {
@@ -390,8 +403,12 @@ impl ResolvingNeighboursBehaviour {
                             .map(|n| n.mac)
                             .collect::<Vec<_>>();
 
-                        if !unresolved_neighbours.is_empty() && sender.try_send(unresolved_neighbours).is_err() {
-                            tracing::error!("Failed to send unresolved neighbours to NEWLY CREATED resolver");
+                        if !unresolved_neighbours.is_empty()
+                            && sender.try_send(unresolved_neighbours).is_err()
+                        {
+                            tracing::error!(
+                                "Failed to send unresolved neighbours to NEWLY CREATED resolver"
+                            );
                         }
                     }
                     Err(e) => tracing::error!("Failed to create neighbour resolver: {}", e),
@@ -471,7 +488,8 @@ impl NetworkBehaviour for Behaviour {
         if matches!(
             event,
             FromSwarm::NewListenAddr(_) | FromSwarm::ExpiredListenAddr(_)
-        ) && self.listen_addresses_notifier.send(()).is_err() {
+        ) && self.listen_addresses_notifier.send(()).is_err()
+        {
             tracing::error!("Failed to notify listen addresses changed");
         }
     }
@@ -504,7 +522,10 @@ impl NetworkBehaviour for Behaviour {
                         ) {
                             Ok(behaviour) => behaviour,
                             Err(e) => {
-                                tracing::error!("Failed to create ResolvingNeighboursBehaviour: {}", e);
+                                tracing::error!(
+                                    "Failed to create ResolvingNeighboursBehaviour: {}",
+                                    e
+                                );
                                 *behaviour = GettingBatmanAddrBehaviour::new(
                                     &self.config,
                                     self.listen_addresses.clone(),
