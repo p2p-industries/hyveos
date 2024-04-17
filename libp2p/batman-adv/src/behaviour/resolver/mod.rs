@@ -94,7 +94,7 @@ impl NeighbourResolver {
 
     fn send_request(&mut self, mac: MacAddress, retries: u32) {
         if retries < self.config.request_retries {
-            println!("Sending request for {:?} ({} retries)", mac, retries);
+            tracing::info!(if_index=%self.if_addr.if_index, "Sending request for {:?} ({} retries)", mac, retries);
 
             let id = rand::random();
             let sleep = Box::pin(tokio::time::sleep(self.config.request_timeout));
@@ -107,7 +107,7 @@ impl NeighbourResolver {
 
             self.resolve_timeouts.insert(id, (mac, sleep, retries));
         } else {
-            println!("Failed to resolve {}", mac);
+            tracing::info!(if_index=%self.if_addr.if_index, "Failed to resolve {}", mac);
             self.resolved.push_back(Err(mac));
         }
     }
@@ -121,20 +121,19 @@ impl Future for NeighbourResolver {
 
         loop {
             if let Poll::Ready(Some(macs)) = this.discovered_receiver.poll_recv(cx) {
-                println!("Discovered neighbours: {:?}", macs);
                 for mac in macs {
                     this.send_request(mac, 0);
                 }
             }
 
             if let Some((addr, packet)) = this.send_buffer.pop_front() {
-                println!("Sending packet to {}", addr);
+                tracing::trace!(if_index=%this.if_addr.if_index, "Sending packet to {}", addr);
                 let sock_addr = SocketAddr::new(IpAddr::V6(addr), NEIGHBOUR_RESOLUTION_PORT);
 
                 match this.send_socket.poll_write(cx, &packet, sock_addr) {
                     Poll::Ready(Ok(_)) => continue,
                     Poll::Ready(Err(err)) => {
-                        eprintln!("Failed to send packet: {}", err);
+                        tracing::error!("Failed to send packet: {}", err);
                         continue;
                     }
                     Poll::Pending => {
@@ -162,23 +161,28 @@ impl Future for NeighbourResolver {
                     bincode::deserialize::<Packet>(&this.recv_buffer[..len])
                         .map(|packet| (packet, from_addr))
                 }) {
-                Poll::Ready(Ok(Ok((Packet::Request(req), SocketAddr::V6(from_addr))))) => {
-                    println!("Received request from {}", from_addr);
-                    let packet = Packet::new_response(
-                        req.id,
-                        this.local_peer_id,
-                        &this.batman_addr,
-                        &this.direct_addr,
-                    );
+                Poll::Ready(Ok(Ok((Packet::Request(req), from_addr)))) => {
+                    if let SocketAddr::V6(from_addr) = from_addr {
+                        tracing::info!(if_index=%this.if_addr.if_index, "Received request from {}", from_addr);
+                        let packet = Packet::new_response(
+                            req.id,
+                            this.local_peer_id,
+                            &this.batman_addr,
+                            &this.direct_addr,
+                        );
 
-                    #[allow(clippy::expect_used)]
-                    let packet = bincode::serialize(&packet).expect("Failed to serialize packet");
+                        #[allow(clippy::expect_used)]
+                        let packet = bincode::serialize(&packet).expect("Failed to serialize packet");
 
-                    this.send_buffer.push_back((*from_addr.ip(), packet));
-                    continue;
+                        this.send_buffer.push_back((*from_addr.ip(), packet));
+                        continue;
+                    } else {
+                        tracing::warn!("Received request from non-IPv6 address");
+                        continue;
+                    }
                 }
                 Poll::Ready(Ok(Ok((Packet::Response(res), _)))) => {
-                    println!("Received response for {}", res.id);
+                    tracing::info!(if_index=%this.if_addr.if_index, "Received response for {}", res.id);
                     if let Some((mac, _, _)) = this.resolve_timeouts.remove(&res.id) {
                         this.resolved.push_back(Ok(ResolvedNeighbour {
                             peer_id: res.peer_id,
@@ -193,15 +197,14 @@ impl Future for NeighbourResolver {
                     continue;
                 }
                 Poll::Ready(Err(err)) => {
-                    eprintln!("Failed to receive packet: {}", err);
+                    tracing::error!("Failed to receive packet: {}", err);
                     return Poll::Ready(());
                 }
                 Poll::Ready(Ok(Err(err))) => {
-                    eprintln!("Failed to deserialize packet: {}", err);
+                    tracing::error!("Failed to deserialize packet: {}", err);
                     continue;
                 }
                 Poll::Pending => {}
-                _ => panic!("Unexpected IPv4 packet"),
             }
 
             if let Some((id, _)) = this.resolve_timeouts.front() {
@@ -210,7 +213,7 @@ impl Future for NeighbourResolver {
                 };
 
                 if entry.get_mut().1.as_mut().poll(cx).is_ready() {
-                    println!("Timeout for {}", entry.get().0);
+                    tracing::trace!(if_index=%this.if_addr.if_index, "Timeout for {}", entry.get().0);
 
                     let (mac, _, retries) = entry.remove();
 

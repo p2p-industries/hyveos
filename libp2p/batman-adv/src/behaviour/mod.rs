@@ -241,7 +241,7 @@ impl ResolvingNeighboursBehaviour {
             .poll_next_unpin(cx)
             .is_ready()
         {
-            println!("Listen addresses changed");
+            tracing::info!("Listen addresses changed");
             let mut pending_resolvers = HashSet::new();
             std::mem::swap(
                 &mut self.pending_neighbour_resolvers,
@@ -253,7 +253,7 @@ impl ResolvingNeighboursBehaviour {
         }
 
         while let Poll::Ready(Some(event)) = Pin::new(&mut self.if_watch).poll_next(cx) {
-            println!("Got if event: {:?}", event);
+            tracing::info!("Got if event: {:?}", event);
             match event {
                 Ok(IfEvent::Up(addr)) => {
                     if addr.if_index == config.batman_if_index || addr.addr.is_loopback() {
@@ -269,14 +269,14 @@ impl ResolvingNeighboursBehaviour {
                         self.pending_neighbour_resolvers.remove(&addr);
                     }
                 }
-                Err(err) => eprintln!("if watch returned an error: {}", err),
+                Err(err) => tracing::error!("if watch returned an error: {}", err),
             }
         }
 
         let mut neighbour_update = NeighbourStoreUpdate::default();
 
         if let Poll::Ready(Some(result)) = self.discovered_neighbour_receiver.poll_recv(cx) {
-            println!("Received discovered neighbours");
+            tracing::info!("Received discovered neighbours");
             match result {
                 Ok(Ok(neighbours)) => {
                     let mut update = self.neighbour_store.write().unwrap_or_else(|e| e.into_inner())
@@ -320,30 +320,27 @@ impl ResolvingNeighboursBehaviour {
                     neighbour_update = update;
                 }
                 Ok(Err(e)) => {
-                    eprintln!("Failed to get neighbours: {}", e);
+                    tracing::error!("Failed to get neighbours: {}", e);
                 }
                 Err(e) => {
-                    eprintln!("Failed to receive neighbours: {}", e);
+                    tracing::error!("Failed to receive neighbours: {}", e);
                 }
             }
         }
 
         while let Poll::Ready(Some(res)) = self.resolved_neighbour_receiver.poll_recv(cx) {
-            println!("locking neighbour store");
             let mut neighbour_store = self.neighbour_store.write().unwrap_or_else(|e| e.into_inner());
-
-            println!("locked neighbour store");
 
             match res {
                 Ok(neighbour) => {
-                    println!("\nResolved neighbour: {:#?}", neighbour);
+                    tracing::info!(peer=%neighbour.peer_id , "\nResolved neighbour: {}", neighbour.direct_addr);
 
                     let update = neighbour_store.resolve_neighbour(neighbour);
 
                     neighbour_update.combine(update);
                 }
                 Err(mac) => {
-                    eprintln!("Failed to resolve neighbour: {}", mac);
+                    tracing::info!("Failed to resolve neighbour: {}", mac);
 
                     let update = neighbour_store.remove_neighbour(mac);
 
@@ -394,7 +391,7 @@ impl ResolvingNeighboursBehaviour {
                             tracing::error!("Failed to send unresolved neighbours to NEWLY CREATED resolver");
                         }
                     }
-                    Err(e) => eprintln!("Failed to create neighbour resolver: {}", e),
+                    Err(e) => tracing::error!("Failed to create neighbour resolver: {}", e),
                 }
             } else {
                 self.pending_neighbour_resolvers.insert(addr);
@@ -472,7 +469,7 @@ impl NetworkBehaviour for Behaviour {
             event,
             FromSwarm::NewListenAddr(_) | FromSwarm::ExpiredListenAddr(_)
         ) && self.listen_addresses_notifier.send(()).is_err() {
-            eprintln!("Failed to notify listen addresses changed");
+            tracing::error!("Failed to notify listen addresses changed");
         }
     }
 
@@ -494,7 +491,7 @@ impl NetworkBehaviour for Behaviour {
             match self.state {
                 BehaviourState::GettingBatmanAddr(ref mut behaviour) => match behaviour.poll(cx) {
                     Poll::Ready(Ok(batman_addr)) => {
-                        println!("Got Batman address: {}", batman_addr);
+                        tracing::info!("Got Batman address: {}", batman_addr);
 
                         self.state = BehaviourState::ResolvingNeighbours(
                             ResolvingNeighboursBehaviour::new(
@@ -508,7 +505,7 @@ impl NetworkBehaviour for Behaviour {
                         );
                     }
                     Poll::Ready(Err(e)) => {
-                        eprintln!("Failed to get Batman address: {}", e);
+                        tracing::error!("Failed to get Batman address: {}", e);
                         *behaviour = GettingBatmanAddrBehaviour::new(
                             &self.config,
                             self.listen_addresses.clone(),
