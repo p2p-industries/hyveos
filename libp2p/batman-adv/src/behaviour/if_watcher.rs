@@ -1,15 +1,28 @@
-use std::{collections::{HashSet, VecDeque}, future::Future, io, net::{IpAddr, Ipv6Addr, SocketAddrV6}, pin::Pin, task::{ready, Context, Poll}};
+use std::{
+    collections::{HashSet, VecDeque},
+    future::Future,
+    io,
+    net::{IpAddr, Ipv6Addr, SocketAddrV6},
+    pin::Pin,
+    task::{ready, Context, Poll},
+};
 
 use futures::{stream::FusedStream, Stream, StreamExt as _, TryStreamExt as _};
 use netlink_packet_core::NetlinkPayload;
-use netlink_packet_route::{address::{AddressAttribute, AddressMessage}, RouteNetlinkMessage};
-use netlink_proto::{sys::{AsyncSocket as _, SocketAddr, TokioSocket}, Connection};
+use netlink_packet_route::{
+    address::{AddressAttribute, AddressMessage},
+    RouteNetlinkMessage,
+};
+use netlink_proto::{
+    sys::{AsyncSocket as _, SocketAddr, TokioSocket},
+    Connection,
+};
 use rtnetlink::constants::RTMGRP_IPV6_IFADDR;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct IfAddr {
     pub if_index: u32,
-    pub addr: Ipv6Addr
+    pub addr: Ipv6Addr,
 }
 
 impl IfAddr {
@@ -77,7 +90,8 @@ impl IfWatcher {
             if Pin::new(&mut self.conn).poll(cx).is_ready() {
                 return Poll::Ready(Err(Self::socket_err()));
             }
-            let message = ready!(self.messages.poll_next_unpin(cx)).ok_or_else(Self::socket_err)??;
+            let message =
+                ready!(self.messages.poll_next_unpin(cx)).ok_or_else(Self::socket_err)??;
             match message {
                 RouteNetlinkMessage::NewAddress(msg) => self.add_address(msg),
                 RouteNetlinkMessage::DelAddress(msg) => self.rem_address(msg),
@@ -108,12 +122,12 @@ impl IfWatcher {
 
     fn iter_addrs(msg: AddressMessage) -> impl Iterator<Item = IfAddr> {
         let if_index = msg.header.index;
-        msg.attributes.into_iter().filter_map(move |attr| {
-            match attr {
+        msg.attributes
+            .into_iter()
+            .filter_map(move |attr| match attr {
                 AddressAttribute::Address(IpAddr::V6(addr)) => Some(IfAddr { if_index, addr }),
                 _ => None,
-            }
-        })
+            })
     }
 }
 

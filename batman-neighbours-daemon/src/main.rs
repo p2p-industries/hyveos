@@ -1,6 +1,12 @@
 mod batman;
 
-use std::{fs::Permissions, io, os::unix::fs::{self, PermissionsExt}, path::PathBuf, sync::Arc};
+use std::{
+    fs::Permissions,
+    io,
+    os::unix::fs::{self, PermissionsExt},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServer};
 use clap::Parser;
@@ -30,7 +36,11 @@ struct BatmanNeighboursServerImpl {
 }
 
 impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
-    async fn get_neighbours(self, _: Context, if_index: u32) -> Result<Vec<BatmanNeighbour>, String> {
+    async fn get_neighbours(
+        self,
+        _: Context,
+        if_index: u32,
+    ) -> Result<Vec<BatmanNeighbour>, String> {
         let message =
             batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, if_index)
                 .map_err(|e| format!("Failed to create message: {}", e))?;
@@ -86,10 +96,14 @@ async fn main() -> io::Result<()> {
         std::fs::remove_file(&args.socket_path)?;
     }
 
-    let transport = tarpc::serde_transport::unix::listen(&args.socket_path, Bincode::default)
-        .await?;
+    let transport =
+        tarpc::serde_transport::unix::listen(&args.socket_path, Bincode::default).await?;
 
-    fs::chown(&args.socket_path, None, users::get_group_by_name("batman-neighbours").map(|g| g.gid()))?;
+    fs::chown(
+        &args.socket_path,
+        None,
+        users::get_group_by_name("batman-neighbours").map(|g| g.gid()),
+    )?;
     tokio::fs::set_permissions(&args.socket_path, Permissions::from_mode(0o660)).await?;
 
     transport

@@ -5,19 +5,20 @@ use std::{
     collections::VecDeque,
     future::Future,
     io,
-    net::{IpAddr, Ipv6Addr, SocketAddr, SocketAddrV6},
+    net::{IpAddr, Ipv6Addr, SocketAddr},
     pin::Pin,
     task::{Context, Poll},
 };
 
-use anyhow::anyhow;
 use futures::SinkExt as _;
 use hashlink::{linked_hash_map::Entry, LinkedHashMap};
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use socket2::{Domain, Socket, Type};
 use tokio::{
-    io::Interest, net::UdpSocket, sync::mpsc::{Receiver, Sender}, time::Sleep
+    net::UdpSocket,
+    sync::mpsc::{Receiver, Sender},
+    time::Sleep,
 };
 use tokio_util::sync::PollSender;
 
@@ -59,9 +60,7 @@ impl NeighbourResolver {
             socket.set_reuse_address(true)?;
             socket.set_reuse_port(true)?;
             socket.set_nonblocking(true)?;
-            socket.bind(
-                &if_addr.with_port(NEIGHBOUR_RESOLUTION_PORT).into(),
-            )?;
+            socket.bind(&if_addr.with_port(NEIGHBOUR_RESOLUTION_PORT).into())?;
             UdpSocket::from_std(std::net::UdpSocket::from(socket))?
         };
 
@@ -145,7 +144,11 @@ impl Future for NeighbourResolver {
 
             if !this.resolved.is_empty() {
                 if this.resolved_sender.poll_ready_unpin(cx).is_ready() {
-                    if this.resolved_sender.send_item(this.resolved.pop_front().unwrap()).is_err() {
+                    if this
+                        .resolved_sender
+                        .send_item(this.resolved.pop_front().unwrap())
+                        .is_err()
+                    {
                         return Poll::Ready(());
                     }
 

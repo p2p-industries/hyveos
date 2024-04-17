@@ -54,9 +54,10 @@ pub struct MessageRequest {
 
 impl Emitable for MessageRequest {
     fn buffer_len(&self) -> usize {
-        self.if_index.buffer_len() + match self.cmd {
-            _ => 0
-        }
+        self.if_index.buffer_len()
+            + match self.cmd {
+                _ => 0,
+            }
     }
 
     fn emit(&self, buffer: &mut [u8]) {
@@ -83,24 +84,19 @@ impl MessageResponseCommand {
         for nla in NlasIterator::new(buffer) {
             let nla = &nla.map_err(|e| format!("Received invalid data from kernel: {}", e))?;
             match nla.kind() {
-                BATADV_ATTR_HARD_IFINDEX => {
-                    if_index = Some(parsers::parse_u32(nla.value())?)
-                }
+                BATADV_ATTR_HARD_IFINDEX => if_index = Some(parsers::parse_u32(nla.value())?),
                 BATADV_ATTR_LAST_SEEN_MSECS => {
                     last_seen_msecs = Some(parsers::parse_u32(nla.value())?)
                 }
-                BATADV_ATTR_NEIGH_ADDRESS => {
-                    mac = Some(parsers::parse_mac(nla.value())?)
-                }
-                BATADV_ATTR_THROUGHPUT => {
-                    throughput_kbps = Some(parsers::parse_u32(nla.value())?)
-                }
+                BATADV_ATTR_NEIGH_ADDRESS => mac = Some(parsers::parse_mac(nla.value())?),
+                BATADV_ATTR_THROUGHPUT => throughput_kbps = Some(parsers::parse_u32(nla.value())?),
                 _ => {}
             }
         }
 
         let if_index = if_index.ok_or("Missing attribute if_name or if_index from kernel")?;
-        let last_seen_msecs = last_seen_msecs.ok_or("Missing attribute last_seen_msecs from kernel")?;
+        let last_seen_msecs =
+            last_seen_msecs.ok_or("Missing attribute last_seen_msecs from kernel")?;
         let mac = mac.ok_or("Missing attribute mac from kernel")?;
 
         Ok(Self::Neighbour(BatmanNeighbour {
@@ -118,10 +114,7 @@ pub struct MessageResponse {
 }
 
 impl ParseableParametrized<[u8], GenlHeader> for MessageResponse {
-    fn parse_with_param(
-        buffer: &[u8],
-        header: GenlHeader,
-    ) -> Result<Self, DecodeError> {
+    fn parse_with_param(buffer: &[u8], header: GenlHeader) -> Result<Self, DecodeError> {
         Ok(Self {
             cmd: match header.cmd {
                 BATADV_CMD_GET_NEIGHBOURS => MessageResponseCommand::parse_neighbour(buffer)?,
@@ -131,7 +124,7 @@ impl ParseableParametrized<[u8], GenlHeader> for MessageResponse {
                         cmd
                     )))
                 }
-            }
+            },
         })
     }
 }
@@ -188,10 +181,7 @@ impl Emitable for Message {
 }
 
 impl ParseableParametrized<[u8], GenlHeader> for Message {
-    fn parse_with_param(
-        buffer: &[u8],
-        header: GenlHeader,
-    ) -> Result<Self, DecodeError> {
+    fn parse_with_param(buffer: &[u8], header: GenlHeader) -> Result<Self, DecodeError> {
         MessageResponse::parse_with_param(buffer, header).map(Self::Response)
     }
 }
