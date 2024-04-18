@@ -257,10 +257,9 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split
-                        .iter()
-                        .map(std::string::String::as_str).collect();
-                        
+                    let inner_split: Vec<&str> =
+                        split.iter().map(std::string::String::as_str).collect();
+
                     match &inner_split[..] {
                         ["GOS", "HELP"] => {
                             help_message(&[
