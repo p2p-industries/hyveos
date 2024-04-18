@@ -96,7 +96,7 @@ impl NeighbourResolver {
 
     fn send_request(&mut self, mac: MacAddress, retries: u32) {
         if retries < self.config.request_retries {
-            tracing::info!(if_index=%self.if_addr.if_index, "Sending request for {:?} ({} retries)", mac, retries);
+            tracing::info!(if_index=%self.if_addr.if_index, "Sending request for {mac} ({retries} retries)");
 
             let id = rand::random();
             let sleep = Box::pin(tokio::time::sleep(self.config.request_timeout));
@@ -112,7 +112,7 @@ impl NeighbourResolver {
 
             self.resolve_timeouts.insert(id, (mac, sleep, retries));
         } else {
-            tracing::info!(if_index=%self.if_addr.if_index, "Failed to resolve {}", mac);
+            tracing::info!(if_index=%self.if_addr.if_index, "Failed to resolve {mac}");
             self.resolved.push_back(Err(mac));
         }
     }
@@ -132,13 +132,13 @@ impl Future for NeighbourResolver {
             }
 
             if let Some((addr, packet)) = this.send_buffer.pop_front() {
-                tracing::trace!(if_index=%this.if_addr.if_index, "Sending packet to {}", addr);
+                tracing::trace!(if_index=%this.if_addr.if_index, "Sending packet to {addr}");
                 let sock_addr = SocketAddr::new(IpAddr::V6(addr), NEIGHBOUR_RESOLUTION_PORT);
 
                 match this.send_socket.poll_write(cx, &packet, sock_addr) {
                     Poll::Ready(Ok(_)) => continue,
                     Poll::Ready(Err(err)) => {
-                        tracing::error!("Failed to send packet: {}", err);
+                        tracing::error!("Failed to send packet: {err}");
                         continue;
                     }
                     Poll::Pending => {
@@ -148,6 +148,7 @@ impl Future for NeighbourResolver {
             }
 
             if let Some(res) = this.resolved.pop_front() {
+                tracing::info!(if_index=%this.if_addr.if_index, "Trying to send resolved neighbour");
                 if this.resolved_sender.poll_ready_unpin(cx).is_ready() {
                     if this.resolved_sender.send_item(res).is_err() {
                         return Poll::Ready(());
@@ -168,7 +169,7 @@ impl Future for NeighbourResolver {
                 }) {
                 Poll::Ready(Ok(Ok((Packet::Request(req), from_addr)))) => {
                     if let SocketAddr::V6(from_addr) = from_addr {
-                        tracing::info!(if_index=%this.if_addr.if_index, "Received request from {}", from_addr);
+                        tracing::info!(if_index=%this.if_addr.if_index, "Received request from {from_addr}");
                         let packet = Packet::new_response(
                             req.id,
                             this.local_peer_id,
@@ -205,11 +206,11 @@ impl Future for NeighbourResolver {
                     continue;
                 }
                 Poll::Ready(Err(err)) => {
-                    tracing::error!("Failed to receive packet: {}", err);
+                    tracing::error!("Failed to receive packet: {err}");
                     return Poll::Ready(());
                 }
                 Poll::Ready(Ok(Err(err))) => {
-                    tracing::error!("Failed to deserialize packet: {}", err);
+                    tracing::error!("Failed to deserialize packet: {err}");
                     continue;
                 }
                 Poll::Pending => {}

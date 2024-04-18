@@ -1,4 +1,7 @@
-use std::{collections::{hash_map::Entry, HashMap, HashSet}, fmt::Display};
+use std::{
+    collections::{hash_map::Entry, HashMap, HashSet},
+    fmt::Display,
+};
 
 use libp2p::PeerId;
 use macaddress::MacAddress;
