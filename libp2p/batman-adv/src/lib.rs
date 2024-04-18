@@ -6,10 +6,11 @@ mod behaviour;
 use std::{io, sync::Arc, time::Duration};
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
-pub use behaviour::{Behaviour, Event};
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use thiserror::Error;
+
+pub use crate::behaviour::{store::ReadOnlyNeighbourStore, Behaviour, Event};
 
 fn if_name_to_index(name: impl Into<Vec<u8>>) -> io::Result<u32> {
     let ifname = std::ffi::CString::new(name)?;

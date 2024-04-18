@@ -1,6 +1,6 @@
 mod if_watcher;
 mod resolver;
-mod store;
+pub mod store;
 
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -48,7 +48,7 @@ use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeigh
 use self::{
     if_watcher::{IfAddr, IfEvent, IfWatcher},
     resolver::NeighbourResolver,
-    store::NeighbourStore,
+    store::{NeighbourStore, ReadOnlyNeighbourStore},
 };
 
 const DISCOVERED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;
@@ -453,6 +453,14 @@ impl Behaviour {
             listen_addresses,
             listen_addresses_notifier,
             state,
+        }
+    }
+
+    pub fn get_neighbour_store(&self) -> Option<ReadOnlyNeighbourStore> {
+        if let BehaviourState::ResolvingNeighbours(behaviour) = &self.state {
+            Some(behaviour.neighbour_store.clone().into())
+        } else {
+            None
         }
     }
 }

@@ -17,7 +17,7 @@ pub struct MyBehaviour {
     pub mdns: mdns::tokio::Behaviour,
     pub round_trip: round_trip::Behaviour,
     pub location: location::Behaviour,
-    pub batman_neighbors: libp2p_batman_adv::Behaviour,
+    pub batman_neighbours: libp2p_batman_adv::Behaviour,
 }
 
 impl MyBehaviour {
@@ -46,7 +46,7 @@ impl MyBehaviour {
             .expect("Failed to init mdns"),
             round_trip: round_trip::new(),
             location: location::new(),
-            batman_neighbors: libp2p_batman_adv::Behaviour::new(
+            batman_neighbours: libp2p_batman_adv::Behaviour::new(
                 libp2p_batman_adv::Config::default(),
                 peer_id,
             ),
