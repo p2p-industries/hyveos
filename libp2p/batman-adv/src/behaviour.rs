@@ -279,7 +279,7 @@ impl ResolvingNeighboursBehaviour {
         let mut neighbour_update = NeighbourStoreUpdate::default();
 
         if let Poll::Ready(Some(result)) = self.discovered_neighbour_receiver.poll_recv(cx) {
-            tracing::info!("Received discovered neighbours");
+            tracing::trace!("Received discovered neighbours");
             match result {
                 Ok(Ok(neighbours)) => {
                     let mut update = self

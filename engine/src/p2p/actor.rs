@@ -175,8 +175,10 @@ where
                 .ping
                 .handle_event(ping.into(), self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
-            SwarmEvent::Behaviour(MyBehaviourEvent::BatmanNeighbors(event)) => {
-                println!("BatmanNeighbors: {:#?}", event);
+            SwarmEvent::Behaviour(MyBehaviourEvent::BatmanNeighbors(
+                libp2p_batman_adv::Event::NeighbourUpdate(update),
+            )) => {
+                println!("\n{update}");
                 Ok(())
             }
             _ => Ok(()),

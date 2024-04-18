@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, HashMap, HashSet};
+use std::{collections::{hash_map::Entry, HashMap, HashSet}, fmt::Display};
 
 use libp2p::PeerId;
 use macaddress::MacAddress;
@@ -12,6 +12,32 @@ pub struct NeighbourStoreUpdate {
     pub lost_unresolved: HashMap<MacAddress, UnresolvedNeighbour>,
     pub lost_resolved: HashMap<MacAddress, ResolvedNeighbour>,
     pub lost_peers: HashSet<PeerId>,
+}
+
+impl Display for NeighbourStoreUpdate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for mac in self.discovered.keys() {
+            writeln!(f, "+ {mac}")?;
+        }
+
+        for neighbour in self.resolved.values() {
+            writeln!(f, "+ {} ({})", neighbour.direct_addr, neighbour.peer_id)?;
+        }
+
+        for mac in self.lost_unresolved.keys() {
+            writeln!(f, "- {mac}")?;
+        }
+
+        for neighbour in self.lost_resolved.values() {
+            writeln!(f, "- {} ({})", neighbour.direct_addr, neighbour.peer_id)?;
+        }
+
+        for peer in &self.lost_peers {
+            writeln!(f, "- {peer}")?;
+        }
+
+        Ok(())
+    }
 }
 
 impl NeighbourStoreUpdate {
