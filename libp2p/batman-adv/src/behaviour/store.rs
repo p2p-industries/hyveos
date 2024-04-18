@@ -179,7 +179,7 @@ impl NeighbourStore {
         } else {
             let mut lost_neighbour = None;
             let mut lost_peer = None;
-            for (id, neighbours) in self.resolved.iter_mut() {
+            for (id, neighbours) in &mut self.resolved {
                 if let Some(neighbour) = neighbours.remove(&mac) {
                     if neighbours.is_empty() {
                         lost_peer = Some(*id);

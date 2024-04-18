@@ -8,7 +8,7 @@ use std::{
     io,
     net::{IpAddr, Ipv6Addr},
     pin::Pin,
-    sync::{Arc, RwLock},
+    sync::{Arc, PoisonError, RwLock},
     task::{ready, Context, Poll},
 };
 
@@ -146,7 +146,7 @@ impl GettingBatmanAddrBehaviour {
         loop {
             if let Some(multiaddr) = listen_addresses
                 .read()
-                .unwrap_or_else(|e| e.into_inner())
+                .unwrap_or_else(PoisonError::into_inner)
                 .find_address(|addr| addresses.contains(addr))
             {
                 return Ok(multiaddr);
@@ -230,10 +230,11 @@ impl ResolvingNeighboursBehaviour {
             discovered_neighbour_receiver,
             resolved_neighbour_sender,
             resolved_neighbour_receiver,
-            neighbour_store: Default::default(),
+            neighbour_store: Arc::default(),
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     fn poll(
         &mut self,
         cx: &mut Context<'_>,
@@ -285,7 +286,7 @@ impl ResolvingNeighboursBehaviour {
                     let mut update = self
                         .neighbour_store
                         .write()
-                        .unwrap_or_else(|e| e.into_inner())
+                        .unwrap_or_else(PoisonError::into_inner)
                         .update_available_neighbours(
                             neighbours
                                 .into_iter()
@@ -304,7 +305,7 @@ impl ResolvingNeighboursBehaviour {
                             let addr = *addr;
                             if let Some(discovered_neighbours) =
                                 match sender.try_send(discovered_neighbours) {
-                                    Ok(_) => None,
+                                    Ok(()) => None,
                                     Err(TrySendError::Closed(discovered_neighbours)) => {
                                         tracing::error!("Neighbour resolver dropped");
                                         self.neighbour_resolvers.remove(&if_index);
@@ -322,7 +323,7 @@ impl ResolvingNeighboursBehaviour {
                                     update.discovered.remove(&mac);
                                     self.neighbour_store
                                         .write()
-                                        .unwrap_or_else(|e| e.into_inner())
+                                        .unwrap_or_else(PoisonError::into_inner)
                                         .unresolved
                                         .remove(&mac);
                                 }
@@ -345,7 +346,7 @@ impl ResolvingNeighboursBehaviour {
             let mut neighbour_store = self
                 .neighbour_store
                 .write()
-                .unwrap_or_else(|e| e.into_inner());
+                .unwrap_or_else(PoisonError::into_inner);
 
             match res {
                 Ok(neighbour) => {
@@ -379,7 +380,7 @@ impl ResolvingNeighboursBehaviour {
             if let Some(direct_address) = self
                 .listen_addresses
                 .read()
-                .unwrap_or_else(|e| e.into_inner())
+                .unwrap_or_else(PoisonError::into_inner)
                 .find_address(|a| a == &addr.addr)
             {
                 match NeighbourResolver::new(
@@ -396,7 +397,7 @@ impl ResolvingNeighboursBehaviour {
                         let unresolved_neighbours = self
                             .neighbour_store
                             .read()
-                            .unwrap_or_else(|e| e.into_inner())
+                            .unwrap_or_else(PoisonError::into_inner)
                             .unresolved
                             .values()
                             .filter(|n| n.if_index == addr.if_index)
@@ -434,6 +435,7 @@ pub struct Behaviour {
 }
 
 impl Behaviour {
+    #[must_use]
     pub fn new(config: Config, local_peer_id: PeerId) -> Self {
         let listen_addresses = Arc::new(RwLock::new(ListenAddresses::default()));
 
@@ -482,7 +484,7 @@ impl NetworkBehaviour for Behaviour {
     fn on_swarm_event(&mut self, event: FromSwarm) {
         self.listen_addresses
             .write()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(PoisonError::into_inner)
             .on_swarm_event(&event);
 
         if matches!(

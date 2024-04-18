@@ -1,4 +1,4 @@
-use std::{io, time::Duration};
+use std::time::Duration;
 
 use batman_neighbours_core::BatmanNeighbour;
 use netlink_packet_generic::{GenlFamily, GenlHeader};
@@ -36,7 +36,7 @@ impl Nla for MeshIfIndex {
     }
 
     fn emit_value(&self, buffer: &mut [u8]) {
-        buffer[..4].copy_from_slice(&self.0.to_le_bytes())
+        buffer[..4].copy_from_slice(&self.0.to_le_bytes());
     }
 }
 
@@ -137,11 +137,11 @@ pub enum Message {
 }
 
 impl Message {
-    pub fn new_request(cmd: MessageRequestCommand, if_index: u32) -> io::Result<Self> {
-        Ok(Self::Request(MessageRequest {
+    pub fn new_request(cmd: MessageRequestCommand, if_index: u32) -> Self {
+        Self::Request(MessageRequest {
             cmd,
             if_index: MeshIfIndex(if_index),
-        }))
+        })
     }
 }
 
@@ -174,7 +174,7 @@ impl Emitable for Message {
 
     fn emit(&self, buffer: &mut [u8]) {
         if let Self::Request(req) = self {
-            req.emit(buffer)
+            req.emit(buffer);
         } else {
             panic!("Unexpected response")
         }

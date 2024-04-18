@@ -24,7 +24,10 @@ use tokio_util::sync::PollSender;
 
 use crate::{Config, ResolvedNeighbour};
 
-use self::{packet::{Packet, Request, Response}, socket::AsyncSocket as _};
+use self::{
+    packet::{Packet, Request, Response},
+    socket::AsyncSocket as _,
+};
 
 use super::if_watcher::IfAddr;
 
@@ -138,7 +141,7 @@ impl Future for NeighbourResolver {
                 let sock_addr = SocketAddr::new(IpAddr::V6(addr), NEIGHBOUR_RESOLUTION_PORT);
 
                 match this.send_socket.poll_write(cx, &packet, sock_addr) {
-                    Poll::Ready(Ok(_)) => continue,
+                    Poll::Ready(Ok(())) => continue,
                     Poll::Ready(Err(err)) => {
                         tracing::error!("Failed to send packet: {err}");
                         continue;
@@ -157,9 +160,9 @@ impl Future for NeighbourResolver {
                     }
 
                     continue;
-                } else {
-                    this.resolved.push_front(res);
                 }
+
+                this.resolved.push_front(res);
             }
 
             match this
@@ -177,7 +180,8 @@ impl Future for NeighbourResolver {
                             this.local_peer_id,
                             this.batman_addr.clone(),
                             this.direct_addr.clone(),
-                        ).into();
+                        )
+                        .into();
 
                         let Ok(packet) = bincode::serialize(&packet) else {
                             tracing::error!(if_index=%this.if_addr.if_index, "Failed to serialize packet");
@@ -185,11 +189,11 @@ impl Future for NeighbourResolver {
                         };
 
                         this.send_buffer.push_back((*from_addr.ip(), packet));
-                        continue;
                     } else {
                         tracing::warn!("Received request from non-IPv6 address");
-                        continue;
                     }
+
+                    continue;
                 }
                 Poll::Ready(Ok(Ok((Packet::Response(res), _)))) => {
                     tracing::info!(if_index=%this.if_addr.if_index, "Received response for {}", res.id);

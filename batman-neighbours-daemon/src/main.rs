@@ -1,8 +1,4 @@
-#![warn(
-    clippy::expect_used,
-    clippy::unwrap_used,
-    clippy::uninlined_format_args
-)]
+#![warn(clippy::expect_used, clippy::unwrap_used, clippy::pedantic)]
 
 mod batman;
 
@@ -48,8 +44,7 @@ impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
         if_index: u32,
     ) -> Result<Vec<BatmanNeighbour>, Error> {
         let message =
-            batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, if_index)
-                .map_err(|e| Error::CreateMessage(e.to_string()))?;
+            batman::Message::new_request(batman::MessageRequestCommand::GetNeighbours, if_index);
 
         let mut header = NetlinkHeader::default();
         header.flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_ROOT | NLM_F_MATCH;
@@ -123,7 +118,7 @@ async fn main() -> io::Result<()> {
             channel.execute(server.serve()).for_each(spawn)
         })
         .buffer_unordered(10)
-        .for_each(|_| async {})
+        .for_each(future::ready)
         .await;
 
     Ok(())

@@ -1,8 +1,4 @@
-#![warn(
-    clippy::expect_used,
-    clippy::unwrap_used,
-    clippy::uninlined_format_args
-)]
+#![warn(clippy::expect_used, clippy::unwrap_used, clippy::pedantic)]
 
 use std::time::Duration;
 
@@ -20,8 +16,6 @@ pub struct BatmanNeighbour {
 
 #[derive(Debug, Clone, Error, Serialize, Deserialize)]
 pub enum Error {
-    #[error("Failed to create message: {0}")]
-    CreateMessage(String),
     #[error("Failed to send netlink request: {0}")]
     FailedToSendRequest(String),
     #[error("Failed to decode netlink response: {0}")]

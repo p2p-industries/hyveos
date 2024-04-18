@@ -1,3 +1,5 @@
+#![warn(clippy::expect_used, clippy::unwrap_used, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions, clippy::must_use_candidate)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use core::{fmt::Display, net::Ipv6Addr, str::FromStr};
@@ -156,8 +158,8 @@ impl From<Eui64> for MacAddress {
 impl Display for MacAddress {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            MacAddress::Eui48(eui48) => write!(f, "{}", eui48),
-            MacAddress::Eui64(eui64) => write!(f, "{}", eui64),
+            MacAddress::Eui48(eui48) => write!(f, "{eui48}"),
+            MacAddress::Eui64(eui64) => write!(f, "{eui64}"),
         }
     }
 }
@@ -224,6 +226,7 @@ impl From<MacAddress> for Ipv6Addr {
     }
 }
 
+#[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     extern crate alloc;
