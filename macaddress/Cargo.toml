@@ -6,7 +6,9 @@ rust-version = { workspace = true }
 
 [dependencies]
 thiserror = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
 
 [features]
-default = ["std"]
-std = ["dep:thiserror"]
+default = ["std", "serde"]
+std = ["dep:thiserror", "serde/std"]
+serde = ["dep:serde"]

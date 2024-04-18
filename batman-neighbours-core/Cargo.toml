@@ -1,0 +1,11 @@
+[package]
+name = "batman-neighbours-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
+
+[dependencies]
+macaddress = { workspace = true }
+tarpc = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }

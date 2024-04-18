@@ -5,16 +5,36 @@ edition = "2021"
 rust-version = { workspace = true }
 
 [dependencies]
-libp2p = { workspace = true, features = ["tokio", "quic", "identify", "kad", "gossipsub", "ping", "macros", "ed25519", "mdns", "serde", "request-response", "cbor"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "io-std", "io-util"] }
+libp2p-batman-adv = { workspace = true }
+libp2p = { workspace = true, features = [
+    "tokio",
+    "quic",
+    "identify",
+    "kad",
+    "gossipsub",
+    "ping",
+    "macros",
+    "ed25519",
+    "mdns",
+    "serde",
+    "request-response",
+    "cbor",
+] }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "macros",
+    "sync",
+    "io-std",
+    "io-util",
+] }
 thiserror = { workspace = true }
 void = "1.0.2"
-tracing = "0.1.40"
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tokio-stream = { workspace = true }
-rustyline = { version = "14.0.0", features = ["derive"]}
-anyhow = "1.0.82"
+rustyline = { version = "14.0.0", features = ["derive"] }
+anyhow = { workspace = true }
 patricia_tree = "0.8.0"
-serde = { version = "1.0.198", features = ["derive"] }
+serde = { workspace = true }
 rand = { workspace = true }
 macaddress = { workspace = true }
