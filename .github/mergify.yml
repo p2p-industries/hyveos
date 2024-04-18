@@ -1,0 +1,31 @@
+pull_request_rules:
+  - name: Ask to resolvve conflicts
+    conditions:
+      - conflict
+      - -author=dependabot[bot]
+      - -draft
+      - -closed
+    actions:
+      label:
+        toggle:
+          - conflict
+      comment:
+        message: |
+          👋 {{author}} your PR is conflicting and needs to be updated to be merged
+
+  - name: Add approved dependabot PRs to merge queue
+    conditions:
+      - author=dependabot[bot]
+      - base=master
+    actions:
+      queue:
+
+  - name: Approve dependabot PRs of semver-compatible updates
+    conditions:
+      - author=dependabot[bot]
+      - or:
+          - title~=bump [^\s]+ from ([1-9]+)\..+ to \1\.
+          - title~=bump [^\s]+ from 0\.([\d]+)\..+ to 0\.\1\.
+    actions:
+      review:
+        type: APPROVE
