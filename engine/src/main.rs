@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+
 use std::env::args;
 
 use libp2p::{
@@ -110,6 +113,7 @@ fn diy_hints() -> DiyHinter {
     DiyHinter { tree }
 }
 
+#[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -121,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
     actor.setup();
 
     tokio::spawn(async move {
-        actor.drive().await;
+        Box::pin(actor.drive()).await;
     });
 
     let gos = client.gossipsub();

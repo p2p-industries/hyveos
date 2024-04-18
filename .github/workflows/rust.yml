@@ -94,7 +94,7 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       
-      - run: cargo clippy --all-features -- -W clippy::pedantic
+      - run: cargo clippy --all-features
 
   rustfmt:
     runs-on: ubuntu-latest
