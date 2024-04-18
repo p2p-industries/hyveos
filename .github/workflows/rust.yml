@@ -75,11 +75,16 @@ jobs:
           test "$CRATE_VERSION" = "$SPECIFIED_VERSION" || test "=$CRATE_VERSION" = "$SPECIFIED_VERSION"
 
   clippy:
+    name: Run clippy (${{ matrix.rust-version }}) on ${{ matrix.crate }}
     runs-on: ubuntu-latest
+    needs: gather_crates
     strategy:
       fail-fast: false
       matrix:
         rust-version: [stable, beta]
+        crate: ${{ fromJSON(needs.gather_crates.outputs.members) }}
+    env:
+      CRATE: ${{ matrix.crate }}
     steps:
       - uses: actions/checkout@v4
 
@@ -93,8 +98,8 @@ jobs:
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      
-      - run: cargo clippy --all-features
+    
+      - run: cargo clippy --all-features  -p ${{ matrix.crate }}
 
   rustfmt:
     runs-on: ubuntu-latest
