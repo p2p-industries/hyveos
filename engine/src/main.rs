@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+
 use std::env::args;
 
 use libp2p::{
@@ -66,16 +69,13 @@ impl Hinter for DiyHinter {
             return None;
         }
 
-        self.tree
-            .iter_prefix(line)
-            .filter_map(|(_, hint)| {
-                if hint.display.starts_with(line) {
-                    Some(hint.suffix(pos))
-                } else {
-                    None
-                }
-            })
-            .next()
+        self.tree.iter_prefix(line).find_map(|(_, hint)| {
+            if hint.display.starts_with(line) {
+                Some(hint.suffix(pos))
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -110,6 +110,7 @@ fn diy_hints() -> DiyHinter {
     DiyHinter { tree }
 }
 
+#[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -121,7 +122,7 @@ async fn main() -> anyhow::Result<()> {
     actor.setup();
 
     tokio::spawn(async move {
-        actor.drive().await;
+        Box::pin(actor.drive()).await;
     });
 
     let gos = client.gossipsub();
@@ -150,7 +151,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 Err(err) => {
-                    println!("Error: {:?}", err);
+                    println!("Error: {err:?}");
                     break;
                 }
             }
@@ -185,7 +186,8 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split.iter().map(|e| e.as_str()).collect();
+                    let inner_split: Vec<&str> =
+                        split.iter().map(std::string::String::as_str).collect();
                     match &inner_split[..] {
                         ["KAD", "HELP"] => {
                             help_message(&[
@@ -255,7 +257,9 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split.iter().map(|e| e.as_str()).collect();
+                    let inner_split: Vec<&str> =
+                        split.iter().map(std::string::String::as_str).collect();
+
                     match &inner_split[..] {
                         ["GOS", "HELP"] => {
                             help_message(&[
@@ -299,10 +303,10 @@ async fn main() -> anyhow::Result<()> {
                                 loop {
                                     match res.recv().await {
                                         Ok(msg) => {
-                                            println!("Received: {:?}", msg);
+                                            println!("Received: {msg:?}");
                                         }
                                         Err(err) => {
-                                            println!("Error: {:?}", err);
+                                            println!("Error: {err:?}");
                                             break;
                                         }
                                     }
@@ -342,7 +346,7 @@ async fn main() -> anyhow::Result<()> {
                 break;
             }
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("Error: {err:?}");
                 break;
             }
         }

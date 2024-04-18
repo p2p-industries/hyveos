@@ -2,6 +2,7 @@
 name = "libp2p-batman-adv"
 version = "0.1.0"
 edition = "2021"
+rust-version = { workspace = true }
 authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
 
 [dependencies]
@@ -10,7 +11,11 @@ macaddress = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 rand = { workspace = true }
 serde = { workspace = true }
-tarpc = { workspace = true, features = ["serde-transport", "serde-transport-bincode", "unix"] }
+tarpc = { workspace = true, features = [
+    "serde-transport",
+    "serde-transport-bincode",
+    "unix",
+] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tokio-stream = { workspace = true, features = ["sync"] }

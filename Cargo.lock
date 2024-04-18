@@ -678,6 +678,7 @@ dependencies = [
  "anyhow",
  "libp2p",
  "libp2p-batman-adv",
+ "macaddress",
  "patricia_tree",
  "rand",
  "rustyline",

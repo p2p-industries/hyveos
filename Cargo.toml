@@ -9,6 +9,9 @@ members = [
 default-members = ["batman-neighbours-daemon", "engine"]
 resolver = "2"
 
+[workspace.package]
+rust-version = "1.77.0"
+
 [workspace.dependencies]
 anyhow = { version = "1.0.82" }
 libp2p = { version = "0.53.2", features = ["tokio"] }

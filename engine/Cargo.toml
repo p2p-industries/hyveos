@@ -2,6 +2,7 @@
 name = "engine"
 version = "0.1.0"
 edition = "2021"
+rust-version = { workspace = true }
 
 [dependencies]
 libp2p-batman-adv = { workspace = true }
@@ -36,3 +37,4 @@ anyhow = { workspace = true }
 patricia_tree = "0.8.0"
 serde = { workspace = true }
 rand = { workspace = true }
+macaddress = { workspace = true }

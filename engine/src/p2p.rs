@@ -4,6 +4,7 @@ mod client;
 mod command;
 
 pub mod gossipsub;
+mod identify;
 pub mod kad;
 pub mod location;
 pub mod mdns;
@@ -39,6 +40,7 @@ pub type FullActor = Actor<
     round_trip::Actor,
     location::Actor,
     ping::Actor,
+    identify::Actor,
     EventError,
     CommandError,
 >;

@@ -41,7 +41,17 @@ pub trait SubActor {
     }
 }
 
-pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, CommandError> {
+pub struct Actor<
+    Kad,
+    Mdns,
+    Gossipsub,
+    RoundTrip,
+    Location,
+    Ping,
+    Identify,
+    EventError,
+    CommandError,
+> {
     swarm: Swarm<MyBehaviour>,
     receiver: mpsc::Receiver<Command>,
     kad: Kad,
@@ -50,12 +60,13 @@ pub struct Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, Co
     round_trip: RoundTrip,
     location: Location,
     ping: Ping,
+    identify: Identify,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
 
-impl<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, CommandError>
-    Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, EventError, CommandError>
+impl<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, Identify, EventError, CommandError>
+    Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, Identify, EventError, CommandError>
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
     Mdns: SubActor<
@@ -78,6 +89,12 @@ where
             Event = ping::Event,
             CommandError = void::Void,
             EventError = void::Void,
+        > + Default,
+    Identify: SubActor<
+            CommandError = void::Void,
+            EventError = void::Void,
+            Event = libp2p::identify::Event,
+            SubCommand = (),
         > + Default,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
@@ -109,6 +126,7 @@ where
                 round_trip: Default::default(),
                 location: Default::default(),
                 ping: Default::default(),
+                identify: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -174,6 +192,10 @@ where
             SwarmEvent::Behaviour(MyBehaviourEvent::Ping(ping)) => self
                 .ping
                 .handle_event(ping.into(), self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            SwarmEvent::Behaviour(MyBehaviourEvent::Identify(event)) => self
+                .identify
+                .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
             SwarmEvent::Behaviour(MyBehaviourEvent::BatmanNeighbors(
                 libp2p_batman_adv::Event::NeighbourUpdate(update),
