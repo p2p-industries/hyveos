@@ -2,5 +2,6 @@
 name = "libp2p-batman-adv"
 version = "0.1.0"
 edition = "2021"
+rust-version = { workspace = true }
 
 [dependencies]

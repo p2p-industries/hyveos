@@ -3,6 +3,9 @@ members = ["libp2p/batman-adv", "engine", "macaddress"]
 default-members = ["engine"]
 resolver = "2"
 
+[workspace.package]
+rust-version = "1.77.0"
+
 [workspace.dependencies]
 libp2p = { version = "0.53.2", features = ["tokio"] }
 tokio =  { version = "1.37" }
