@@ -24,12 +24,14 @@ use tokio_util::sync::PollSender;
 
 use crate::{Config, ResolvedNeighbour};
 
-use self::{packet::Packet, socket::AsyncSocket as _};
+use self::{packet::{Packet, Request, Response}, socket::AsyncSocket as _};
 
 use super::if_watcher::IfAddr;
 
 const DISCOVERED_CHANNEL_BUFFER: usize = 2;
-const NEIGHBOUR_RESOLUTION_PORT: u16 = 5354; // TODO: select port
+
+// port selected using https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=cbbb8962fc9a8657e1d80c1f8942164a
+const NEIGHBOUR_RESOLUTION_PORT: u16 = 26992;
 
 pub struct NeighbourResolver {
     config: Config,
@@ -100,7 +102,7 @@ impl NeighbourResolver {
 
             let id = rand::random();
             let sleep = Box::pin(tokio::time::sleep(self.config.request_timeout));
-            let packet = Packet::new_request(id);
+            let packet: Packet = Request::new(id).into();
 
             let Ok(packet) = bincode::serialize(&packet) else {
                 tracing::error!(if_index=%self.if_addr.if_index, "Failed to serialize packet");
@@ -170,12 +172,12 @@ impl Future for NeighbourResolver {
                 Poll::Ready(Ok(Ok((Packet::Request(req), from_addr)))) => {
                     if let SocketAddr::V6(from_addr) = from_addr {
                         tracing::info!(if_index=%this.if_addr.if_index, "Received request from {from_addr}");
-                        let packet = Packet::new_response(
+                        let packet: Packet = Response::new(
                             req.id,
                             this.local_peer_id,
                             this.batman_addr.clone(),
                             this.direct_addr.clone(),
-                        );
+                        ).into();
 
                         let Ok(packet) = bincode::serialize(&packet) else {
                             tracing::error!(if_index=%this.if_addr.if_index, "Failed to serialize packet");

@@ -12,7 +12,7 @@ rand = { workspace = true }
 serde = { workspace = true }
 tarpc = { workspace = true, features = ["serde-transport", "serde-transport-bincode", "unix"] }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
