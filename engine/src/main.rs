@@ -154,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 Err(err) => {
-                    println!("Error: {:?}", err);
+                    println!("Error: {err:?}");
                     break;
                 }
             }
@@ -189,7 +189,7 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split.iter().map(|e| e.as_str()).collect();
+                    let inner_split: Vec<&str> = split.iter().map(std::string::String::as_str).collect();
                     match &inner_split[..] {
                         ["KAD", "HELP"] => {
                             help_message(&[
@@ -259,7 +259,7 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split.iter().map(|e| e.as_str()).collect();
+                    let inner_split: Vec<&str> = split.iter().map(std::string::String::as_str).collect();
                     match &inner_split[..] {
                         ["GOS", "HELP"] => {
                             help_message(&[
@@ -303,10 +303,10 @@ async fn main() -> anyhow::Result<()> {
                                 loop {
                                     match res.recv().await {
                                         Ok(msg) => {
-                                            println!("Received: {:?}", msg);
+                                            println!("Received: {msg:?}");
                                         }
                                         Err(err) => {
-                                            println!("Error: {:?}", err);
+                                            println!("Error: {err:?}");
                                             break;
                                         }
                                     }
@@ -346,7 +346,7 @@ async fn main() -> anyhow::Result<()> {
                 break;
             }
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("Error: {err:?}");
                 break;
             }
         }

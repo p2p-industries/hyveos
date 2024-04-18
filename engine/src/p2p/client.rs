@@ -15,7 +15,7 @@ pub struct Client {
 
 impl Client {
     pub(super) fn new(sender: mpsc::Sender<Command>, peer_id: PeerId) -> Self {
-        Self { sender, peer_id }
+        Self { peer_id, sender }
     }
 
     fn special<C, T>(&self) -> T

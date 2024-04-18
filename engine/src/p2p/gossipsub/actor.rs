@@ -88,11 +88,7 @@ impl SubActor for Actor {
                 message,
             } => {
                 let topic_hash = message.topic.clone();
-                let received_message = ReceivedMessage {
-                    message,
-                    propagation_source,
-                    message_id,
-                };
+                let received_message = ReceivedMessage { propagation_source, message_id, message };
                 self.topic_subscriptions.get(&topic_hash).map_or_else(
                     || Err(EventError::MessageWithoutTopic(topic_hash)),
                     |(_, sender)| {
