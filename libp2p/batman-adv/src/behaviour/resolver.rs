@@ -198,6 +198,7 @@ impl Future for NeighbourResolver {
                             direct_addr: res.direct_addr,
                             batman_addr: res.batman_addr,
                         }));
+                        continue;
                     }
                 }
                 Poll::Ready(Err(err)) if err.kind() == io::ErrorKind::WouldBlock => {
