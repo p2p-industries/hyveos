@@ -45,7 +45,6 @@ impl Display for NeighbourStoreUpdate {
 
 impl NeighbourStoreUpdate {
     pub fn combine(&mut self, other: NeighbourStoreUpdate) {
-        // TODO: check if this actually works as intended
         self.discovered.extend(other.discovered);
         self.resolved.extend(other.resolved);
         self.lost_unresolved.extend(other.lost_unresolved);
