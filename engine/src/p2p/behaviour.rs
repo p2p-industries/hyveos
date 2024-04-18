@@ -46,7 +46,10 @@ impl MyBehaviour {
             .expect("Failed to init mdns"),
             round_trip: round_trip::new(),
             location: location::new(),
-            batman_neighbors: libp2p_batman_adv::Behaviour::new(Default::default(), peer_id),
+            batman_neighbors: libp2p_batman_adv::Behaviour::new(
+                libp2p_batman_adv::Config::default(),
+                peer_id,
+            ),
         }
     }
 }
