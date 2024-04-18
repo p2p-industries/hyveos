@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::env::args;
+use std::{env::args, fmt::Write as _, sync::Arc};
 
 use libp2p::{
     gossipsub::IdentTopic,
@@ -11,13 +11,20 @@ use libp2p::{
         GetRecordOk, RecordKey,
     },
 };
-use p2p::{gossipsub::ReceivedMessage, FullActor};
-use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
-use tokio::time::Instant;
+use rustyline::{
+    error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor, ExternalPrinter,
+};
+use tokio::{sync::broadcast::Receiver, time::Instant};
 use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 
+use crate::{
+    p2p::{gossipsub::ReceivedMessage, neighbours::Event as NeighboursEvent, FullActor},
+    printer::Printer,
+};
+
 mod p2p;
+mod printer;
 
 #[derive(rustyline::Completer, rustyline::Helper, rustyline::Validator, rustyline::Highlighter)]
 struct DiyHinter {
@@ -107,6 +114,13 @@ fn diy_hints() -> DiyHinter {
         CommandHint::new("GOS SUB topic", "GOS SUB"),
     );
     tree.insert("PING", CommandHint::new("PING", "PING"));
+    tree.insert("NEIGH HELP", CommandHint::new("NEIGH HELP", "NEIGH HELP"));
+    tree.insert("NEIGH SUB", CommandHint::new("NEIGH SUB", "NEIGH SUB"));
+    tree.insert("NEIGH LIST", CommandHint::new("NEIGH LIST", "NEIGH LIST"));
+    tree.insert(
+        "NEIGH LIST UNRESOLVED",
+        CommandHint::new("NEIGH LIST UNRESOLVED", "NEIGH LIST UNRESOLVED"),
+    );
     DiyHinter { tree }
 }
 
@@ -185,9 +199,9 @@ async fn main() -> anyhow::Result<()> {
                                 word.to_string()
                             }
                         })
-                        .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> =
-                        split.iter().map(std::string::String::as_str).collect();
+                        .collect::<Vec<_>>();
+                    let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
+
                     match &inner_split[..] {
                         ["KAD", "HELP"] => {
                             help_message(&[
@@ -256,9 +270,8 @@ async fn main() -> anyhow::Result<()> {
                                 word.to_string()
                             }
                         })
-                        .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> =
-                        split.iter().map(std::string::String::as_str).collect();
+                        .collect::<Vec<_>>();
+                    let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
 
                     match &inner_split[..] {
                         ["GOS", "HELP"] => {
@@ -279,14 +292,18 @@ async fn main() -> anyhow::Result<()> {
                             if res.is_err() {
                                 continue;
                             }
+
+                            let mut printer = Printer::from(rl.create_external_printer()?);
                             tokio::spawn(async move {
                                 loop {
                                     let msg = recv.recv().await.expect("Failed to receive");
                                     let from = msg.from;
-                                    println!(
+                                    writeln!(
+                                        printer,
                                         "Round trip to {from} ({nonce}) took {:?}",
                                         start.elapsed()
-                                    );
+                                    )
+                                    .expect("Failed to print");
                                 }
                             });
                         }
@@ -299,14 +316,18 @@ async fn main() -> anyhow::Result<()> {
                             let topic_handle = gos.get_topic(IdentTopic::new(*topic));
                             let mut res =
                                 topic_handle.subscribe().await.expect("Failed to subscribe");
+
+                            let mut printer = Printer::from(rl.create_external_printer()?);
                             tokio::spawn(async move {
                                 loop {
                                     match res.recv().await {
                                         Ok(msg) => {
-                                            println!("Received: {msg:?}");
+                                            writeln!(printer, "Received: {msg:?}")
+                                                .expect("Failed to print");
                                         }
                                         Err(err) => {
-                                            println!("Error: {err:?}");
+                                            writeln!(printer, "Error: {err:?}")
+                                                .expect("Failed to print");
                                             break;
                                         }
                                     }
@@ -320,18 +341,87 @@ async fn main() -> anyhow::Result<()> {
                 } else if line.to_uppercase().trim() == "PING" {
                     let ping = client.ping();
                     if let Ok(mut sub) = ping.subscribe().await {
+                        let mut printer = Printer::from(rl.create_external_printer()?);
                         tokio::spawn(async move {
                             while let Ok(event) = sub.recv().await {
                                 let peer = event.peer;
                                 if let Ok(dur) = event.result {
-                                    println!("Ping to {peer} took {dur:?}");
+                                    writeln!(printer, "Ping to {peer} took {dur:?}")
+                                        .expect("Failed to print");
                                 } else {
-                                    println!("Ping to {peer} failed");
+                                    writeln!(printer, "Ping to {peer} failed")
+                                        .expect("Failed to print");
                                 }
                             }
                         });
                     } else {
                         println!("Failed to subscribe");
+                    }
+                } else if line.to_uppercase().starts_with("NEIGH") {
+                    let neighbours = client.neighbours();
+                    let split = line
+                        .split_whitespace()
+                        .map(str::to_uppercase)
+                        .collect::<Vec<_>>();
+                    let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
+
+                    // TODO: use as_slice?
+                    match &inner_split[..] {
+                        ["NEIGH", "HELP"] => {
+                            help_message(&[
+                                ("NEIGH SUB", "Subscribe to neighbour events"),
+                                ("NEIGH LIST", "List resolved neighbours"),
+                                ("NEIGH LIST UNRESOLVED", "List unresolved neighbours"),
+                            ]);
+                        }
+                        ["NEIGH", "SUB"] => {
+                            if let Ok(sub) = neighbours.subscribe().await {
+                                tokio::spawn(neighbours_task(
+                                    sub,
+                                    Printer::from(rl.create_external_printer()?),
+                                ));
+                            } else {
+                                println!("Failed to subscribe");
+                            }
+                        }
+                        ["NEIGH", "LIST"] => {
+                            if let Ok(neighbours) = neighbours.get_resolved().await {
+                                if neighbours.is_empty() {
+                                    println!("No resolved neighbours");
+                                } else {
+                                    println!("Resolved neighbours:");
+                                    for (peer_id, neighbours) in neighbours {
+                                        if let [neighbour] = neighbours.as_slice() {
+                                            println!("  Peer {peer_id}: {}", neighbour.direct_addr);
+                                        } else {
+                                            println!("  Peer {peer_id}:");
+                                            for neighbour in neighbours {
+                                                println!("    - {}", neighbour.direct_addr);
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                println!("Failed to get neighbours");
+                            }
+                        }
+                        ["NEIGH", "LIST", "UNRESOLVED"] => {
+                            if let Ok(neighbours) = neighbours.get_unresolved().await {
+                                if neighbours.is_empty() {
+                                    println!("No unresolved neighbours");
+                                } else {
+                                    println!("Unresolved neighbours:");
+                                    for neighbour in neighbours {
+                                        println!("  - {}", neighbour.mac);
+                                    }
+                                }
+                            } else {
+                                println!("Failed to get neighbours");
+                            }
+                        }
+                        _ => {
+                            println!("Invalid command");
+                        }
                     }
                 } else {
                     println!("Invalid command");
@@ -353,6 +443,32 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+async fn neighbours_task(
+    mut sub: Receiver<Arc<NeighboursEvent>>,
+    mut printer: Printer<impl ExternalPrinter>,
+) {
+    while let Ok(event) = sub.recv().await {
+        match event.as_ref() {
+            NeighboursEvent::ResolvedNeighbour { neighbour, .. } => {
+                writeln!(
+                    printer,
+                    "Resolved neighbour {}: {}",
+                    neighbour.peer_id, neighbour.direct_addr
+                )
+                .expect("Failed to print");
+            }
+            NeighboursEvent::LostNeighbour { neighbour, .. } => {
+                writeln!(
+                    printer,
+                    "Lost neighbour {}: {}",
+                    neighbour.peer_id, neighbour.direct_addr
+                )
+                .expect("Failed to print");
+            }
+        }
+    }
 }
 
 fn help_message(explains: &[(&str, &str)]) {
