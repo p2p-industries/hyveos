@@ -23,7 +23,7 @@ jobs:
       CRATE: ${{ matrix.crate }}
       TARGET: ${{ matrix.target }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
@@ -131,8 +131,6 @@ jobs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
 
       - id: cargo-metadata
         run: |
