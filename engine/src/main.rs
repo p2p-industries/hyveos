@@ -69,16 +69,13 @@ impl Hinter for DiyHinter {
             return None;
         }
 
-        self.tree
-            .iter_prefix(line)
-            .filter_map(|(_, hint)| {
-                if hint.display.starts_with(line) {
-                    Some(hint.suffix(pos))
-                } else {
-                    None
-                }
-            })
-            .next()
+        self.tree.iter_prefix(line).find_map(|(_, hint)| {
+            if hint.display.starts_with(line) {
+                Some(hint.suffix(pos))
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -189,7 +186,8 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split.iter().map(std::string::String::as_str).collect();
+                    let inner_split: Vec<&str> =
+                        split.iter().map(std::string::String::as_str).collect();
                     match &inner_split[..] {
                         ["KAD", "HELP"] => {
                             help_message(&[
@@ -259,7 +257,10 @@ async fn main() -> anyhow::Result<()> {
                             }
                         })
                         .collect::<Vec<String>>();
-                    let inner_split: Vec<&str> = split.iter().map(std::string::String::as_str).collect();
+                    let inner_split: Vec<&str> = split
+                        .iter()
+                        .map(std::string::String::as_str).collect();
+                        
                     match &inner_split[..] {
                         ["GOS", "HELP"] => {
                             help_message(&[

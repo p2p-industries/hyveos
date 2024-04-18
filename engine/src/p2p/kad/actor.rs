@@ -20,11 +20,11 @@ pub type QueryMultipleTracker<T, E> = HashMap<QueryId, SendMultipleResult<T, E>>
 
 #[derive(Default)]
 pub struct Actor {
-    put_record_queries: QueryTracker<PutRecordOk, PutRecordError>,
-    get_record_queries: QueryMultipleTracker<GetRecordOk, GetRecordError>,
-    bootstrap_queries: QueryMultipleTracker<BootstrapOk, BootstrapError>,
-    get_providers_queries: QueryMultipleTracker<GetProvidersOk, GetProvidersError>,
-    start_providing_queries: QueryTracker<AddProviderOk, AddProviderError>,
+    put_record: QueryTracker<PutRecordOk, PutRecordError>,
+    get_record: QueryMultipleTracker<GetRecordOk, GetRecordError>,
+    bootstrap: QueryMultipleTracker<BootstrapOk, BootstrapError>,
+    get_providers: QueryMultipleTracker<GetProvidersOk, GetProvidersError>,
+    start_providing: QueryTracker<AddProviderOk, AddProviderError>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -80,7 +80,7 @@ impl SubActor for Actor {
         match event {
             Event::OutboundQueryProgressed {
                 id, result, step, ..
-            } => self.handle_outbound_query_progressed(id, result, step),
+            } => self.handle_outbound_query_progressed(id, result, &step),
             _ => Ok(()),
         }
     }
@@ -100,7 +100,7 @@ impl SubActor for Actor {
                     throws;
                     self,
                     put_record,
-                    put_record_queries,
+                    put_record,
                     behaviour,
                     sender;
                     record,
@@ -108,25 +108,25 @@ impl SubActor for Actor {
                 )
             }
             Command::GetRecord { key, sender } => {
-                call_behaviour!(self, get_record, get_record_queries, behaviour, sender; key)
+                call_behaviour!(self, get_record, get_record, behaviour, sender; key)
             }
             Command::Bootstrap { sender } => call_behaviour!(
                 throws;
                 self,
                 bootstrap,
-                bootstrap_queries,
+                bootstrap,
                 behaviour,
                 sender;
             ),
             Command::GetProviders { key, sender } => {
-                call_behaviour!(self, get_providers, get_providers_queries, behaviour, sender; key)
+                call_behaviour!(self, get_providers, get_providers, behaviour, sender; key)
             }
             Command::StartProviding { key, sender } => {
                 call_behaviour!(
                     throws;
                     self,
                     start_providing,
-                    start_providing_queries,
+                    start_providing,
                     behaviour,
                     sender;
                     key
@@ -141,25 +141,25 @@ impl Actor {
         &mut self,
         id: QueryId,
         result: QueryResult,
-        step: ProgressStep,
+        step: &ProgressStep,
     ) -> Result<(), EventError> {
         match result {
             QueryResult::GetRecord(res) => {
                 let sender = self
-                    .get_record_queries
+                    .get_record
                     .remove(&id)
                     .ok_or(EventError::QueryIdNotFound(id))?;
                 sender
                     .try_send(res)
                     .map_err(EventError::GetRecordSendError)?;
                 if !step.last {
-                    self.get_record_queries.insert(id, sender);
+                    self.get_record.insert(id, sender);
                 }
                 Ok(())
             }
             QueryResult::PutRecord(res) => {
                 let sender = self
-                    .put_record_queries
+                    .put_record
                     .remove(&id)
                     .ok_or(EventError::QueryIdNotFound(id))?;
                 sender.send(res).map_err(EventError::PutRecordSendError)?;
@@ -167,33 +167,33 @@ impl Actor {
             }
             QueryResult::Bootstrap(res) => {
                 let sender = self
-                    .bootstrap_queries
+                    .bootstrap
                     .remove(&id)
                     .ok_or(EventError::QueryIdNotFound(id))?;
                 sender
                     .try_send(res)
                     .map_err(EventError::BootstrapSendError)?;
                 if !step.last {
-                    self.bootstrap_queries.insert(id, sender);
+                    self.bootstrap.insert(id, sender);
                 }
                 Ok(())
             }
             QueryResult::GetProviders(res) => {
                 let sender = self
-                    .get_providers_queries
+                    .get_providers
                     .remove(&id)
                     .ok_or(EventError::QueryIdNotFound(id))?;
                 sender
                     .try_send(res)
                     .map_err(EventError::GetProvidersSendError)?;
                 if !step.last {
-                    self.get_providers_queries.insert(id, sender);
+                    self.get_providers.insert(id, sender);
                 }
                 Ok(())
             }
             QueryResult::StartProviding(res) => {
                 let sender = self
-                    .start_providing_queries
+                    .start_providing
                     .remove(&id)
                     .ok_or(EventError::QueryIdNotFound(id))?;
                 sender.send(res).map_err(EventError::AddProviderSendError)?;
