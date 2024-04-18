@@ -16,12 +16,18 @@ jobs:
       fail-fast: false
       matrix:
         crate: ${{ fromJSON(needs.gather_crates.outputs.members) }}
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
     env:
       CRATE: ${{ matrix.crate }}
+      TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v3
       
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: r7kamura/rust-problem-matchers@2c2f1016021a7455a6b5b4bbae31145f3b3cd83a #v1.4.0
 
@@ -31,27 +37,31 @@ jobs:
           save-if: false
 
       - name: Run complete check
-        run: cargo check --package "$CRATE" --all-features
+        run: cargo check --package "$CRATE" --all-features --target "$TARGET"
 
       - name: Run complete build
-        run: cargo build --package "$CRATE" --all-features
+        run: cargo build --package "$CRATE" --all-features --target "$TARGET"
 
       - name: Run all tests
+        if: ${{ matrix.target == "x86_64-unknown-linux-gnu" }}
         run: cargo test --package "$CRATE" --all-features
 
       - name: Check if we compile without any features activated
-        run: cargo build --package "$CRATE" --no-default-features
+        run: cargo build --package "$CRATE" --no-default-features --target "$TARGET"
 
       - uses: taiki-e/cache-cargo-install-action@924d49e0af41f449f0ad549559bc608ee4653562 # v1
+        if: ${{ matrix.target == "x86_64-unknown-linux-gnu" }}
         with:
           tool: tomlq
 
       - name: Extract version from manifest
+        if: ${{ matrix.target == "x86_64-unknown-linux-gnu" }}
         run: |
           CRATE_VERSION=$(cargo metadata --format-version=1 --no-deps | jq -e -r '.packages[] | select(.name == "'"$CRATE"'") | .version')
           echo "CRATE_VERSION=$CRATE_VERSION" >> $GITHUB_ENV
 
       - name: Enforce version `workspace.dependencies` matches latest version
+        if: ${{ matrix.target == "x86_64-unknown-linux-gnu" }}
         run: |
           SPECIFIED_VERSION=$(tomlq "workspace.dependencies.$CRATE.version" --file ./Cargo.toml)
 
@@ -80,7 +90,7 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       
-      - run: cargo clippy --all-features
+      - run: cargo clippy --all-features -- -W clippy::pedantic
 
   rustfmt:
     runs-on: ubuntu-latest
