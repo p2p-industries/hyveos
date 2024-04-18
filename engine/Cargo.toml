@@ -17,3 +17,4 @@ anyhow = "1.0.82"
 patricia_tree = "0.8.0"
 serde = { version = "1.0.198", features = ["derive"] }
 rand = { workspace = true }
+macaddress = { workspace = true }
