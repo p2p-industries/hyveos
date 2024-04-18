@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test ${{ matrix.crate }}
+    name: Test ${{ matrix.crate }} on ${{ matrix.target }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: gather_crates
@@ -24,6 +24,10 @@ jobs:
       TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install cross compile linker
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        run: sudo apt-get install gcc-aarch64-linux-gnu
       
       - uses: dtolnay/rust-toolchain@stable
         with:
