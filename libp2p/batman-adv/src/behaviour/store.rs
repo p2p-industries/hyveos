@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, PoisonError, RwLock, RwLockReadGuard},
 };
 
-use libp2p::{Multiaddr, PeerId};
+use libp2p::PeerId;
 use macaddress::MacAddress;
 
 use crate::{ResolvedNeighbour, UnresolvedNeighbour};

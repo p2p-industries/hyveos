@@ -365,7 +365,6 @@ async fn main() -> anyhow::Result<()> {
                         .collect::<Vec<_>>();
                     let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
 
-                    // TODO: use as_slice?
                     match &inner_split[..] {
                         ["NEIGH", "HELP"] => {
                             help_message(&[
@@ -391,7 +390,7 @@ async fn main() -> anyhow::Result<()> {
                                 } else {
                                     println!("Resolved neighbours:");
                                     for (peer_id, neighbours) in neighbours {
-                                        if let [neighbour] = neighbours.as_slice() {
+                                        if let [neighbour] = &neighbours[..] {
                                             println!("  Peer {peer_id}: {}", neighbour.direct_addr);
                                         } else {
                                             println!("  Peer {peer_id}:");
