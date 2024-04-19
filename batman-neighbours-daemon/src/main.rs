@@ -103,7 +103,7 @@ async fn main() -> io::Result<()> {
     fs::chown(
         &args.socket_path,
         None,
-        users::get_group_by_name("batman-neighbours").map(|g| g.gid()),
+        uzers::get_group_by_name("batman-neighbours").map(|g| g.gid()),
     )?;
     tokio::fs::set_permissions(&args.socket_path, Permissions::from_mode(0o660)).await?;
 
