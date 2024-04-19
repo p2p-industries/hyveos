@@ -1,6 +1,6 @@
 mod if_watcher;
 mod resolver;
-mod store;
+pub mod store;
 
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -48,7 +48,7 @@ use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeigh
 use self::{
     if_watcher::{IfAddr, IfEvent, IfWatcher},
     resolver::NeighbourResolver,
-    store::NeighbourStore,
+    store::{NeighbourStore, ReadOnlyNeighbourStore},
 };
 
 const DISCOVERED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;
@@ -455,6 +455,14 @@ impl Behaviour {
             state,
         }
     }
+
+    pub fn get_neighbour_store(&self) -> Option<ReadOnlyNeighbourStore> {
+        if let BehaviourState::ResolvingNeighbours(behaviour) = &self.state {
+            Some(behaviour.neighbour_store.clone().into())
+        } else {
+            None
+        }
+    }
 }
 
 impl NetworkBehaviour for Behaviour {
@@ -469,6 +477,30 @@ impl NetworkBehaviour for Behaviour {
         _: &Multiaddr,
     ) -> Result<THandler<Self>, ConnectionDenied> {
         Ok(dummy::ConnectionHandler)
+    }
+
+    fn handle_pending_outbound_connection(
+        &mut self,
+        _connection_id: ConnectionId,
+        maybe_peer: Option<PeerId>,
+        _addresses: &[Multiaddr],
+        _effective_role: Endpoint,
+    ) -> Result<Vec<Multiaddr>, ConnectionDenied> {
+        let (Some(peer_id), Some(store)) = (maybe_peer, self.get_neighbour_store()) else {
+            return Ok(Vec::new());
+        };
+
+        let store = store.read();
+
+        let Some(neighbours) = store.resolved.get(&peer_id) else {
+            return Ok(Vec::new());
+        };
+
+        Ok(neighbours
+            .values()
+            .map(|n| n.direct_addr.clone())
+            .chain(neighbours.values().next().map(|n| n.batman_addr.clone()))
+            .collect())
     }
 
     fn handle_established_outbound_connection(

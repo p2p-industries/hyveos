@@ -8,6 +8,7 @@ mod identify;
 pub mod kad;
 pub mod location;
 pub mod mdns;
+pub mod neighbours;
 pub mod ping;
 pub mod round_trip;
 
@@ -41,6 +42,7 @@ pub type FullActor = Actor<
     location::Actor,
     ping::Actor,
     identify::Actor,
+    neighbours::Actor,
     EventError,
     CommandError,
 >;

@@ -1,6 +1,7 @@
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     fmt::Display,
+    sync::{Arc, PoisonError, RwLock, RwLockReadGuard},
 };
 
 use libp2p::PeerId;
@@ -61,14 +62,14 @@ impl NeighbourStoreUpdate {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct NeighbourStore {
     pub unresolved: HashMap<MacAddress, UnresolvedNeighbour>,
     pub resolved: HashMap<PeerId, HashMap<MacAddress, ResolvedNeighbour>>,
 }
 
 impl NeighbourStore {
-    pub fn update_available_neighbours(
+    pub(super) fn update_available_neighbours(
         &mut self,
         neighbours: impl IntoIterator<Item = UnresolvedNeighbour>,
     ) -> NeighbourStoreUpdate {
@@ -136,7 +137,10 @@ impl NeighbourStore {
         }
     }
 
-    pub fn resolve_neighbour(&mut self, neighbour: ResolvedNeighbour) -> NeighbourStoreUpdate {
+    pub(super) fn resolve_neighbour(
+        &mut self,
+        neighbour: ResolvedNeighbour,
+    ) -> NeighbourStoreUpdate {
         let mac = neighbour.mac;
 
         let mut discovered = HashMap::new();
@@ -166,7 +170,7 @@ impl NeighbourStore {
         }
     }
 
-    pub fn remove_neighbour(&mut self, mac: MacAddress) -> NeighbourStoreUpdate {
+    pub(super) fn remove_neighbour(&mut self, mac: MacAddress) -> NeighbourStoreUpdate {
         if let Some(neighbour) = self.unresolved.remove(&mac) {
             let mut lost_unresolved = HashMap::new();
             lost_unresolved.insert(mac, neighbour);
@@ -199,5 +203,20 @@ impl NeighbourStore {
                 ..Default::default()
             }
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ReadOnlyNeighbourStore(Arc<RwLock<NeighbourStore>>);
+
+impl ReadOnlyNeighbourStore {
+    pub fn read(&self) -> RwLockReadGuard<NeighbourStore> {
+        self.0.read().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+impl From<Arc<RwLock<NeighbourStore>>> for ReadOnlyNeighbourStore {
+    fn from(store: Arc<RwLock<NeighbourStore>>) -> Self {
+        Self(store)
     }
 }

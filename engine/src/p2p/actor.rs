@@ -12,8 +12,8 @@ use tokio::sync::mpsc;
 use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
-    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location, ping,
-    round_trip,
+    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location,
+    neighbours, ping, round_trip,
 };
 
 const CHANNEL_CAP: usize = 10;
@@ -49,6 +49,7 @@ pub struct Actor<
     Location,
     Ping,
     Identify,
+    Neighbours,
     EventError,
     CommandError,
 > {
@@ -61,12 +62,35 @@ pub struct Actor<
     location: Location,
     ping: Ping,
     identify: Identify,
+    neighbours: Neighbours,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
 
-impl<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, Identify, EventError, CommandError>
-    Actor<Kad, Mdns, Gossipsub, RoundTrip, Location, Ping, Identify, EventError, CommandError>
+impl<
+        Kad,
+        Mdns,
+        Gossipsub,
+        RoundTrip,
+        Location,
+        Ping,
+        Identify,
+        Neighbours,
+        EventError,
+        CommandError,
+    >
+    Actor<
+        Kad,
+        Mdns,
+        Gossipsub,
+        RoundTrip,
+        Location,
+        Ping,
+        Identify,
+        Neighbours,
+        EventError,
+        CommandError,
+    >
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
     Mdns: SubActor<
@@ -95,6 +119,12 @@ where
             EventError = void::Void,
             Event = libp2p::identify::Event,
             SubCommand = (),
+        > + Default,
+    Neighbours: SubActor<
+            CommandError = void::Void,
+            EventError = void::Void,
+            Event = libp2p_batman_adv::Event,
+            SubCommand = neighbours::Command,
         > + Default,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
@@ -127,6 +157,7 @@ where
                 location: Default::default(),
                 ping: Default::default(),
                 identify: Default::default(),
+                neighbours: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -197,12 +228,10 @@ where
                 .identify
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
-            SwarmEvent::Behaviour(MyBehaviourEvent::BatmanNeighbors(
-                libp2p_batman_adv::Event::NeighbourUpdate(update),
-            )) => {
-                println!("\n{update}");
-                Ok(())
-            }
+            SwarmEvent::Behaviour(MyBehaviourEvent::BatmanNeighbours(event)) => self
+                .neighbours
+                .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
             _ => Ok(()),
         }
     }
@@ -227,6 +256,10 @@ where
                 .map_err(Into::into),
             Command::Ping(command) => self
                 .ping
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            Command::Neighbours(command) => self
+                .neighbours
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
         }
