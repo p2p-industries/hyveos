@@ -479,6 +479,30 @@ impl NetworkBehaviour for Behaviour {
         Ok(dummy::ConnectionHandler)
     }
 
+    fn handle_pending_outbound_connection(
+        &mut self,
+        _connection_id: ConnectionId,
+        maybe_peer: Option<PeerId>,
+        _addresses: &[Multiaddr],
+        _effective_role: Endpoint,
+    ) -> Result<Vec<Multiaddr>, ConnectionDenied> {
+        let (Some(peer_id), Some(store)) = (maybe_peer, self.get_neighbour_store()) else {
+            return Ok(Vec::new());
+        };
+
+        let store = store.read();
+
+        let Some(neighbours) = store.resolved.get(&peer_id) else {
+            return Ok(Vec::new());
+        };
+
+        Ok(neighbours
+            .values()
+            .map(|n| n.direct_addr.clone())
+            .chain(neighbours.values().next().map(|n| n.batman_addr.clone()))
+            .collect())
+    }
+
     fn handle_established_outbound_connection(
         &mut self,
         _: ConnectionId,

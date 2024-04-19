@@ -103,9 +103,6 @@ impl SubActor for Actor {
                     behaviour
                         .kad
                         .add_address(&neighbour.peer_id, neighbour.batman_addr.clone());
-                    behaviour
-                        .kad
-                        .add_address(&neighbour.peer_id, neighbour.direct_addr.clone());
                     behaviour.gossipsub.add_explicit_peer(&neighbour.peer_id);
 
                     let event = Event::ResolvedNeighbour { mac, neighbour };
@@ -114,10 +111,6 @@ impl SubActor for Actor {
                 }
 
                 for (mac, neighbour) in update.lost_resolved {
-                    behaviour
-                        .kad
-                        .remove_address(&neighbour.peer_id, &neighbour.direct_addr);
-
                     let event = Event::LostNeighbour { mac, neighbour };
 
                     let _ = self.sender.send(Arc::new(event));
