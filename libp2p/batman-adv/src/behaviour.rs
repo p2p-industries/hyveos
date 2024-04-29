@@ -28,6 +28,7 @@ use libp2p::{
     Multiaddr, PeerId,
 };
 use macaddress::MacAddress;
+#[cfg(target_os = "linux")]
 use netlink_packet_route::address::AddressAttribute;
 use tarpc::{
     client::{self, RpcError},
@@ -116,6 +117,7 @@ impl GettingBatmanAddrBehaviour {
         }
     }
 
+    #[cfg(target_os = "linux")]
     async fn run_task(
         batman_if_index: u32,
         listen_addresses: Arc<RwLock<ListenAddresses>>,
@@ -157,6 +159,15 @@ impl GettingBatmanAddrBehaviour {
                 .await
                 .map_err(|_| Error::ChannelClosed("ListenAddressesReceiver".into()))?;
         }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    async fn run_task(
+        batman_if_index: u32,
+        listen_addresses: Arc<RwLock<ListenAddresses>>,
+        mut listen_addresses_receiver: watch::Receiver<()>,
+    ) -> Result<Multiaddr, Error> {
+        println!("Getting Batman address is not supported on this platform");
     }
 }
 
