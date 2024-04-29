@@ -167,7 +167,7 @@ impl GettingBatmanAddrBehaviour {
         listen_addresses: Arc<RwLock<ListenAddresses>>,
         mut listen_addresses_receiver: watch::Receiver<()>,
     ) -> Result<Multiaddr, Error> {
-        println!("Getting Batman address is not supported on this platform");
+        loop {}
     }
 }
 
