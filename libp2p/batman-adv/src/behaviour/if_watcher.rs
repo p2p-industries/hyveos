@@ -8,15 +8,19 @@ use std::{
 };
 
 use futures::{stream::FusedStream, Stream, StreamExt as _, TryStreamExt as _};
+#[cfg(target_os = "linux")]
 use netlink_packet_core::NetlinkPayload;
+#[cfg(target_os = "linux")]
 use netlink_packet_route::{
     address::{AddressAttribute, AddressMessage},
     RouteNetlinkMessage,
 };
+#[cfg(target_os = "linux")]
 use netlink_proto::{
     sys::{AsyncSocket as _, SocketAddr, TokioSocket},
     Connection,
 };
+#[cfg(target_os = "linux")]
 use rtnetlink::constants::RTMGRP_IPV6_IFADDR;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -37,6 +41,7 @@ pub enum IfEvent {
     Down(IfAddr),
 }
 
+#[cfg(target_os = "linux")]
 pub struct IfWatcher {
     conn: Connection<RouteNetlinkMessage, TokioSocket>,
     messages: Pin<Box<dyn Stream<Item = io::Result<RouteNetlinkMessage>> + Send>>,
@@ -44,6 +49,7 @@ pub struct IfWatcher {
     queue: VecDeque<IfEvent>,
 }
 
+#[cfg(target_os = "linux")]
 impl std::fmt::Debug for IfWatcher {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("IfWatcher")
@@ -52,6 +58,7 @@ impl std::fmt::Debug for IfWatcher {
     }
 }
 
+#[cfg(target_os = "linux")]
 impl IfWatcher {
     pub fn new() -> io::Result<Self> {
         let (mut conn, handle, messages) = rtnetlink::new_connection()?;
@@ -128,6 +135,20 @@ impl IfWatcher {
                 AddressAttribute::Address(IpAddr::V6(addr)) => Some(IfAddr { if_index, addr }),
                 _ => None,
             })
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub struct IfWatcher;
+
+#[cfg(not(target_os = "linux"))]
+impl IfWatcher {
+    pub fn new() -> io::Result<Self> {
+        Ok(Self)
+    }
+
+    pub fn poll_if_event(&mut self, _: &mut Context) -> Poll<io::Result<IfEvent>> {
+        Poll::Pending
     }
 }
 
