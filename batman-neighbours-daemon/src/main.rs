@@ -1,5 +1,6 @@
 #![warn(clippy::expect_used, clippy::unwrap_used, clippy::pedantic)]
 
+#[cfg(target_os = "linux")]
 mod batman;
 
 use std::{
@@ -13,11 +14,14 @@ use std::{
 use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServer, Error};
 use clap::Parser;
 use futures::{future, Future, StreamExt as _, TryStreamExt as _};
+#[cfg(target_os = "linux")]
 use genetlink::GenetlinkHandle;
+#[cfg(target_os = "linux")]
 use netlink_packet_core::{
     NetlinkHeader, NetlinkMessage, NetlinkPayload, NLM_F_ACK, NLM_F_MATCH, NLM_F_REQUEST,
     NLM_F_ROOT,
 };
+#[cfg(target_os = "linux")]
 use netlink_packet_generic::GenlMessage;
 use tarpc::{
     context::Context,
@@ -32,11 +36,13 @@ struct Args {
     socket_path: PathBuf,
 }
 
+#[cfg(target_os = "linux")]
 #[derive(Clone)]
 struct BatmanNeighboursServerImpl {
     genetlink_handle: Arc<Mutex<GenetlinkHandle>>,
 }
 
+#[cfg(target_os = "linux")]
 impl BatmanNeighboursServer for BatmanNeighboursServerImpl {
     async fn get_neighbours(
         self,
@@ -84,6 +90,7 @@ async fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
     tokio::spawn(fut);
 }
 
+#[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let args = Args::parse();
@@ -122,4 +129,10 @@ async fn main() -> io::Result<()> {
         .await;
 
     Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+#[tokio::main]
+async fn main() {
+    println!("This program is only supported on Linux");
 }
