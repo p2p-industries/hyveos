@@ -5,8 +5,8 @@ edition = "2021"
 rust-version.workspace = true
 
 [dependencies]
-prost = "0.12"
-tonic = "0.11.0"
+prost = { workspace = true }
+tonic = { workspace = true }
 
 [build-dependencies]
 tonic-build = { version = "0.11.0", features = ["prost"] }
