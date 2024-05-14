@@ -4,7 +4,7 @@ members = [
     "batman-neighbours-daemon",
     "libp2p/batman-adv",
     "engine",
-    "macaddress",
+    "macaddress", "sdks/rust",
 ]
 default-members = ["batman-neighbours-daemon", "engine"]
 resolver = "2"
