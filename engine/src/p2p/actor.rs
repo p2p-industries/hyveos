@@ -12,9 +12,14 @@ use tokio::sync::mpsc;
 use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
-    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location,
-    neighbours, ping, round_trip,
+    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, ping, round_trip,
 };
+
+#[cfg(feature = "batman")]
+use super::neighbours;
+
+#[cfg(feature = "location")]
+use super::location;
 
 const CHANNEL_CAP: usize = 10;
 
@@ -41,6 +46,13 @@ pub trait SubActor {
     }
 }
 
+impl SubActor for () {
+    type SubCommand = void::Void;
+    type CommandError = void::Void;
+    type Event = void::Void;
+    type EventError = void::Void;
+}
+
 pub struct Actor<
     Kad,
     Mdns,
@@ -59,12 +71,102 @@ pub struct Actor<
     mdns: Mdns,
     gossipsub: Gossipsub,
     round_trip: RoundTrip,
+    #[cfg_attr(not(feature = "location"), allow(dead_code))]
     location: Location,
     ping: Ping,
     identify: Identify,
+    #[cfg_attr(not(feature = "batman"), allow(dead_code))]
     neighbours: Neighbours,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
+}
+
+#[cfg(feature = "batman")]
+pub(crate) trait NeighbourActor:
+    SubActor<
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = libp2p_batman_adv::Event,
+        SubCommand = neighbours::Command,
+    > + Default
+{
+}
+
+#[cfg(feature = "batman")]
+impl<T> NeighbourActor for T where
+    T: SubActor<
+            CommandError = void::Void,
+            EventError = void::Void,
+            Event = libp2p_batman_adv::Event,
+            SubCommand = neighbours::Command,
+        > + Default
+{
+}
+
+#[cfg(not(feature = "batman"))]
+pub(crate) trait NeighbourActor:
+    SubActor<
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = void::Void,
+        SubCommand = void::Void,
+    > + Default
+{
+}
+
+#[cfg(not(feature = "batman"))]
+impl<T> NeighbourActor for T where
+    T: SubActor<
+            CommandError = void::Void,
+            EventError = void::Void,
+            Event = void::Void,
+            SubCommand = void::Void,
+        > + Default
+{
+}
+
+#[cfg(feature = "location")]
+pub(crate) trait LocationActor:
+    SubActor<
+        CommandError = location::CommandError,
+        EventError = location::EventError,
+        Event = location::Event,
+        SubCommand = location::Command,
+    > + Default
+{
+}
+
+#[cfg(feature = "location")]
+impl<T> LocationActor for T where
+    T: SubActor<
+            CommandError = location::CommandError,
+            EventError = location::EventError,
+            Event = location::Event,
+            SubCommand = location::Command,
+        > + Default
+{
+}
+
+#[cfg(not(feature = "location"))]
+pub(crate) trait LocationActor:
+    SubActor<
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = void::Void,
+        SubCommand = void::Void,
+    > + Default
+{
+}
+
+#[cfg(not(feature = "location"))]
+impl<T> LocationActor for T where
+    T: SubActor<
+            CommandError = void::Void,
+            EventError = void::Void,
+            Event = void::Void,
+            SubCommand = void::Void,
+        > + Default
+{
 }
 
 impl<
@@ -107,7 +209,7 @@ where
             EventError = void::Void,
             CommandError = void::Void,
         > + Default,
-    Location: SubActor<SubCommand = location::Command, Event = location::Event> + Default,
+    Location: LocationActor,
     Ping: SubActor<
             SubCommand = ping::Command,
             Event = ping::Event,
@@ -120,12 +222,7 @@ where
             Event = libp2p::identify::Event,
             SubCommand = (),
         > + Default,
-    Neighbours: SubActor<
-            CommandError = void::Void,
-            EventError = void::Void,
-            Event = libp2p_batman_adv::Event,
-            SubCommand = neighbours::Command,
-        > + Default,
+    Neighbours: NeighbourActor,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
         + From<<Gossipsub as SubActor>::EventError>
@@ -216,6 +313,7 @@ where
                 .round_trip
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "location")]
             SwarmEvent::Behaviour(MyBehaviourEvent::Location(event)) => self
                 .location
                 .handle_event(event, self.swarm.behaviour_mut())
@@ -228,6 +326,7 @@ where
                 .identify
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "batman")]
             SwarmEvent::Behaviour(MyBehaviourEvent::BatmanNeighbours(event)) => self
                 .neighbours
                 .handle_event(event, self.swarm.behaviour_mut())
@@ -250,6 +349,7 @@ where
                 .round_trip
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "location")]
             Command::Location(command) => self
                 .location
                 .handle_command(command, self.swarm.behaviour_mut())
@@ -258,6 +358,7 @@ where
                 .ping
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "batman")]
             Command::Neighbours(command) => self
                 .neighbours
                 .handle_command(command, self.swarm.behaviour_mut())

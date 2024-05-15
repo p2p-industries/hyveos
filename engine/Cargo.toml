@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = { workspace = true }
 
 [dependencies]
-libp2p-batman-adv = { workspace = true }
+libp2p-batman-adv = { workspace = true, optional = true }
 libp2p = { workspace = true, features = [
     "tokio",
     "quic",
@@ -38,3 +38,7 @@ patricia_tree = "0.8.0"
 serde = { workspace = true }
 rand = { workspace = true }
 macaddress = { workspace = true }
+
+[features]
+batman = ["dep:libp2p-batman-adv"]
+location = []
