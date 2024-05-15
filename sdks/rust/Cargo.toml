@@ -1,0 +1,12 @@
+[package]
+name = "p2p-industries-sdk"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+
+[dependencies]
+prost = { workspace = true }
+tonic = { workspace = true }
+
+[build-dependencies]
+tonic-build = { version = "0.11.0", features = ["prost"] }

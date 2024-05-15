@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::{env::args, fmt::Write as _, sync::Arc};
+use std::{env::args, fmt::Write as _};
 
 use libp2p::{
     gossipsub::IdentTopic,
@@ -11,17 +11,26 @@ use libp2p::{
         GetRecordOk, RecordKey,
     },
 };
-use rustyline::{
-    error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor, ExternalPrinter,
-};
-use tokio::{sync::broadcast::Receiver, time::Instant};
+use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
+
+use tokio::time::Instant;
+
 use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    p2p::{gossipsub::ReceivedMessage, neighbours::Event as NeighboursEvent, FullActor},
+    p2p::{gossipsub::ReceivedMessage, FullActor},
     printer::Printer,
 };
+
+#[cfg(feature = "batman")]
+use crate::p2p::neighbours::Event as NeighboursEvent;
+#[cfg(feature = "batman")]
+use rustyline::ExternalPrinter;
+#[cfg(feature = "batman")]
+use std::sync::Arc;
+#[cfg(feature = "batman")]
+use tokio::sync::broadcast::Receiver;
 
 mod p2p;
 mod printer;
@@ -114,13 +123,16 @@ fn diy_hints() -> DiyHinter {
         CommandHint::new("GOS SUB topic", "GOS SUB"),
     );
     tree.insert("PING", CommandHint::new("PING", "PING"));
-    tree.insert("NEIGH HELP", CommandHint::new("NEIGH HELP", "NEIGH HELP"));
-    tree.insert("NEIGH SUB", CommandHint::new("NEIGH SUB", "NEIGH SUB"));
-    tree.insert("NEIGH LIST", CommandHint::new("NEIGH LIST", "NEIGH LIST"));
-    tree.insert(
-        "NEIGH LIST UNRESOLVED",
-        CommandHint::new("NEIGH LIST UNRESOLVED", "NEIGH LIST UNRESOLVED"),
-    );
+    #[cfg(feature = "batman")]
+    {
+        tree.insert("NEIGH HELP", CommandHint::new("NEIGH HELP", "NEIGH HELP"));
+        tree.insert("NEIGH SUB", CommandHint::new("NEIGH SUB", "NEIGH SUB"));
+        tree.insert("NEIGH LIST", CommandHint::new("NEIGH LIST", "NEIGH LIST"));
+        tree.insert(
+            "NEIGH LIST UNRESOLVED",
+            CommandHint::new("NEIGH LIST UNRESOLVED", "NEIGH LIST UNRESOLVED"),
+        );
+    }
     DiyHinter { tree }
 }
 
@@ -358,68 +370,78 @@ async fn main() -> anyhow::Result<()> {
                         println!("Failed to subscribe");
                     }
                 } else if line.to_uppercase().starts_with("NEIGH") {
-                    let neighbours = client.neighbours();
-                    let split = line
-                        .split_whitespace()
-                        .map(str::to_uppercase)
-                        .collect::<Vec<_>>();
-                    let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
+                    #[cfg(not(feature = "batman"))]
+                    {
+                        println!("batman feature not enabled");
+                    }
+                    #[cfg(feature = "batman")]
+                    {
+                        let neighbours = client.neighbours();
+                        let split = line
+                            .split_whitespace()
+                            .map(str::to_uppercase)
+                            .collect::<Vec<_>>();
+                        let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
 
-                    match &inner_split[..] {
-                        ["NEIGH", "HELP"] => {
-                            help_message(&[
-                                ("NEIGH SUB", "Subscribe to neighbour events"),
-                                ("NEIGH LIST", "List resolved neighbours"),
-                                ("NEIGH LIST UNRESOLVED", "List unresolved neighbours"),
-                            ]);
-                        }
-                        ["NEIGH", "SUB"] => {
-                            if let Ok(sub) = neighbours.subscribe().await {
-                                tokio::spawn(neighbours_task(
-                                    sub,
-                                    Printer::from(rl.create_external_printer()?),
-                                ));
-                            } else {
-                                println!("Failed to subscribe");
+                        match &inner_split[..] {
+                            ["NEIGH", "HELP"] => {
+                                help_message(&[
+                                    ("NEIGH SUB", "Subscribe to neighbour events"),
+                                    ("NEIGH LIST", "List resolved neighbours"),
+                                    ("NEIGH LIST UNRESOLVED", "List unresolved neighbours"),
+                                ]);
                             }
-                        }
-                        ["NEIGH", "LIST"] => {
-                            if let Ok(neighbours) = neighbours.get_resolved().await {
-                                if neighbours.is_empty() {
-                                    println!("No resolved neighbours");
+                            ["NEIGH", "SUB"] => {
+                                if let Ok(sub) = neighbours.subscribe().await {
+                                    tokio::spawn(neighbours_task(
+                                        sub,
+                                        Printer::from(rl.create_external_printer()?),
+                                    ));
                                 } else {
-                                    println!("Resolved neighbours:");
-                                    for (peer_id, neighbours) in neighbours {
-                                        if let [neighbour] = &neighbours[..] {
-                                            println!("  Peer {peer_id}: {}", neighbour.direct_addr);
-                                        } else {
-                                            println!("  Peer {peer_id}:");
-                                            for neighbour in neighbours {
-                                                println!("    - {}", neighbour.direct_addr);
+                                    println!("Failed to subscribe");
+                                }
+                            }
+                            ["NEIGH", "LIST"] => {
+                                if let Ok(neighbours) = neighbours.get_resolved().await {
+                                    if neighbours.is_empty() {
+                                        println!("No resolved neighbours");
+                                    } else {
+                                        println!("Resolved neighbours:");
+                                        for (peer_id, neighbours) in neighbours {
+                                            if let [neighbour] = &neighbours[..] {
+                                                println!(
+                                                    "  Peer {peer_id}: {}",
+                                                    neighbour.direct_addr
+                                                );
+                                            } else {
+                                                println!("  Peer {peer_id}:");
+                                                for neighbour in neighbours {
+                                                    println!("    - {}", neighbour.direct_addr);
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            } else {
-                                println!("Failed to get neighbours");
-                            }
-                        }
-                        ["NEIGH", "LIST", "UNRESOLVED"] => {
-                            if let Ok(neighbours) = neighbours.get_unresolved().await {
-                                if neighbours.is_empty() {
-                                    println!("No unresolved neighbours");
                                 } else {
-                                    println!("Unresolved neighbours:");
-                                    for neighbour in neighbours {
-                                        println!("  - {}", neighbour.mac);
-                                    }
+                                    println!("Failed to get neighbours");
                                 }
-                            } else {
-                                println!("Failed to get neighbours");
                             }
-                        }
-                        _ => {
-                            println!("Invalid command");
+                            ["NEIGH", "LIST", "UNRESOLVED"] => {
+                                if let Ok(neighbours) = neighbours.get_unresolved().await {
+                                    if neighbours.is_empty() {
+                                        println!("No unresolved neighbours");
+                                    } else {
+                                        println!("Unresolved neighbours:");
+                                        for neighbour in neighbours {
+                                            println!("  - {}", neighbour.mac);
+                                        }
+                                    }
+                                } else {
+                                    println!("Failed to get neighbours");
+                                }
+                            }
+                            _ => {
+                                println!("Invalid command");
+                            }
                         }
                     }
                 } else {
@@ -444,6 +466,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "batman")]
 async fn neighbours_task(
     mut sub: Receiver<Arc<NeighboursEvent>>,
     mut printer: Printer<impl ExternalPrinter>,
