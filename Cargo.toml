@@ -4,7 +4,7 @@ members = [
     "batman-neighbours-daemon",
     "libp2p/batman-adv",
     "engine",
-    "macaddress",
+    "macaddress", "sdks/rust",
 ]
 default-members = ["batman-neighbours-daemon", "engine"]
 resolver = "2"
@@ -26,9 +26,12 @@ tarpc = { version = "0.34.0" }
 serde = { version = "1.0.199", features = ["derive"] }
 batman-neighbours-core = { version = "0.1.0", path = "batman-neighbours-core" }
 batman-neighbours-daemon = { version = "0.1.0", path = "batman-neighbours-daemon" }
+p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
 engine = { version = "0.1.0", path = "engine" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
 macaddress = { version = "0.1.0", path = "macaddress" }
+prost = "0.12"
+tonic = "0.11.0"
 
 [profile.perf]
 inherits = "release"
