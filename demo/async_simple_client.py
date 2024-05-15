@@ -17,7 +17,8 @@ async def send_request(stub, peer_id, data, seq):
     print(f"Send Response: {response.data} with peer {peer_id}")
 
 async def run() -> None:
-    async with grpc.aio.insecure_channel("localhost:50051") as channel:
+    socket_path = "/var/run/p2p-bridge.sock"
+    async with grpc.aio.insecure_channel(f'unix:{socket_path}') as channel:
         stubDiscovery = script_pb2_grpc.DiscoveryStub(channel)
         stubReqResp = script_pb2_grpc.ReqRespStub(channel)
 
