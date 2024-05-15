@@ -1,6 +1,6 @@
 use tokio::sync::{mpsc, oneshot};
 
-use super::{gossipsub, kad, ping, round_trip};
+use super::{gossipsub, kad, ping, req_resp, round_trip};
 
 #[cfg(feature = "batman")]
 use super::neighbours;
@@ -33,4 +33,5 @@ pub enum Command {
     Ping(ping::Command),
     #[cfg(feature = "batman")]
     Neighbours(neighbours::Command),
+    ReqResp(req_resp::Command),
 }

@@ -5,7 +5,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::p2p::command::Command;
 
-use super::{command::RecvResult, gossipsub, kad, ping, round_trip};
+use super::{command::RecvResult, gossipsub, kad, ping, req_resp, round_trip};
 
 #[cfg(feature = "batman")]
 use super::neighbours;
@@ -51,6 +51,10 @@ impl Client {
 
     #[cfg(feature = "batman")]
     pub fn neighbours(&self) -> neighbours::Client {
+        self.special()
+    }
+
+    pub fn req_resp(&self) -> req_resp::Client {
         self.special()
     }
 }
