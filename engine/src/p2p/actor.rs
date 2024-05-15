@@ -13,7 +13,7 @@ use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
     behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, location,
-    neighbours, ping, round_trip,
+    neighbours, ping, req_resp, round_trip,
 };
 
 const CHANNEL_CAP: usize = 10;
@@ -50,6 +50,7 @@ pub struct Actor<
     Ping,
     Identify,
     Neighbours,
+    ReqResp,
     EventError,
     CommandError,
 > {
@@ -63,6 +64,7 @@ pub struct Actor<
     ping: Ping,
     identify: Identify,
     neighbours: Neighbours,
+    req_resp: ReqResp,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
@@ -76,6 +78,7 @@ impl<
         Ping,
         Identify,
         Neighbours,
+        ReqResp,
         EventError,
         CommandError,
     >
@@ -88,6 +91,7 @@ impl<
         Ping,
         Identify,
         Neighbours,
+        ReqResp,
         EventError,
         CommandError,
     >
@@ -126,6 +130,12 @@ where
             Event = libp2p_batman_adv::Event,
             SubCommand = neighbours::Command,
         > + Default,
+    ReqResp: SubActor<
+            SubCommand = req_resp::Command,
+            Event = <req_resp::Behaviour as NetworkBehaviour>::ToSwarm,
+            EventError = void::Void,
+            CommandError = void::Void,
+        > + Default,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
         + From<<Gossipsub as SubActor>::EventError>
@@ -158,6 +168,7 @@ where
                 ping: Default::default(),
                 identify: Default::default(),
                 neighbours: Default::default(),
+                req_resp: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -232,6 +243,10 @@ where
                 .neighbours
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            SwarmEvent::Behaviour(MyBehaviourEvent::ReqResp(event)) => self
+                .req_resp
+                .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
             _ => Ok(()),
         }
     }
@@ -260,6 +275,10 @@ where
                 .map_err(|e| void::unreachable(e)),
             Command::Neighbours(command) => self
                 .neighbours
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            Command::ReqResp(command) => self
+                .req_resp
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
         }

@@ -6,7 +6,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
 };
 
-use super::{location, round_trip};
+use super::{location, req_resp, round_trip};
 
 #[derive(NetworkBehaviour)]
 pub struct MyBehaviour {
@@ -16,6 +16,7 @@ pub struct MyBehaviour {
     pub kad: kad::Behaviour<MemoryStore>,
     pub gossipsub: gossipsub::Behaviour,
     pub mdns: mdns::tokio::Behaviour,
+    pub req_resp: req_resp::Behaviour,
     pub round_trip: round_trip::Behaviour,
     pub location: location::Behaviour,
 }
@@ -48,6 +49,7 @@ impl MyBehaviour {
                 peer_id,
             )
             .expect("Failed to init mdns"),
+            req_resp: req_resp::new(),
             round_trip: round_trip::new(),
             location: location::new(),
         }

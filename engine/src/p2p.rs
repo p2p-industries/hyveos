@@ -10,9 +10,10 @@ pub mod location;
 pub mod mdns;
 pub mod neighbours;
 pub mod ping;
+pub mod req_resp;
 pub mod round_trip;
 
-pub use actor::Actor;
+pub use {actor::Actor, client::Client};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EventError {
@@ -43,6 +44,7 @@ pub type FullActor = Actor<
     ping::Actor,
     identify::Actor,
     neighbours::Actor,
+    req_resp::Actor,
     EventError,
     CommandError,
 >;
