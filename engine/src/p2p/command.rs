@@ -1,6 +1,12 @@
 use tokio::sync::{mpsc, oneshot};
 
-use super::{gossipsub, kad, location, neighbours, ping, req_resp, round_trip};
+use super::{gossipsub, kad, ping, req_resp, round_trip};
+
+#[cfg(feature = "batman")]
+use super::neighbours;
+
+#[cfg(feature = "location")]
+use super::location;
 
 pub type SendResult<T, E> = oneshot::Sender<Result<T, E>>;
 pub type RecvResult<T, E> = oneshot::Receiver<Result<T, E>>;
@@ -22,8 +28,10 @@ pub enum Command {
     Kad(kad::Command),
     Gossipsub(gossipsub::Command),
     RoundTrip(round_trip::Command),
+    #[cfg(feature = "location")]
     Location(location::Command),
     Ping(ping::Command),
+    #[cfg(feature = "batman")]
     Neighbours(neighbours::Command),
     ReqResp(req_resp::Command),
 }

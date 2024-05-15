@@ -18,7 +18,7 @@ anyhow = { version = "1.0.82" }
 libp2p = { version = "0.53.2", features = ["tokio"] }
 netlink-packet-core = { version = "0.7.0" }
 tokio = { version = "1.37" }
-tokio-stream = { version = "0.1.15", features = ["net"] }
+tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
 tokio-util = { version = "0.7.11" }
 thiserror = { version = "1" }
 tracing = { version = "0.1.40" }

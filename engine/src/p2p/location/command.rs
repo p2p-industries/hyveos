@@ -8,6 +8,7 @@ use super::Location;
 /// Commands that the client can send to the actor.
 #[derive(Debug)]
 pub enum Command {
+    #[allow(dead_code)]
     GetLocation {
         peer: PeerId,
         location: oneshot::Sender<Option<Location>>,
