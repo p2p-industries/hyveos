@@ -1,2 +1,3 @@
 [target.aarch64-unknown-linux-gnu]
-linker = "aarch64-linux-gnu-gcc"
+# uncomment the following line to cross compile for raspberry pi
+# linker = "aarch64-linux-gnu-gcc"
