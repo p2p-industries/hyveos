@@ -6,13 +6,18 @@ mod command;
 pub mod gossipsub;
 mod identify;
 pub mod kad;
-pub mod location;
 pub mod mdns;
-pub mod neighbours;
 pub mod ping;
+pub mod req_resp;
 pub mod round_trip;
 
-pub use actor::Actor;
+#[cfg(feature = "batman")]
+pub mod neighbours;
+
+#[cfg(feature = "location")]
+pub mod location;
+
+pub use self::{actor::Actor, client::Client};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EventError {
@@ -20,8 +25,15 @@ pub enum EventError {
     Kad(#[from] kad::EventError),
     #[error("Gossipsub error: `{0}`")]
     Gossipsub(#[from] gossipsub::EventError),
+    #[cfg(feature = "location")]
     #[error("Location error: `{0}`")]
     Location(#[from] location::EventError),
+}
+
+impl From<void::Void> for EventError {
+    fn from(inp: void::Void) -> Self {
+        void::unreachable(inp)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -30,19 +42,37 @@ pub enum CommandError {
     Kad(#[from] kad::CommandError),
     #[error("Gossipsub error: `{0}`")]
     Gossipsub(#[from] gossipsub::CommandError),
+    #[cfg(feature = "location")]
     #[error("Location error: `{0}`")]
     Location(#[from] location::CommandError),
 }
+
+impl From<void::Void> for CommandError {
+    fn from(inp: void::Void) -> Self {
+        void::unreachable(inp)
+    }
+}
+
+#[cfg(feature = "batman")]
+type NeighbourActor = neighbours::Actor;
+#[cfg(not(feature = "batman"))]
+type NeighbourActor = ();
+
+#[cfg(feature = "location")]
+type LocationActor = location::Actor;
+#[cfg(not(feature = "location"))]
+type LocationActor = ();
 
 pub type FullActor = Actor<
     kad::Actor,
     mdns::Actor,
     gossipsub::Actor,
     round_trip::Actor,
-    location::Actor,
+    LocationActor,
     ping::Actor,
     identify::Actor,
-    neighbours::Actor,
+    NeighbourActor,
+    req_resp::Actor,
     EventError,
     CommandError,
 >;

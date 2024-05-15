@@ -3,6 +3,7 @@ use crate::p2p::client::SpecialClient;
 use super::Command;
 
 pub struct Client {
+    #[allow(dead_code)]
     inner: SpecialClient<Command>,
 }
 
