@@ -19,10 +19,12 @@ use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
+    bridge::Bridge,
     p2p::{gossipsub::ReceivedMessage, neighbours::Event as NeighboursEvent, FullActor},
     printer::Printer,
 };
 
+mod bridge;
 mod p2p;
 mod printer;
 
@@ -137,6 +139,12 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move {
         Box::pin(actor.drive()).await;
+    });
+
+    let bridge = Bridge::new(client.clone());
+
+    tokio::spawn(async move {
+        bridge.run().await;
     });
 
     let gos = client.gossipsub();

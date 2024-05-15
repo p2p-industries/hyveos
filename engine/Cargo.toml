@@ -38,3 +38,9 @@ patricia_tree = "0.8.0"
 serde = { workspace = true }
 rand = { workspace = true }
 macaddress = { workspace = true }
+prost = { workspace = true }
+tonic = { workspace = true }
+futures = "0.3.30"
+
+[build-dependencies]
+tonic-build = { workspace = true }
