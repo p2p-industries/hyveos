@@ -23,7 +23,7 @@ thiserror = { version = "1" }
 tracing = { version = "0.1.40" }
 rand = { version = "0.8.5" }
 tarpc = { version = "0.34.0" }
-serde = { version = "1.0.199", features = ["derive"] }
+serde = { version = "1.0.202", features = ["derive"] }
 batman-neighbours-core = { version = "0.1.0", path = "batman-neighbours-core" }
 batman-neighbours-daemon = { version = "0.1.0", path = "batman-neighbours-daemon" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
