@@ -5,13 +5,7 @@ from time import sleep
 led = LED(17)
 switch = Button(27)
 
-def switch_on():
-    led.on()
-
-def switch_off():
-    led.off()
-
-switch.when_pressed = switch_on
-switch.when_released = switch_off
+switch.when_pressed = lambda: led.on()
+switch.when_released = lambda: led.off()
 
 pause()
