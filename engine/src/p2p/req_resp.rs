@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use libp2p::{
     request_response::{
-        cbor, Config, Event, Message, OutboundRequestId, ProtocolSupport, ResponseChannel,
+        cbor, Config, Event, InboundRequestId, Message, OutboundRequestId, ProtocolSupport,
+        ResponseChannel,
     },
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
@@ -89,7 +90,7 @@ impl SubActor for Actor {
             }
             Command::Respond { id, data } => {
                 if let Some(channel) = self.response_channels.remove(&id) {
-                    behaviour.req_resp.send_response(channel, data);
+                    _ = behaviour.req_resp.send_response(channel, data);
                 }
             }
         }
@@ -109,7 +110,8 @@ impl SubActor for Actor {
                     request: data,
                     channel,
                 } => {
-                    let id = unsafe { std::mem::transmute(request_id) };
+                    // This is safe because InboundRequestId is a newtype around u64
+                    let id = unsafe { std::mem::transmute::<InboundRequestId, u64>(request_id) };
 
                     let request = InboundRequest {
                         id,
@@ -130,7 +132,7 @@ impl SubActor for Actor {
                 }
             },
             e => {
-                tracing::info!("Unhandled event: {e:?}");
+                tracing::debug!("Unhandled event: {e:?}");
             }
         }
         Ok(())

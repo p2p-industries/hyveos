@@ -106,12 +106,15 @@ impl Discovery for DiscoveryServer {
 
         let stream = BroadcastStream::new(sub)
             .try_filter_map(|event| {
-                future::ready(Ok(match event.as_ref() {
-                    Event::ResolvedNeighbour { neighbour, .. } => Some(script::Discovered {
-                        peer_id: neighbour.peer_id.to_string(),
-                    }),
-                    _ => None,
-                }))
+                future::ready(Ok(
+                    if let Event::ResolvedNeighbour { neighbour, .. } = event.as_ref() {
+                        Some(script::Discovered {
+                            peer_id: neighbour.peer_id.to_string(),
+                        })
+                    } else {
+                        None
+                    },
+                ))
             })
             .map_err(|e| Status::internal(e.to_string()));
 
