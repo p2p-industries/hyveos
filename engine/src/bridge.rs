@@ -1,4 +1,4 @@
-use futures::stream::{Stream, TryStreamExt as _};
+use futures::stream::{self, Stream, StreamExt as _, TryStreamExt as _};
 use std::{path::Path, pin::Pin};
 use tokio::net::UnixListener;
 use tokio_stream::wrappers::{BroadcastStream, UnixListenerStream};
@@ -106,12 +106,26 @@ impl Discovery for DiscoveryServer {
         _request: Request<script::Empty>,
     ) -> Result<Response<Self::DiscoverStream>> {
         let neighbours = self.client.neighbours();
+
+        let resolved = neighbours
+            .get_resolved()
+            .await
+            .map_err(|e| Status::internal(format!("{e:?}")))?;
+
+        let resolved_ids = resolved.keys().copied().collect::<Vec<_>>();
+
         let sub = neighbours
             .subscribe()
             .await
             .map_err(|e| Status::internal(format!("{e:?}")))?;
 
-        let stream = BroadcastStream::new(sub)
+        let resolved_stream = stream::iter(resolved_ids).map(|peer_id| {
+            Ok(script::Discovered {
+                peer_id: peer_id.to_string(),
+            })
+        });
+
+        let sub_stream = BroadcastStream::new(sub)
             .try_filter_map(|event| {
                 future::ready(Ok(
                     if let Event::ResolvedNeighbour { neighbour, .. } = event.as_ref() {
@@ -125,7 +139,7 @@ impl Discovery for DiscoveryServer {
             })
             .map_err(|e| Status::internal(e.to_string()));
 
-        Ok(Response::new(Box::pin(stream)))
+        Ok(Response::new(Box::pin(resolved_stream.chain(sub_stream))))
     }
 }
 
@@ -139,9 +153,13 @@ impl Bridge {
     }
 
     pub async fn run(self) {
-        let path = "/var/run/p2p-bridge.sock";
+        let path = Path::new("/var/run/p2p-bridge.sock");
 
-        tokio::fs::create_dir_all(Path::new(path).parent().unwrap())
+        if path.exists() {
+            std::fs::remove_file(path).unwrap();
+        }
+
+        tokio::fs::create_dir_all(path.parent().unwrap())
             .await
             .expect("Failed to create socket directory");
 

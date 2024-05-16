@@ -1,0 +1,5 @@
+gpiozero
+rpi-lgpio
+asyncio
+grpcio
+protobuf
