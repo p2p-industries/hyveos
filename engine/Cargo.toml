@@ -15,7 +15,6 @@ libp2p = { workspace = true, features = [
     "ping",
     "macros",
     "ed25519",
-    "mdns",
     "serde",
     "request-response",
     "cbor",
@@ -42,10 +41,14 @@ macaddress = { workspace = true }
 prost = { workspace = true }
 tonic = { workspace = true }
 futures = "0.3.30"
+clap = { version = "4.5.4", features = ["derive"] }
+netdev = "0.25.0"
 
 [build-dependencies]
 tonic-build = { workspace = true }
 
 [features]
+default = ["mdns"]
 batman = ["dep:libp2p-batman-adv"]
 location = []
+mdns = ["libp2p/mdns"]

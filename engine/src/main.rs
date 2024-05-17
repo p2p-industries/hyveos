@@ -3,6 +3,7 @@
 
 use std::{env::args, fmt::Write as _};
 
+use clap::Parser;
 use libp2p::{
     gossipsub::IdentTopic,
     identity::Keypair,
@@ -10,7 +11,10 @@ use libp2p::{
         BootstrapError, BootstrapOk, GetProvidersError, GetProvidersOk, GetRecordError,
         GetRecordOk, RecordKey,
     },
+    multiaddr::Protocol,
+    Multiaddr,
 };
+use netdev::interface::InterfaceType;
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 
 use tokio::time::Instant;
@@ -36,6 +40,16 @@ use tokio::sync::broadcast::Receiver;
 mod bridge;
 mod p2p;
 mod printer;
+
+#[derive(Debug, Parser)]
+pub struct Opts {
+    #[clap(short, long, value_delimiter = ',')]
+    pub listen_addrs: Option<Vec<Multiaddr>>,
+    #[clap(short = 'e', long)]
+    pub exclude_ethernet: bool,
+    #[clap(short = 'w', long)]
+    pub exclude_wifi: bool,
+}
 
 #[derive(rustyline::Completer, rustyline::Helper, rustyline::Validator, rustyline::Highlighter)]
 struct DiyHinter {
@@ -145,9 +159,47 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
+    let Opts {
+        listen_addrs,
+        exclude_ethernet,
+        exclude_wifi,
+    } = Opts::parse();
+
     let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
 
-    actor.setup();
+    if let Some(listen_addrs) = listen_addrs {
+        actor.setup(listen_addrs.into_iter());
+    } else {
+        if !exclude_ethernet {
+            tracing::warn!("You run without excluding ethernet");
+        }
+        let listen_addrs = netdev::get_interfaces()
+            .into_iter()
+            .filter(|e| {
+                !(exclude_ethernet
+                    && matches!(
+                        e.if_type,
+                        InterfaceType::Ethernet
+                            | InterfaceType::Ethernet3Megabit
+                            | InterfaceType::FastEthernetT
+                            | InterfaceType::FastEthernetFx
+                            | InterfaceType::GigabitEthernet
+                    ))
+            })
+            .filter(|e| !(exclude_wifi && matches!(e.if_type, InterfaceType::Wireless80211)))
+            .flat_map(|e| {
+                e.ipv4
+                    .into_iter()
+                    .map(|net| Multiaddr::empty().with(Protocol::Ip4(net.addr)))
+                    .chain(
+                        e.ipv6
+                            .into_iter()
+                            .map(|net| Multiaddr::empty().with(Protocol::Ip6(net.addr))),
+                    )
+            })
+            .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
+        actor.setup(listen_addrs);
+    }
 
     tokio::spawn(async move {
         Box::pin(actor.drive()).await;

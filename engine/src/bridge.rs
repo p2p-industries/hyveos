@@ -15,6 +15,7 @@ use crate::p2p::neighbours::Event;
 use futures::future;
 
 mod script {
+    #![allow(clippy::pedantic)]
     tonic::include_proto!("script");
 }
 
