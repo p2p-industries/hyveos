@@ -48,7 +48,6 @@ netdev = "0.25.0"
 tonic-build = { workspace = true }
 
 [features]
-default = ["mdns"]
 batman = ["dep:libp2p-batman-adv"]
 location = []
 mdns = ["libp2p/mdns"]
