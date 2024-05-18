@@ -1,7 +1,6 @@
 use std::{error::Error, marker::PhantomData, time::Duration};
 
 use libp2p::{
-    core::transport::Transport,
     futures::StreamExt,
     identity::Keypair,
     kad::Mode,
