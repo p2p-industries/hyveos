@@ -8,10 +8,10 @@ rust-version = { workspace = true }
 libp2p-batman-adv = { workspace = true, optional = true }
 libp2p = { workspace = true, features = [
     "tokio",
-    "quic",
     "identify",
     "kad",
     "gossipsub",
+  "quic",
     "ping",
     "macros",
     "ed25519",

@@ -175,6 +175,8 @@ async fn main() -> anyhow::Result<()> {
         }
         let listen_addrs = netdev::get_interfaces()
             .into_iter()
+            .inspect(|e| tracing::debug!("Interface: {e:?}"))
+            .filter(|e| !matches!(e.if_type, InterfaceType::Loopback))
             .filter(|e| {
                 !(exclude_ethernet
                     && matches!(

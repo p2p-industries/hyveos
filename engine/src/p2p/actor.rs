@@ -1,6 +1,7 @@
 use std::{error::Error, marker::PhantomData, time::Duration};
 
 use libp2p::{
+    core::transport::Transport,
     futures::StreamExt,
     identity::Keypair,
     kad::Mode,
@@ -303,6 +304,7 @@ where
     pub fn setup(&mut self, listen_addrs: impl Iterator<Item = Multiaddr>) {
         self.swarm.behaviour_mut().kad.set_mode(Some(Mode::Server));
         for addr in listen_addrs {
+            println!("Listening on: {:?}", addr);
             self.swarm
                 .listen_on(addr)
                 .expect("Failed to listen on address");

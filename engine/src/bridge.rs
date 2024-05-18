@@ -154,7 +154,7 @@ impl Bridge {
     }
 
     pub async fn run(self) {
-        let path = Path::new("/var/run/p2p-bridge.sock");
+        let path = Path::new("/var/run/p2p/p2p-bridge.sock");
 
         if path.exists() {
             std::fs::remove_file(path).unwrap();
