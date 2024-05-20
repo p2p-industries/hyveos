@@ -23,6 +23,7 @@ jobs:
     env:
       CRATE: ${{ matrix.crate }}
       TARGET: ${{ matrix.target }}
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - uses: actions/checkout@v4
 
@@ -89,6 +90,8 @@ jobs:
   clippy:
     name: Run clippy
     runs-on: ubuntu-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - uses: actions/checkout@v4
       
@@ -118,6 +121,8 @@ jobs:
 
   rustfmt:
     runs-on: ubuntu-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - uses: actions/checkout@v4
       
@@ -140,6 +145,8 @@ jobs:
   ensure-lockfile-uptodate:
     name: Ensure that `Cargo.lock` is up-to-date
     runs-on: ubuntu-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - uses: actions/checkout@v4
       
@@ -155,6 +162,8 @@ jobs:
   gather_crates:
     name: Gather crates
     runs-on: ubuntu-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
