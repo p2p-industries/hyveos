@@ -8,6 +8,7 @@ mod identify;
 pub mod kad;
 pub mod mdns;
 pub mod ping;
+pub mod req_resp;
 pub mod round_trip;
 
 #[cfg(feature = "batman")]
@@ -16,7 +17,7 @@ pub mod neighbours;
 #[cfg(feature = "location")]
 pub mod location;
 
-pub use actor::Actor;
+pub use self::{actor::Actor, client::Client};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EventError {
@@ -71,6 +72,7 @@ pub type FullActor = Actor<
     ping::Actor,
     identify::Actor,
     NeighbourActor,
+    req_resp::Actor,
     EventError,
     CommandError,
 >;

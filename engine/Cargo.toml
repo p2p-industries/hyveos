@@ -21,6 +21,7 @@ libp2p = { workspace = true, features = [
     "cbor",
 ] }
 tokio = { workspace = true, features = [
+    "fs",
     "rt-multi-thread",
     "macros",
     "sync",
@@ -38,6 +39,12 @@ patricia_tree = "0.8.0"
 serde = { workspace = true }
 rand = { workspace = true }
 macaddress = { workspace = true }
+prost = { workspace = true }
+tonic = { workspace = true }
+futures = "0.3.30"
+
+[build-dependencies]
+tonic-build = { workspace = true }
 
 [features]
 batman = ["dep:libp2p-batman-adv"]
