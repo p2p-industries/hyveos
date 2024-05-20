@@ -15,7 +15,7 @@ rust-version = "1.77.0"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.82" }
-libp2p = { version = "0.53.2", features = ["tokio"], git = "https://github.com/p2p-industries/rust-libp2p.git", branch = "p2p-industries" }
+libp2p = { version = "0.53.2", features = ["tokio"], git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "db986de7e9966f25c386b9ee4ee1a03cf9e90c3f" }
 netlink-packet-core = { version = "0.7.0" }
 tokio = { version = "1.37" }
 tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
