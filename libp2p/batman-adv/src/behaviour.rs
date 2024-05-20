@@ -361,7 +361,7 @@ impl ResolvingNeighboursBehaviour {
 
             match res {
                 Ok(neighbour) => {
-                    tracing::info!(peer=%neighbour.peer_id , "\nResolved neighbour: {}", neighbour.direct_addr);
+                    tracing::info!(peer=%neighbour.peer_id , "Resolved neighbour: {}", neighbour.direct_addr);
 
                     let update = neighbour_store.resolve_neighbour(neighbour);
 
@@ -497,15 +497,20 @@ impl NetworkBehaviour for Behaviour {
         _addresses: &[Multiaddr],
         _effective_role: Endpoint,
     ) -> Result<Vec<Multiaddr>, ConnectionDenied> {
+        tracing::info!(peer=?maybe_peer, "Handling pending outbound connection called");
         let (Some(peer_id), Some(store)) = (maybe_peer, self.get_neighbour_store()) else {
             return Ok(Vec::new());
         };
+
+        tracing::info!(peer=%peer_id, "Handling pending outbound connection");
 
         let store = store.read();
 
         let Some(neighbours) = store.resolved.get(&peer_id) else {
             return Ok(Vec::new());
         };
+
+        tracing::info!(peer=%peer_id, "Resolved neighbours for outbound connection: {:?}", neighbours);
 
         Ok(neighbours
             .values()

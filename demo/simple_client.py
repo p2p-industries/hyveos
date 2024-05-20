@@ -17,6 +17,7 @@ def handle_switch(request_queue, loop):
     switch.when_released = lambda: put_request("OFF")
 
 async def send_request(stub, peer_id, data, seq):
+    print(f"Send Request: {data} with peer {peer_id}")
     request = script_pb2.Request(peer_id=peer_id, data=data.encode(), seq=seq)
     response = await stub.Send(request)
     print(f"Send Response: {response.data.decode()} with peer {peer_id}")
@@ -53,7 +54,7 @@ async def request_worker(queue, stub, peer_id):
 async def run() -> None:
     request_queue = asyncio.Queue()
 
-    socket_path = "/var/run/p2p-bridge.sock"
+    socket_path = "/home/pi/p2p-bridge.sock"
     async with grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('grpc.default_authority', 'localhost'),)) as channel:
         stubDiscovery = script_pb2_grpc.DiscoveryStub(channel)
         stubReqResp = script_pb2_grpc.ReqRespStub(channel)
