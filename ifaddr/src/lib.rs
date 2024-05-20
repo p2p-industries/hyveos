@@ -74,9 +74,7 @@ impl From<IfAddr> for Multiaddr {
         let mut bytes = [0; 10];
         bytes[0..8].copy_from_slice(&mac.bytes());
 
-        let mut multiaddr = Multiaddr::empty();
-        multiaddr.push(Protocol::Onion(Cow::Owned(bytes), addr.if_index as u16));
-        multiaddr
+        Multiaddr::empty().with(Protocol::Onion(Cow::Owned(bytes), addr.if_index as u16))
     }
 }
 

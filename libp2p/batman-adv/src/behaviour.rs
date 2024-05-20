@@ -95,7 +95,13 @@ impl GettingBatmanAddrBehaviour {
         listen_addresses: Arc<RwLock<ListenAddresses>>,
         mut listen_addresses_receiver: watch::Receiver<()>,
     ) -> Result<Multiaddr, Error> {
+        tracing::info!(if_index=%batman_if_index, "Waiting for Batman interface address");
         loop {
+            tracing::info!(
+                if_index=%batman_if_index,
+                "Listen addresses: {:?}",
+                listen_addresses.read().unwrap_or_else(PoisonError::into_inner)
+            );
             if let Some(multiaddr) = listen_addresses
                 .read()
                 .unwrap_or_else(PoisonError::into_inner)
