@@ -4,7 +4,6 @@
 use std::{
     env::args,
     fmt::Write as _,
-    net::{Ipv4Addr, Ipv6Addr},
 };
 
 use clap::Parser;
@@ -18,7 +17,6 @@ use libp2p::{
     multiaddr::Protocol,
     Multiaddr,
 };
-use netdev::interface::InterfaceType;
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 
 use tokio::time::Instant;
@@ -154,6 +152,7 @@ fn diy_hints() -> DiyHinter {
 
 #[cfg(not(feature = "batman"))]
 fn fallback_listen_addrs() -> Vec<Multiaddr> {
+    use std::net::{Ipv4Addr, Ipv6Addr};
     [
         Multiaddr::empty().with(Protocol::Ip6(Ipv6Addr::UNSPECIFIED)),
         Multiaddr::empty().with(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)),
