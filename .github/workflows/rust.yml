@@ -31,12 +31,10 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Auth CLI
-        run: |
-          gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITSECRET }}
 
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
@@ -100,11 +98,9 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Auth CLI
-        run: |
-          gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITSECRET }}
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -126,12 +122,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Auth CLI
-        run: |
-          gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITSECRET }}
+
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
@@ -150,11 +144,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Auth CLI
-        run: |
-          gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITSECRET }}
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
       - run: cargo metadata --locked --format-version=1 > /dev/null
@@ -169,11 +161,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Auth CLI
-        run: |
-          gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITSECRET }}
 
       - id: cargo-metadata
         run: |
