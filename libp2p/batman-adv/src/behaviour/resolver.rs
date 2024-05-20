@@ -29,7 +29,7 @@ use self::{
     socket::AsyncSocket as _,
 };
 
-use super::if_watcher::IfAddr;
+use crate::IfAddr;
 
 const DISCOVERED_CHANNEL_BUFFER: usize = 2;
 

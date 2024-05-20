@@ -23,17 +23,7 @@ use netlink_proto::{
 #[cfg(target_os = "linux")]
 use rtnetlink::constants::RTMGRP_IPV6_IFADDR;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IfAddr {
-    pub if_index: u32,
-    pub addr: Ipv6Addr,
-}
-
-impl IfAddr {
-    pub fn with_port(&self, port: u16) -> std::net::SocketAddr {
-        SocketAddrV6::new(self.addr, port, 0, self.if_index).into()
-    }
-}
+use crate::IfAddr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IfEvent {

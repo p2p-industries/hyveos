@@ -44,10 +44,10 @@ use tokio::{
 };
 use tokio_stream::wrappers::WatchStream;
 
-use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeighbour};
+use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, IfAddr, ResolvedNeighbour};
 
 use self::{
-    if_watcher::{IfAddr, IfEvent, IfWatcher},
+    if_watcher::{IfEvent, IfWatcher},
     resolver::NeighbourResolver,
     store::{NeighbourStore, ReadOnlyNeighbourStore},
 };
