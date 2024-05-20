@@ -2,7 +2,7 @@ use std::{
     collections::{HashSet, VecDeque},
     future::Future,
     io,
-    net::{IpAddr, Ipv6Addr, SocketAddrV6},
+    net::IpAddr,
     pin::Pin,
     task::{ready, Context, Poll},
 };

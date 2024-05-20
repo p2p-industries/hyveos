@@ -6,22 +6,17 @@ use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     future::Future as _,
     io,
-    net::{IpAddr, Ipv6Addr},
     pin::Pin,
     sync::{Arc, PoisonError, RwLock},
     task::{ready, Context, Poll},
 };
 
 use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServerClient, Error as BatmanError};
-use futures::{
-    stream::{self, StreamExt as _, TryStreamExt as _},
-    Stream as _,
-};
+use futures::{stream::StreamExt as _, Stream as _};
 use ifaddr::IfAddr;
 use itertools::Itertools as _;
 use libp2p::{
     core::Endpoint,
-    multiaddr::Protocol,
     swarm::{
         dummy, ConnectionDenied, ConnectionId, FromSwarm, ListenAddresses, NetworkBehaviour,
         THandler, THandlerInEvent, THandlerOutEvent, ToSwarm,
@@ -29,8 +24,6 @@ use libp2p::{
     Multiaddr, PeerId,
 };
 use macaddress::MacAddress;
-#[cfg(target_os = "linux")]
-use netlink_packet_route::address::AddressAttribute;
 use tarpc::{
     client::{self, RpcError},
     context,
@@ -59,28 +52,6 @@ const RESOLVED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;
 #[derive(Debug, Clone)]
 pub enum Event {
     NeighbourUpdate(NeighbourStoreUpdate),
-}
-
-trait ListenAddressesExt {
-    fn find_address(&self, p: impl FnMut(&Ipv6Addr) -> bool) -> Option<Multiaddr>;
-}
-
-impl ListenAddressesExt for ListenAddresses {
-    fn find_address(&self, mut p: impl FnMut(&Ipv6Addr) -> bool) -> Option<Multiaddr> {
-        self.iter().find_map(|multiaddr| {
-            multiaddr.iter().find_map(|segment| {
-                if let Protocol::Ip6(addr) = segment {
-                    if p(&addr) {
-                        Some(multiaddr.clone())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-        })
-    }
 }
 
 struct GettingBatmanAddrBehaviour {
@@ -124,33 +95,19 @@ impl GettingBatmanAddrBehaviour {
         listen_addresses: Arc<RwLock<ListenAddresses>>,
         mut listen_addresses_receiver: watch::Receiver<()>,
     ) -> Result<Multiaddr, Error> {
-        let (conn, handle, _) = rtnetlink::new_connection()
-            .map_err(|e| Error::CreateNetlinkConnection(e.to_string()))?;
-        tokio::spawn(conn);
-
-        let addresses = handle
-            .address()
-            .get()
-            .set_link_index_filter(batman_if_index)
-            .execute()
-            .map_err(|e| Error::GetAddresses(e.to_string()))
-            .map_ok(|msg| stream::iter(msg.attributes).map(Ok::<_, Error>))
-            .try_flatten()
-            .try_filter_map(|attr| async move {
-                Ok(if let AddressAttribute::Address(IpAddr::V6(local)) = attr {
-                    Some(local)
-                } else {
-                    None
-                })
-            })
-            .try_collect::<HashSet<_>>()
-            .await?;
-
         loop {
             if let Some(multiaddr) = listen_addresses
                 .read()
                 .unwrap_or_else(PoisonError::into_inner)
-                .find_address(|addr| addresses.contains(addr))
+                .iter()
+                .find(|&multiaddr| {
+                    if let Ok(addr) = IfAddr::try_from(multiaddr) {
+                        addr.if_index == batman_if_index
+                    } else {
+                        false
+                    }
+                })
+                .cloned()
             {
                 return Ok(multiaddr);
             }
@@ -258,12 +215,7 @@ impl ResolvingNeighboursBehaviour {
             .is_ready()
         {
             tracing::info!("Listen addresses changed");
-            let mut pending_resolvers = HashSet::new();
-            std::mem::swap(
-                &mut self.pending_neighbour_resolvers,
-                &mut pending_resolvers,
-            );
-            for addr in pending_resolvers {
+            for addr in std::mem::take(&mut self.pending_neighbour_resolvers) {
                 self.add_resolver(config.clone(), addr);
             }
         }
@@ -393,7 +345,15 @@ impl ResolvingNeighboursBehaviour {
                 .listen_addresses
                 .read()
                 .unwrap_or_else(PoisonError::into_inner)
-                .find_address(|a| a == &addr.addr)
+                .iter()
+                .find(|&multiaddr| {
+                    if let Ok(listen_addr) = IfAddr::try_from(multiaddr) {
+                        listen_addr.if_index == addr.if_index
+                    } else {
+                        false
+                    }
+                })
+                .cloned()
             {
                 match NeighbourResolver::new(
                     config,

@@ -3,14 +3,7 @@
 
 mod behaviour;
 
-use std::{
-    fmt::Display,
-    io,
-    net::{Ipv6Addr, SocketAddrV6},
-    str::FromStr,
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
 use ifaddr::if_name_to_index;
