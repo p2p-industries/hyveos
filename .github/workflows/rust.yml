@@ -35,7 +35,7 @@ jobs:
         run: |
           gh auth setup-git
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
@@ -101,7 +101,7 @@ jobs:
         run: |
           gh auth setup-git
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -125,7 +125,7 @@ jobs:
         run: |
           gh auth setup-git
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
       
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -147,7 +147,7 @@ jobs:
         run: |
           gh auth setup-git
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
       - run: cargo metadata --locked --format-version=1 > /dev/null
@@ -164,7 +164,7 @@ jobs:
         run: |
           gh auth setup-git
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - id: cargo-metadata
         run: |
