@@ -1,6 +1,7 @@
 use std::{error::Error, marker::PhantomData, time::Duration};
 
 use libp2p::{
+    core::Transport,
     futures::StreamExt,
     identity::Keypair,
     kad::Mode,
@@ -273,7 +274,14 @@ where
     pub fn build(keypair: Keypair) -> (Client, Self) {
         let swarm = SwarmBuilder::with_existing_identity(keypair)
             .with_tokio()
-            .with_quic()
+            .with_other_transport(|keypair| {
+                libp2p_quic::tokio::Transport::new(libp2p_quic::Config::new(keypair)).map(
+                    |(peer_id, muxer), _| {
+                        (peer_id, libp2p::core::muxing::StreamMuxerBox::new(muxer))
+                    },
+                )
+            })
+            .expect("Failed to build quic transport")
             .with_behaviour(MyBehaviour::new)
             .expect("Failed to build swarm")
             .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
