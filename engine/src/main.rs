@@ -1,10 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::{
-    env::args,
-    fmt::Write as _,
-};
+use std::{env::args, fmt::Write as _};
 
 use clap::Parser;
 use libp2p::{
