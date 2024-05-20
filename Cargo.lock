@@ -756,6 +756,7 @@ dependencies = [
  "anyhow",
  "clap",
  "futures",
+ "ifaddr",
  "libp2p",
  "libp2p-batman-adv",
  "macaddress",

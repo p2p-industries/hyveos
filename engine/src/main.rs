@@ -1,7 +1,11 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::{env::args, fmt::Write as _};
+use std::{
+    env::args,
+    fmt::Write as _,
+    net::{Ipv4Addr, Ipv6Addr},
+};
 
 use clap::Parser;
 use libp2p::{
@@ -44,11 +48,7 @@ mod printer;
 #[derive(Debug, Parser)]
 pub struct Opts {
     #[clap(short, long, value_delimiter = ',')]
-    pub listen_addrs: Option<Vec<Multiaddr>>,
-    #[clap(short = 'e', long)]
-    pub exclude_ethernet: bool,
-    #[clap(short = 'w', long)]
-    pub exclude_wifi: bool,
+    pub listen_addrs: Option<Vec<ifaddr::IfAddr>>,
 }
 
 #[derive(rustyline::Completer, rustyline::Helper, rustyline::Validator, rustyline::Highlighter)]
@@ -152,6 +152,32 @@ fn diy_hints() -> DiyHinter {
     DiyHinter { tree }
 }
 
+#[cfg(not(feature = "batman"))]
+fn fallback_listen_addrs() -> Vec<Multiaddr> {
+    [
+        Multiaddr::empty().with(Protocol::Ip6(Ipv6Addr::UNSPECIFIED)),
+        Multiaddr::empty().with(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)),
+    ]
+    .into_iter()
+    .collect()
+}
+
+#[cfg(feature = "batman")]
+fn fallback_listen_addrs() -> Vec<Multiaddr> {
+    use ifaddr::IfAddr;
+
+    netdev::get_interfaces()
+        .into_iter()
+        .flat_map(|iface| {
+            iface.ipv6.into_iter().map(move |net| IfAddr {
+                if_index: iface.index,
+                addr: net.addr,
+            })
+        })
+        .map(Multiaddr::from)
+        .collect()
+}
+
 #[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -159,49 +185,19 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let Opts {
-        listen_addrs,
-        exclude_ethernet,
-        exclude_wifi,
-    } = Opts::parse();
+    let Opts { listen_addrs } = Opts::parse();
+
+    let listen_addrs: Vec<_> = listen_addrs.map_or_else(fallback_listen_addrs, |e| {
+        e.into_iter().map(Multiaddr::from).collect()
+    });
+    println!("Listen addresses: {listen_addrs:?}");
+    let listen_addrs = listen_addrs
+        .into_iter()
+        .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
 
     let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
 
-    if let Some(listen_addrs) = listen_addrs {
-        actor.setup(listen_addrs.into_iter());
-    } else {
-        if !exclude_ethernet {
-            tracing::warn!("You run without excluding ethernet");
-        }
-        let listen_addrs = netdev::get_interfaces()
-            .into_iter()
-            .inspect(|e| tracing::debug!("Interface: {e:?}"))
-            .filter(|e| !matches!(e.if_type, InterfaceType::Loopback))
-            .filter(|e| {
-                !(exclude_ethernet
-                    && matches!(
-                        e.if_type,
-                        InterfaceType::Ethernet
-                            | InterfaceType::Ethernet3Megabit
-                            | InterfaceType::FastEthernetT
-                            | InterfaceType::FastEthernetFx
-                            | InterfaceType::GigabitEthernet
-                    ))
-            })
-            .filter(|e| !(exclude_wifi && matches!(e.if_type, InterfaceType::Wireless80211)))
-            .flat_map(|e| {
-                e.ipv4
-                    .into_iter()
-                    .map(|net| Multiaddr::empty().with(Protocol::Ip4(net.addr)))
-                    .chain(
-                        e.ipv6
-                            .into_iter()
-                            .map(|net| Multiaddr::empty().with(Protocol::Ip6(net.addr))),
-                    )
-            })
-            .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
-        actor.setup(listen_addrs);
-    }
+    actor.setup(listen_addrs);
 
     tokio::spawn(async move {
         Box::pin(actor.drive()).await;
