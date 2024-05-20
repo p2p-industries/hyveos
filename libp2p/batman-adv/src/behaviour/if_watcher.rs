@@ -8,6 +8,7 @@ use std::{
 };
 
 use futures::{stream::FusedStream, Stream, StreamExt as _, TryStreamExt as _};
+use ifaddr::IfAddr;
 #[cfg(target_os = "linux")]
 use netlink_packet_core::NetlinkPayload;
 #[cfg(target_os = "linux")]
@@ -22,8 +23,6 @@ use netlink_proto::{
 };
 #[cfg(target_os = "linux")]
 use rtnetlink::constants::RTMGRP_IPV6_IFADDR;
-
-use crate::IfAddr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IfEvent {

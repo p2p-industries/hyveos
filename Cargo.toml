@@ -5,6 +5,7 @@ members = [
     "libp2p/batman-adv",
     "engine",
     "macaddress",
+    "ifaddr",
     "sdks/rust",
 ]
 default-members = ["batman-neighbours-daemon", "engine"]
@@ -32,6 +33,7 @@ batman-neighbours-daemon = { version = "0.1.0", path = "batman-neighbours-daemon
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
 engine = { version = "0.1.0", path = "engine" }
 libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
+ifaddr = { version = "0.1.0", path = "ifaddr" }
 macaddress = { version = "0.1.0", path = "macaddress" }
 prost = "0.12"
 tonic = "0.11.0"

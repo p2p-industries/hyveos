@@ -7,6 +7,7 @@ authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
 
 [dependencies]
 batman-neighbours-core = { workspace = true }
+ifaddr = { workspace = true }
 macaddress = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 rand = { workspace = true }
@@ -23,7 +24,6 @@ tokio-util = { workspace = true }
 tracing = { workspace = true }
 void = "1.0.2"
 futures = "0.3.30"
-libc = "0.2.153"
 itertools = "0.12.1"
 socket2 = "0.5.6"
 bincode = "1.3.3"

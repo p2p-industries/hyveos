@@ -17,6 +17,7 @@ use futures::{
     stream::{self, StreamExt as _, TryStreamExt as _},
     Stream as _,
 };
+use ifaddr::IfAddr;
 use itertools::Itertools as _;
 use libp2p::{
     core::Endpoint,
@@ -44,7 +45,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::WatchStream;
 
-use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, IfAddr, ResolvedNeighbour};
+use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeighbour};
 
 use self::{
     if_watcher::{IfEvent, IfWatcher},

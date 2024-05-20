@@ -4,6 +4,7 @@
 mod behaviour;
 
 use std::{
+    fmt::Display,
     io,
     net::{Ipv6Addr, SocketAddrV6},
     str::FromStr,
@@ -12,61 +13,12 @@ use std::{
 };
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
+use ifaddr::if_name_to_index;
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use thiserror::Error;
 
 pub use crate::behaviour::{store::ReadOnlyNeighbourStore, Behaviour, Event};
-
-fn if_name_to_index(name: impl Into<Vec<u8>>) -> io::Result<u32> {
-    let ifname = std::ffi::CString::new(name)?;
-    match unsafe { libc::if_nametoindex(ifname.as_ptr()) } {
-        0 => Err(io::Error::last_os_error()),
-        otherwise => Ok(otherwise),
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum IfAddrParseError {
-    #[error("Empty string")]
-    EmptyString,
-    #[error("Missing scope ID")]
-    MissingScopeId,
-    #[error("Invalid ip address: {0}")]
-    InvalidIp(#[from] std::net::AddrParseError),
-    #[error("IO error: {0}")]
-    IO(#[from] io::Error),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IfAddr {
-    pub if_index: u32,
-    pub addr: Ipv6Addr,
-}
-
-impl IfAddr {
-    pub fn with_port(&self, port: u16) -> std::net::SocketAddr {
-        SocketAddrV6::new(self.addr, port, 0, self.if_index).into()
-    }
-}
-
-impl FromStr for IfAddr {
-    type Err = IfAddrParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts = s.splitn(2, '%');
-        let addr = parts.next().ok_or(IfAddrParseError::EmptyString)?;
-        let scope_id = parts.next().ok_or(IfAddrParseError::MissingScopeId)?;
-
-        let addr = Ipv6Addr::from_str(addr).map_err(IfAddrParseError::from)?;
-        let if_index = scope_id
-            .parse()
-            .or_else(|_| if_name_to_index(scope_id))
-            .map_err(IfAddrParseError::from)?;
-
-        Ok(Self { if_index, addr })
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Config {

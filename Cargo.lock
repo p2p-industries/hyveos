@@ -1350,6 +1350,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ifaddr"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "libp2p",
+ "macaddress",
+ "thiserror",
+]
+
+[[package]]
 name = "igd-next"
 version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1503,8 +1513,8 @@ dependencies = [
  "bincode",
  "futures",
  "hashlink",
+ "ifaddr",
  "itertools",
- "libc",
  "libp2p",
  "macaddress",
  "netlink-packet-core 0.7.0",
