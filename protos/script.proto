@@ -52,26 +52,15 @@ message Peers {
 
 message NeighbourEvent {
   oneof event {
-    Peer discovered = 1;
-    Peer lost = 2;
+    Peers init = 1;
+    Peer discovered = 2;
+    Peer lost = 3;
   }
-}
-
-message MeshTopologyInit {
-  required Peer peer = 1;
-  required Peers neighbours = 2;
-}
-
-message MeshTopologyUpdate {
-  required Peer peer = 1;
-  required NeighbourEvent event = 2;
 }
 
 message MeshTopologyEvent {
-  oneof event {
-    MeshTopologyInit init = 1;
-    MeshTopologyUpdate update = 2;
-  }
+  required Peer peer = 1;
+  required NeighbourEvent event = 2;
 }
 
 message GossipSubMessage {
@@ -116,8 +105,6 @@ service ReqResp {
 
 service Discovery {
   rpc SubscribeEvents(Empty) returns (stream NeighbourEvent) {}
-
-  rpc GetCurrentNeighbours(Empty) returns (Peers) {}
 
   rpc GetOwnId(Empty) returns (Peer) {}
 }
