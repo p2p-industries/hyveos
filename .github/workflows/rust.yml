@@ -34,7 +34,9 @@ jobs:
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.GITSECRET }}
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
@@ -100,7 +102,9 @@ jobs:
       
       - uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.GITSECRET }}
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -124,7 +128,9 @@ jobs:
       
       - uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.GITSECRET }}
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -146,7 +152,9 @@ jobs:
       
       - uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.GITSECRET }}
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
       - run: cargo metadata --locked --format-version=1 > /dev/null
@@ -163,7 +171,9 @@ jobs:
       
       - uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.GITSECRET }}
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - id: cargo-metadata
         run: |
