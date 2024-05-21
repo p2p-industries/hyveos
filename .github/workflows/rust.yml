@@ -50,10 +50,14 @@ jobs:
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           shared-key: stable-cache
-          save-if: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run complete check
         run: cargo check --package "$CRATE" --all-features --target "$TARGET"
+
+      - name: Run batman no mdns check
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'engine' }}
+        run: cargo check --package "$CRATE" -F batman --target "$TARGET"
 
       - name: Run complete build
         run: cargo build --package "$CRATE" --all-features --target "$TARGET"
@@ -61,6 +65,10 @@ jobs:
       - name: Run all tests
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: cargo test --package "$CRATE" --all-features
+
+      - name: Run batman no mdns check
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'engine' }}
+        run: cargo test --package "$CRATE" -F batman
 
       - name: Check if we compile without any features activated
         run: cargo build --package "$CRATE" --no-default-features --target "$TARGET"
