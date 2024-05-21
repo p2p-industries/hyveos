@@ -1,4 +1,4 @@
-use futures::stream::{self, Stream, StreamExt as _, TryStreamExt as _};
+use futures::stream::{Stream, TryStreamExt as _};
 use std::{path::Path, pin::Pin};
 use tokio::net::UnixListener;
 use tokio_stream::wrappers::{BroadcastStream, UnixListenerStream};
@@ -12,7 +12,10 @@ use self::script::discovery_server::Discovery;
 #[cfg(feature = "batman")]
 use crate::p2p::neighbours::Event;
 #[cfg(feature = "batman")]
-use futures::future;
+use futures::{
+    future,
+    stream::{self, StreamExt as _},
+};
 
 mod script {
     #![allow(clippy::pedantic)]
