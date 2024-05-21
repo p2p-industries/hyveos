@@ -4,31 +4,130 @@ syntax = "proto2";
 
 package script;
 
-message Request {
-  required string peer_id = 1;
-  required bytes data = 2;
-  optional uint64 seq = 3;
-}
 
-message Response { required bytes data = 1; }
+// ----- MESSAGES -----
 
 message Empty {}
 
-message SendResponse {
-  required uint64 seq = 1;
-  required Response response = 2;
+message ID {
+  required string value = 1 [packed = true];
 }
 
-message Discovered { required string peer_id = 1; }
+message Message {
+  required bytes data = 1 [packed = true];
+  required string topic = 2 [packed = true];
+}
+
+message SendRequest {
+  required string peer_id = 1 [packed = true];
+  required Message msg = 2 [packed = true];
+}
+
+message RecvRequest {
+  required string peer_id = 1 [packed = true];
+  required Message msg = 2 [packed = true];
+  required uint64 seq = 3 [packed = true];
+}
+
+message Topic {
+  required string topic = 1 [packed = true];
+}
+
+message Response {
+  required bytes data = 1 [packed = true];
+}
+
+message SendResponse {
+  required uint64 seq = 1 [packed = true];
+  required Response response = 2 [packed = true];
+}
+
+message Peer {
+  required string peer_id = 1 [packed = true];
+}
+
+message Peers {
+  repeated Peer peers = 1 [packed = true];
+}
+
+message NeighbourEvent {
+  oneof event {
+    Peer discovered = 1 [packed = true];
+
+    Peer lost = 2 [packed = true];
+  }
+}
+
+message GossipSubMessage {
+  required string peer_id = 1 [packed = true];
+  required Message msg = 2 [packed = true];
+}
+
+message DHTKey {
+  required string key = 1 [packed = true];
+}
+
+message DHTRecord {
+  required DHTKey key = 1 [packed = true];
+  optional bytes value = 2 [packed = true];
+}
+
+message FilePath {
+  required string path = 1 [packed = true];
+}
+
+message File {
+  required FilePath path = 1 [packed = true];
+  required ID cid = 2 [packed = true];
+}
+
+
+// ----- SERVICES -----
 
 service ReqResp {
-  rpc Send(Request) returns (Response) {}
+  rpc Send(SendRequest) returns (Response) {}
 
-  rpc Recv(Empty) returns (stream Request) {}
+  rpc Recv(Empty) returns (stream RecvRequest) {}
 
   rpc Respond(SendResponse) returns (Empty) {}
+
+  // Multiple scripts on one node: 
+  // discriminate listening/sending based on Topics
+  rpc Subscribe(Topic) returns (Empty) {}
+
+  rpc Unsubscribe(Topic) returns (Empty) {}
 }
 
 service Discovery {
-  rpc Discover(Empty) returns (stream Discovered) {}
+  rpc Subscribe(Empty) returns (stream NeighbourEvent) {}
+
+  rpc GetCurrentNeighbours(Empty) returns (Peers) {}
+
+  rpc GetOwnId(Empty) returns (Peer) {}
+}
+
+service GossipSub {
+  rpc Subscribe(Topic) returns (Empty) {}
+
+  rpc Unsubscribe(Topic) returns (Empty) {}
+
+  rpc Publish(Message) returns (Empty) {}
+
+  rpc Recv(Empty) returns (stream GossipSubMessage) {}
+}
+
+service DHT {
+  rpc PutRecord(DHTRecord) returns (Empty) {}
+
+  rpc GetRecord(DHTKey) returns (DHTRecord) {}
+
+  rpc Provide(DHTKey) returns (Empty) {}
+
+  rpc GetProviders(DHTKey) returns (stream Peer) {}
+}
+
+service FileTransfer {
+  rpc PublishFile(File) returns (Empty) {}
+
+  rpc GetFile(ID) returns (FilePath) {}
 }
