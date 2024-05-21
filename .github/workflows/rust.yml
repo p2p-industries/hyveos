@@ -1,6 +1,7 @@
 name: Rust
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
   pull_request:
@@ -30,6 +31,12 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
+
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
         run: sudo apt-get install gcc-aarch64-linux-gnu
@@ -43,10 +50,14 @@ jobs:
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           shared-key: stable-cache
-          save-if: false
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run complete check
         run: cargo check --package "$CRATE" --all-features --target "$TARGET"
+
+      - name: Run batman no mdns check
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'engine' }}
+        run: cargo check --package "$CRATE" -F batman --target "$TARGET"
 
       - name: Run complete build
         run: cargo build --package "$CRATE" --all-features --target "$TARGET"
@@ -54,6 +65,10 @@ jobs:
       - name: Run all tests
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: cargo test --package "$CRATE" --all-features
+
+      - name: Run batman no mdns check
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'engine' }}
+        run: cargo test --package "$CRATE" -F batman
 
       - name: Check if we compile without any features activated
         run: cargo build --package "$CRATE" --no-default-features --target "$TARGET"
@@ -89,6 +104,12 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -108,6 +129,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
+
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
@@ -123,6 +150,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
+
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
       - run: cargo metadata --locked --format-version=1 > /dev/null
 
@@ -133,6 +167,12 @@ jobs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
       - uses: actions/checkout@v4
+      
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
 
       - id: cargo-metadata
         run: |

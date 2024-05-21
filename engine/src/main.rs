@@ -3,6 +3,7 @@
 
 use std::{env::args, fmt::Write as _};
 
+use clap::Parser;
 use libp2p::{
     gossipsub::IdentTopic,
     identity::Keypair,
@@ -10,6 +11,8 @@ use libp2p::{
         BootstrapError, BootstrapOk, GetProvidersError, GetProvidersOk, GetRecordError,
         GetRecordOk, RecordKey,
     },
+    multiaddr::Protocol,
+    Multiaddr,
 };
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 
@@ -36,6 +39,12 @@ use tokio::sync::broadcast::Receiver;
 mod bridge;
 mod p2p;
 mod printer;
+
+#[derive(Debug, Parser)]
+pub struct Opts {
+    #[clap(short, long, value_delimiter = ',')]
+    pub listen_addrs: Option<Vec<ifaddr::IfAddr>>,
+}
 
 #[derive(rustyline::Completer, rustyline::Helper, rustyline::Validator, rustyline::Highlighter)]
 struct DiyHinter {
@@ -138,6 +147,33 @@ fn diy_hints() -> DiyHinter {
     DiyHinter { tree }
 }
 
+#[cfg(not(feature = "batman"))]
+fn fallback_listen_addrs() -> Vec<Multiaddr> {
+    use std::net::{Ipv4Addr, Ipv6Addr};
+    [
+        Multiaddr::empty().with(Protocol::Ip6(Ipv6Addr::UNSPECIFIED)),
+        Multiaddr::empty().with(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)),
+    ]
+    .into_iter()
+    .collect()
+}
+
+#[cfg(feature = "batman")]
+fn fallback_listen_addrs() -> Vec<Multiaddr> {
+    use ifaddr::IfAddr;
+
+    netdev::get_interfaces()
+        .into_iter()
+        .flat_map(|iface| {
+            iface.ipv6.into_iter().map(move |net| IfAddr {
+                if_index: iface.index,
+                addr: net.addr,
+            })
+        })
+        .map(Multiaddr::from)
+        .collect()
+}
+
 #[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -145,9 +181,19 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
+    let Opts { listen_addrs } = Opts::parse();
+
+    let listen_addrs: Vec<_> = listen_addrs.map_or_else(fallback_listen_addrs, |e| {
+        e.into_iter().map(Multiaddr::from).collect()
+    });
+    println!("Listen addresses: {listen_addrs:?}");
+    let listen_addrs = listen_addrs
+        .into_iter()
+        .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
+
     let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
 
-    actor.setup();
+    actor.setup(listen_addrs);
 
     tokio::spawn(async move {
         Box::pin(actor.drive()).await;

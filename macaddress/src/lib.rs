@@ -48,6 +48,11 @@ impl Eui48 {
     pub fn new(bytes: [u8; 6]) -> Self {
         Eui48 { bytes }
     }
+
+    /// Get the MAC address as bytes
+    pub fn bytes(&self) -> [u8; 6] {
+        self.bytes
+    }
 }
 
 impl Display for Eui48 {
@@ -123,6 +128,11 @@ impl Eui64 {
     /// Create a new EUI64 MAC address
     pub fn new(bytes: [u8; 8]) -> Self {
         Eui64 { bytes }
+    }
+
+    /// Get the MAC address as bytes
+    pub fn bytes(&self) -> [u8; 8] {
+        self.bytes
     }
 }
 
@@ -216,6 +226,14 @@ impl From<Eui64> for Ipv6Addr {
     }
 }
 
+impl From<Ipv6Addr> for Eui64 {
+    #[allow(clippy::unwrap_used)]
+    fn from(value: Ipv6Addr) -> Self {
+        let bytes: [u8; 8] = value.octets()[8..].try_into().unwrap();
+        bytes.into()
+    }
+}
+
 impl From<MacAddress> for Ipv6Addr {
     fn from(value: MacAddress) -> Self {
         match value {
@@ -223,6 +241,14 @@ impl From<MacAddress> for Ipv6Addr {
             MacAddress::Eui64(mac) => mac,
         }
         .into()
+    }
+}
+
+impl From<Ipv6Addr> for MacAddress {
+    #[allow(clippy::unwrap_used)]
+    fn from(value: Ipv6Addr) -> Self {
+        let bytes: [u8; 8] = value.octets()[8..].try_into().unwrap();
+        bytes.into()
     }
 }
 

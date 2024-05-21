@@ -6,10 +6,12 @@ mod command;
 pub mod gossipsub;
 mod identify;
 pub mod kad;
-pub mod mdns;
 pub mod ping;
 pub mod req_resp;
 pub mod round_trip;
+
+#[cfg(feature = "mdns")]
+pub mod mdns;
 
 #[cfg(feature = "batman")]
 pub mod neighbours;
@@ -63,9 +65,14 @@ type LocationActor = location::Actor;
 #[cfg(not(feature = "location"))]
 type LocationActor = ();
 
+#[cfg(feature = "mdns")]
+type MdnsActor = mdns::Actor;
+#[cfg(not(feature = "mdns"))]
+type MdnsActor = ();
+
 pub type FullActor = Actor<
     kad::Actor,
-    mdns::Actor,
+    MdnsActor,
     gossipsub::Actor,
     round_trip::Actor,
     LocationActor,
