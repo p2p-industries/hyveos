@@ -527,7 +527,7 @@ async fn neighbours_task(
 ) {
     while let Ok(event) = sub.recv().await {
         match event.as_ref() {
-            NeighboursEvent::ResolvedNeighbour { neighbour, .. } => {
+            NeighboursEvent::ResolvedNeighbour(neighbour) => {
                 writeln!(
                     printer,
                     "Resolved neighbour {}: {}",
@@ -535,7 +535,7 @@ async fn neighbours_task(
                 )
                 .expect("Failed to print");
             }
-            NeighboursEvent::LostNeighbour { neighbour, .. } => {
+            NeighboursEvent::LostNeighbour(neighbour) => {
                 writeln!(
                     printer,
                     "Lost neighbour {}: {}",

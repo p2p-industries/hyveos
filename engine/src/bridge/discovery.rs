@@ -57,12 +57,12 @@ impl Discovery for DiscoveryServer {
 
         let sub_stream = BroadcastStream::new(sub)
             .map_ok(|event| match event.as_ref() {
-                Event::ResolvedNeighbour { neighbour, .. } => script::NeighbourEvent {
+                Event::ResolvedNeighbour(neighbour) => script::NeighbourEvent {
                     event: Some(script::neighbour_event::Event::Discovered(script::Peer {
                         peer_id: neighbour.peer_id.to_string(),
                     })),
                 },
-                Event::LostNeighbour { neighbour, .. } => script::NeighbourEvent {
+                Event::LostNeighbour(neighbour) => script::NeighbourEvent {
                     event: Some(script::neighbour_event::Event::Lost(script::Peer {
                         peer_id: neighbour.peer_id.to_string(),
                     })),
