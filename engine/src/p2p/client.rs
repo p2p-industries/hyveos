@@ -33,6 +33,10 @@ impl Client {
         })
     }
 
+    pub fn peer_id(&self) -> PeerId {
+        self.peer_id
+    }
+
     pub fn kad(&self) -> kad::Client {
         self.special()
     }

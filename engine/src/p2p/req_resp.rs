@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use libp2p::{
     request_response::{
@@ -8,6 +8,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
+use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
 
 use super::{
@@ -16,14 +17,20 @@ use super::{
 };
 use crate::impl_from_special_command;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Request {
+    pub data: Vec<u8>,
+    pub topic: Option<Arc<str>>,
+}
+
 #[derive(Debug, Clone)]
 pub struct InboundRequest {
     pub id: u64,
     pub peer_id: PeerId,
-    pub data: Vec<u8>,
+    pub req: Request,
 }
 
-pub type Behaviour = cbor::Behaviour<Vec<u8>, Vec<u8>>;
+pub type Behaviour = cbor::Behaviour<Request, Vec<u8>>;
 
 pub fn new() -> Behaviour {
     cbor::Behaviour::new(
@@ -35,7 +42,7 @@ pub fn new() -> Behaviour {
 pub enum Command {
     Request {
         peer_id: PeerId,
-        data: Vec<u8>,
+        req: Request,
         sender: oneshot::Sender<Vec<u8>>,
     },
     Subscribe(oneshot::Sender<broadcast::Receiver<InboundRequest>>),
@@ -79,10 +86,10 @@ impl SubActor for Actor {
         match command {
             Command::Request {
                 peer_id,
-                data,
+                req,
                 sender,
             } => {
-                let id = behaviour.req_resp.send_request(&peer_id, data);
+                let id = behaviour.req_resp.send_request(&peer_id, req);
                 self.response_senders.insert(id, sender);
             }
             Command::Subscribe(sender) => {
@@ -107,7 +114,7 @@ impl SubActor for Actor {
             Event::Message { peer, message } => match message {
                 Message::Request {
                     request_id,
-                    request: data,
+                    request: req,
                     channel,
                 } => {
                     // This is safe because InboundRequestId is a newtype around u64
@@ -116,7 +123,7 @@ impl SubActor for Actor {
                     let request = InboundRequest {
                         id,
                         peer_id: peer,
-                        data,
+                        req,
                     };
 
                     self.response_channels.insert(id, channel);
@@ -153,13 +160,13 @@ impl Client {
     pub async fn send_request(
         &self,
         peer_id: PeerId,
-        data: Vec<u8>,
+        req: Request,
     ) -> Result<Vec<u8>, RequestError> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .send(Command::Request {
                 peer_id,
-                data,
+                req,
                 sender,
             })
             .await
