@@ -1,6 +1,6 @@
 use futures::stream::TryStreamExt as _;
 use libp2p::gossipsub::IdentTopic;
-use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
+use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::p2p::Client;
@@ -51,7 +51,7 @@ impl GossipSub for GossipSubServer {
                     id: message.message_id.0,
                 },
             })
-            .map_err(|e: BroadcastStreamRecvError| Status::internal(e.to_string()));
+            .map_err(|e| Status::internal(e.to_string()));
 
         Ok(TonicResponse::new(Box::pin(stream)))
     }
@@ -65,16 +65,12 @@ impl GossipSub for GossipSubServer {
             topic: script::Topic { topic },
         } = request.into_inner();
 
-        let message_id = self
-            .client
+        self.client
             .gossipsub()
             .get_topic(IdentTopic::new(topic))
             .publish(data)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(TonicResponse::new(script::GossipSubMessageId {
-            id: message_id.0,
-        }))
+            .map(|message_id| TonicResponse::new(script::GossipSubMessageId { id: message_id.0 }))
+            .map_err(|e| Status::internal(e.to_string()))
     }
 }

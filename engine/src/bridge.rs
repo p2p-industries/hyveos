@@ -4,8 +4,11 @@ use tokio::net::UnixListener;
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server as TonicServer;
 
-use self::{discovery::DiscoveryServer, gossipsub::GossipSubServer, req_resp::ReqRespServer};
+use self::{gossipsub::GossipSubServer, req_resp::ReqRespServer};
 use crate::p2p::Client;
+
+#[cfg(feature = "batman")]
+use self::discovery::DiscoveryServer;
 
 #[cfg(feature = "batman")]
 mod discovery;
