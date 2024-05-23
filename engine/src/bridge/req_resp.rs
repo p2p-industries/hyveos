@@ -46,13 +46,13 @@ impl From<Response> for script::Response {
 }
 
 impl TryFrom<script::Response> for Response {
-    type Error = tonic::Status;
+    type Error = Status;
 
-    fn try_from(response: script::Response) -> Result<Self, tonic::Status> {
+    fn try_from(response: script::Response) -> Result<Self, Status> {
         Ok(
             match response
                 .response
-                .ok_or(tonic::Status::invalid_argument("Response is missing"))?
+                .ok_or(Status::invalid_argument("Response is missing"))?
             {
                 script::response::Response::Data(data) => Self::Data(data),
                 script::response::Response::Error(err) => Self::Error(err),
@@ -62,19 +62,18 @@ impl TryFrom<script::Response> for Response {
 }
 
 impl TryFrom<script::TopicQuery> for TopicQuery {
-    type Error = tonic::Status;
+    type Error = Status;
 
-    fn try_from(query: script::TopicQuery) -> Result<Self, tonic::Status> {
+    fn try_from(query: script::TopicQuery) -> Result<Self, Status> {
         Ok(
             match query
                 .query
-                .ok_or(tonic::Status::invalid_argument("Query is missing"))?
+                .ok_or(Status::invalid_argument("Query is missing"))?
             {
-                script::topic_query::Query::Regex(regex) => {
-                    Self::Regex(Regex::new(&regex).map_err(|e| {
-                        tonic::Status::invalid_argument(format!("Invalid regex: {e}"))
-                    })?)
-                }
+                script::topic_query::Query::Regex(regex) => Self::Regex(
+                    Regex::new(&regex)
+                        .map_err(|e| Status::invalid_argument(format!("Invalid regex: {e}")))?,
+                ),
                 script::topic_query::Query::Topic(topic) => Self::String(topic.topic.into()),
             },
         )
