@@ -117,6 +117,14 @@ class RequestResponseService:
         except ValueError:
             print(f'{topic} is not a topic-string in the subscribed list')
 
+    async def unsubscribe(self, topic: str):
+        topicProto = script_pb2.Topic(topic)
+        await self.stubReqResp.Unsubscribe(topicProto)
+        try:
+            self.topics.remove(Topic(topic=topic))
+        except ValueError as v:
+            print(f"{topic} is not a topic-string in the subscribed list")
+        
 
 class DiscoveryService:
     def __init__(self, channel):
