@@ -39,6 +39,7 @@ async def main():
         asyncio.create_task(handle_requests(req_resp, topic=r'bar[0-9]+', regex=True))
 
         response = await req_resp.send_request(peer_id, b'Hello!', topic='topic1')
+        del response
 
 
 if __name__ == '__main__':
