@@ -1,0 +1,22 @@
+name: Label issues
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      - edited
+
+jobs:
+  label_issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - run: gh issue edit "$NUMBER" --add-labels "$LABELS"
+        # only run when the title starts with (case insensitive) "tracing"
+        if:  ${{ startsWith(github.event.issue.title, 'Tracking') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          LABELS: tracking
