@@ -7,7 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-grpc = "^1.0.0"
+grpcio = "^1.64.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.5"
 
 [tool.ruff]
 exclude = [
