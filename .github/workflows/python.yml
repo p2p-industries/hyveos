@@ -3,12 +3,12 @@ name: Python SDK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "python-sdk" ]
     paths:
       - '**.py'
       - '**.proto'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "python-sdk" ]
     paths:
       - '**.py'
       - '**.proto'
