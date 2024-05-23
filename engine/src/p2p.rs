@@ -3,6 +3,7 @@ mod behaviour;
 mod client;
 mod command;
 
+pub mod file_transfer;
 pub mod gossipsub;
 mod identify;
 pub mod kad;
@@ -80,6 +81,7 @@ pub type FullActor = Actor<
     identify::Actor,
     NeighbourActor,
     req_resp::Actor,
+    file_transfer::Actor,
     EventError,
     CommandError,
 >;
