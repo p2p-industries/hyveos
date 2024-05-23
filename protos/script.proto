@@ -19,10 +19,15 @@ message Topic {
   required string topic = 1;
 }
 
+// An optional topic for a message
+message OptionalTopic {
+  optional Topic topic = 1;
+}
+
 // A message with an optional topic
 message Message {
   required bytes data = 1;
-  optional Topic topic = 2;
+  required OptionalTopic topic = 2;
 }
 
 // A request to a peer with an optional topic
@@ -39,9 +44,12 @@ message RecvRequest {
   required uint64 seq = 3;
 }
 
-// A received response to a request
+// A received response to a request or an error
 message Response {
-  required bytes data = 1;
+  oneof response {
+    bytes data = 1;
+    string error = 2;
+  }
 }
 
 // A response to a request
@@ -139,17 +147,10 @@ service ReqResp {
   rpc Send(SendRequest) returns (Response) {}
 
   // Receive requests from peers that either have no topic or have a topic that has been subscribed to
-  rpc Recv(Empty) returns (stream RecvRequest) {}
+  rpc Recv(OptionalTopic) returns (stream RecvRequest) {}
 
   // Respond to a request received from Recv
   rpc Respond(SendResponse) returns (Empty) {}
-
-  // Subscribe to a topic to receive requests with that topic.
-  // This can be used if there are multiple scripts running in the same stack that want to receive different requests.
-  rpc Subscribe(Topic) returns (Empty) {}
-
-  // Unsubscribe from a topic to stop receiving requests with that topic.
-  rpc Unsubscribe(Topic) returns (Empty) {}
 }
 
 service Discovery {

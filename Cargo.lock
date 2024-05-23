@@ -756,7 +756,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "fastrand",
  "futures",
  "ifaddr",
  "libp2p",

@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 
+use futures::{future, Stream, TryStreamExt as _};
 use libp2p::{
     request_response::{
         cbor, Config, Event, InboundRequestId, Message, OutboundRequestId, ProtocolSupport,
@@ -10,6 +11,7 @@ use libp2p::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
+use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
 use super::{
     actor::SubActor,
@@ -30,7 +32,13 @@ pub struct InboundRequest {
     pub req: Request,
 }
 
-pub type Behaviour = cbor::Behaviour<Request, Vec<u8>>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Response {
+    Data(Vec<u8>),
+    Error(String),
+}
+
+pub type Behaviour = cbor::Behaviour<Request, Response>;
 
 pub fn new() -> Behaviour {
     cbor::Behaviour::new(
@@ -39,16 +47,22 @@ pub fn new() -> Behaviour {
     )
 }
 
+pub type InboundRequestStream =
+    Pin<Box<dyn Stream<Item = Result<InboundRequest, BroadcastStreamRecvError>> + Send>>;
+
 pub enum Command {
     Request {
         peer_id: PeerId,
         req: Request,
-        sender: oneshot::Sender<Vec<u8>>,
+        sender: oneshot::Sender<Response>,
     },
-    Subscribe(oneshot::Sender<broadcast::Receiver<InboundRequest>>),
+    Subscribe {
+        topic: Option<Arc<str>>,
+        sender: oneshot::Sender<InboundRequestStream>,
+    },
     Respond {
         id: u64,
-        data: Vec<u8>,
+        response: Response,
     },
 }
 
@@ -56,9 +70,9 @@ impl_from_special_command!(ReqResp);
 
 #[derive(Debug)]
 pub struct Actor {
-    response_senders: HashMap<OutboundRequestId, oneshot::Sender<Vec<u8>>>,
+    response_senders: HashMap<OutboundRequestId, oneshot::Sender<Response>>,
     request_sender: broadcast::Sender<InboundRequest>,
-    response_channels: HashMap<u64, ResponseChannel<Vec<u8>>>,
+    response_channels: HashMap<u64, ResponseChannel<Response>>,
 }
 
 impl Default for Actor {
@@ -92,12 +106,17 @@ impl SubActor for Actor {
                 let id = behaviour.req_resp.send_request(&peer_id, req);
                 self.response_senders.insert(id, sender);
             }
-            Command::Subscribe(sender) => {
-                let _ = sender.send(self.request_sender.subscribe());
+            Command::Subscribe { topic, sender } => {
+                let receiver = self.request_sender.subscribe();
+
+                let stream = BroadcastStream::new(receiver)
+                    .try_filter(move |req| future::ready(req.req.topic == topic));
+
+                let _ = sender.send(Box::pin(stream));
             }
-            Command::Respond { id, data } => {
+            Command::Respond { id, response } => {
                 if let Some(channel) = self.response_channels.remove(&id) {
-                    _ = behaviour.req_resp.send_response(channel, data);
+                    _ = behaviour.req_resp.send_response(channel, response);
                 }
             }
         }
@@ -161,7 +180,7 @@ impl Client {
         &self,
         peer_id: PeerId,
         req: Request,
-    ) -> Result<Vec<u8>, RequestError> {
+    ) -> Result<Response, RequestError> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .send(Command::Request {
@@ -174,18 +193,24 @@ impl Client {
         receiver.await.map_err(RequestError::Oneshot)
     }
 
-    pub async fn subscribe(&self) -> Result<broadcast::Receiver<InboundRequest>, RequestError> {
+    pub async fn subscribe(
+        &self,
+        topic: Option<Arc<str>>,
+    ) -> Result<
+        Pin<Box<dyn Stream<Item = Result<InboundRequest, BroadcastStreamRecvError>> + Send>>,
+        RequestError,
+    > {
         let (sender, receiver) = oneshot::channel();
         self.inner
-            .send(Command::Subscribe(sender))
+            .send(Command::Subscribe { topic, sender })
             .await
             .map_err(RequestError::Send)?;
         receiver.await.map_err(RequestError::Oneshot)
     }
 
-    pub async fn send_response(&self, id: u64, data: Vec<u8>) -> Result<(), RequestError> {
+    pub async fn send_response(&self, id: u64, response: Response) -> Result<(), RequestError> {
         self.inner
-            .send(Command::Respond { id, data })
+            .send(Command::Respond { id, response })
             .await
             .map_err(RequestError::Send)
     }

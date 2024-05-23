@@ -1,11 +1,10 @@
-use std::{collections::HashSet, sync::Arc};
-
 use futures::TryStreamExt as _;
-use tokio::sync::RwLock;
-use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::p2p::{req_resp::Request, Client};
+use crate::p2p::{
+    req_resp::{Request, Response},
+    Client,
+};
 
 use super::{
     script::{self, req_resp_server::ReqResp},
@@ -16,9 +15,11 @@ impl From<Request> for script::Message {
     fn from(request: Request) -> Self {
         Self {
             data: request.data,
-            topic: request.topic.as_ref().map(|topic| script::Topic {
-                topic: topic.to_string(),
-            }),
+            topic: script::OptionalTopic {
+                topic: request.topic.as_ref().map(|topic| script::Topic {
+                    topic: topic.to_string(),
+                }),
+            },
         }
     }
 }
@@ -27,22 +28,45 @@ impl From<script::Message> for Request {
     fn from(message: script::Message) -> Self {
         Self {
             data: message.data,
-            topic: message.topic.map(|topic| topic.topic.into()),
+            topic: message.topic.topic.map(|topic| topic.topic.into()),
         }
+    }
+}
+
+impl From<Response> for script::Response {
+    fn from(response: Response) -> Self {
+        Self {
+            response: Some(match response {
+                Response::Data(data) => script::response::Response::Data(data),
+                Response::Error(err) => script::response::Response::Error(err),
+            }),
+        }
+    }
+}
+
+impl TryFrom<script::Response> for Response {
+    type Error = tonic::Status;
+
+    fn try_from(response: script::Response) -> Result<Self, tonic::Status> {
+        Ok(
+            match response
+                .response
+                .ok_or(tonic::Status::invalid_argument("Response is missing"))?
+            {
+                script::response::Response::Data(data) => Self::Data(data),
+                script::response::Response::Error(err) => Self::Error(err),
+            },
+        )
     }
 }
 
 pub struct ReqRespServer {
     client: Client,
-    subscribed_topics: Arc<RwLock<HashSet<Arc<str>>>>,
 }
 
 impl ReqRespServer {
     pub fn new(client: Client) -> Self {
-        Self {
-            client,
-            subscribed_topics: Arc::default(),
-        }
+        Self { client }
     }
 }
 
@@ -66,32 +90,22 @@ impl ReqResp for ReqRespServer {
             .req_resp()
             .send_request(peer_id, message.into())
             .await
-            .map(|res| TonicResponse::new(script::Response { data: res }))
+            .map(|res| TonicResponse::new(res.into()))
             .map_err(|e| Status::internal(format!("{e:?}")))
     }
 
-    async fn recv(&self, _request: TonicRequest<script::Empty>) -> TonicResult<Self::RecvStream> {
-        let sub = self
+    async fn recv(
+        &self,
+        request: TonicRequest<script::OptionalTopic>,
+    ) -> TonicResult<Self::RecvStream> {
+        let topic = request.into_inner().topic.map(|topic| topic.topic.into());
+
+        let stream = self
             .client
             .req_resp()
-            .subscribe()
+            .subscribe(topic)
             .await
-            .map_err(|e| Status::internal(format!("{e:?}")))?;
-
-        let subcribed_topics = self.subscribed_topics.clone();
-
-        let stream = BroadcastStream::new(sub)
-            .try_filter(move |req| {
-                let topic = req.req.topic.clone();
-                let subcribed_topics = subcribed_topics.clone();
-                async move {
-                    if let Some(topic) = topic {
-                        subcribed_topics.read().await.contains(&topic)
-                    } else {
-                        true
-                    }
-                }
-            })
+            .map_err(|e| Status::internal(format!("{e:?}")))?
             .map_ok(|req| script::RecvRequest {
                 peer_id: req.peer_id.to_string(),
                 msg: req.req.into(),
@@ -110,31 +124,9 @@ impl ReqResp for ReqRespServer {
 
         self.client
             .req_resp()
-            .send_response(response.seq, response.response.data)
+            .send_response(response.seq, response.response.try_into()?)
             .await
             .map_err(|e| Status::internal(format!("{e:?}")))?;
-
-        Ok(TonicResponse::new(script::Empty {}))
-    }
-
-    async fn subscribe(&self, request: TonicRequest<script::Topic>) -> TonicResult<script::Empty> {
-        let topic = request.into_inner().topic;
-
-        self.subscribed_topics.write().await.insert(topic.into());
-
-        Ok(TonicResponse::new(script::Empty {}))
-    }
-
-    async fn unsubscribe(
-        &self,
-        request: TonicRequest<script::Topic>,
-    ) -> TonicResult<script::Empty> {
-        let topic = request.into_inner().topic;
-
-        self.subscribed_topics
-            .write()
-            .await
-            .remove(&Arc::from(topic));
 
         Ok(TonicResponse::new(script::Empty {}))
     }
