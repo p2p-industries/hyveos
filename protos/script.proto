@@ -24,6 +24,19 @@ message OptionalTopic {
   optional Topic topic = 1;
 }
 
+// A query for a topic that can be a regex
+message TopicQuery {
+  oneof query {
+    Topic topic = 1;
+    string regex = 2;
+  }
+}
+
+// An optional query for a topic
+message OptionalTopicQuery {
+  optional TopicQuery query = 1;
+}
+
 // A message with an optional topic
 message Message {
   required bytes data = 1;
@@ -147,7 +160,7 @@ service ReqResp {
   rpc Send(SendRequest) returns (Response) {}
 
   // Receive requests from peers that either have no topic or have a topic that has been subscribed to
-  rpc Recv(OptionalTopic) returns (stream RecvRequest) {}
+  rpc Recv(OptionalTopicQuery) returns (stream RecvRequest) {}
 
   // Respond to a request received from Recv
   rpc Respond(SendResponse) returns (Empty) {}

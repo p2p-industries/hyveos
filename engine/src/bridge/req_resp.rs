@@ -1,8 +1,9 @@
 use futures::TryStreamExt as _;
+use regex::Regex;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::p2p::{
-    req_resp::{Request, Response},
+    req_resp::{Request, Response, TopicQuery},
     Client,
 };
 
@@ -60,6 +61,26 @@ impl TryFrom<script::Response> for Response {
     }
 }
 
+impl TryFrom<script::TopicQuery> for TopicQuery {
+    type Error = tonic::Status;
+
+    fn try_from(query: script::TopicQuery) -> Result<Self, tonic::Status> {
+        Ok(
+            match query
+                .query
+                .ok_or(tonic::Status::invalid_argument("Query is missing"))?
+            {
+                script::topic_query::Query::Regex(regex) => {
+                    Self::Regex(Regex::new(&regex).map_err(|e| {
+                        tonic::Status::invalid_argument(format!("Invalid regex: {e}"))
+                    })?)
+                }
+                script::topic_query::Query::Topic(topic) => Self::String(topic.topic.into()),
+            },
+        )
+    }
+}
+
 pub struct ReqRespServer {
     client: Client,
 }
@@ -96,14 +117,18 @@ impl ReqResp for ReqRespServer {
 
     async fn recv(
         &self,
-        request: TonicRequest<script::OptionalTopic>,
+        request: TonicRequest<script::OptionalTopicQuery>,
     ) -> TonicResult<Self::RecvStream> {
-        let topic = request.into_inner().topic.map(|topic| topic.topic.into());
+        let query = request
+            .into_inner()
+            .query
+            .map(TryInto::try_into)
+            .transpose()?;
 
         let stream = self
             .client
             .req_resp()
-            .subscribe(topic)
+            .subscribe(query)
             .await
             .map_err(|e| Status::internal(format!("{e:?}")))?
             .map_ok(|req| script::RecvRequest {

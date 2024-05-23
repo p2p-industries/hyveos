@@ -766,6 +766,7 @@ dependencies = [
  "patricia_tree",
  "prost",
  "rand",
+ "regex",
  "rustyline",
  "serde",
  "thiserror",

@@ -9,6 +9,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
@@ -38,6 +39,21 @@ pub enum Response {
     Error(String),
 }
 
+#[derive(Debug, Clone)]
+pub enum TopicQuery {
+    Regex(Regex),
+    String(Arc<str>),
+}
+
+impl TopicQuery {
+    pub fn is_match(&self, topic: impl AsRef<str>) -> bool {
+        match self {
+            TopicQuery::Regex(regex) => regex.is_match(topic.as_ref()),
+            TopicQuery::String(query) => query.as_ref() == topic.as_ref(),
+        }
+    }
+}
+
 pub type Behaviour = cbor::Behaviour<Request, Response>;
 
 pub fn new() -> Behaviour {
@@ -57,7 +73,7 @@ pub enum Command {
         sender: oneshot::Sender<Response>,
     },
     Subscribe {
-        topic: Option<Arc<str>>,
+        query: Option<TopicQuery>,
         sender: oneshot::Sender<InboundRequestStream>,
     },
     Respond {
@@ -106,11 +122,16 @@ impl SubActor for Actor {
                 let id = behaviour.req_resp.send_request(&peer_id, req);
                 self.response_senders.insert(id, sender);
             }
-            Command::Subscribe { topic, sender } => {
+            Command::Subscribe { query, sender } => {
                 let receiver = self.request_sender.subscribe();
 
-                let stream = BroadcastStream::new(receiver)
-                    .try_filter(move |req| future::ready(req.req.topic == topic));
+                let stream = BroadcastStream::new(receiver).try_filter(move |req| {
+                    future::ready(match (query.as_ref(), req.req.topic.as_ref()) {
+                        (Some(query), Some(topic)) => query.is_match(topic),
+                        (None, None) => true,
+                        _ => false,
+                    })
+                });
 
                 let _ = sender.send(Box::pin(stream));
             }
@@ -195,14 +216,14 @@ impl Client {
 
     pub async fn subscribe(
         &self,
-        topic: Option<Arc<str>>,
+        query: Option<TopicQuery>,
     ) -> Result<
         Pin<Box<dyn Stream<Item = Result<InboundRequest, BroadcastStreamRecvError>> + Send>>,
         RequestError,
     > {
         let (sender, receiver) = oneshot::channel();
         self.inner
-            .send(Command::Subscribe { topic, sender })
+            .send(Command::Subscribe { query, sender })
             .await
             .map_err(RequestError::Send)?;
         receiver.await.map_err(RequestError::Oneshot)
