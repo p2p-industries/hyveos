@@ -18,6 +18,7 @@ rust-version = "1.77.0"
 anyhow = { version = "1.0.82" }
 libp2p = { version = "0.53.2", features = ["tokio"] }
 libp2p-quic = { version = "0.10.2", git = "ssh://git@github.com/p2p-industries/libp2p-quic.git", rev = "a977b79242091a338e7ccc411f5878b8c5fccce6" }
+libp2p-stream = { version = "0.1.0-alpha.1" }
 netlink-packet-core = { version = "0.7.0" }
 tokio = { version = "1.37" }
 tokio-stream = { version = "0.1.15", features = ["net", "sync"] }

@@ -12,6 +12,7 @@ use crate::p2p::client::{RequestError, RequestResult};
 
 use super::Command;
 
+#[derive(Clone)]
 pub struct Client {
     inner: crate::p2p::client::SpecialClient<super::Command>,
 }
