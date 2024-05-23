@@ -5,7 +5,7 @@ import warnings
 
 import script_pb2 as script__pb2
 
-GRPC_GENERATED_VERSION = '1.63.0'
+GRPC_GENERATED_VERSION = '1.64.0'
 GRPC_VERSION = grpc.__version__
 EXPECTED_ERROR_RELEASE = '1.65.0'
 SCHEDULED_RELEASE_DATE = 'June 25, 2024'
@@ -106,6 +106,7 @@ def add_ReqRespServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'script.ReqResp', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.ReqResp', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -251,6 +252,7 @@ def add_DiscoveryServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'script.Discovery', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.Discovery', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -367,6 +369,7 @@ def add_GossipSubServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'script.GossipSub', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.GossipSub', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -517,6 +520,7 @@ def add_DHTServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'script.DHT', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.DHT', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -687,6 +691,7 @@ def add_FileTransferServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'script.FileTransfer', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.FileTransfer', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -786,6 +791,7 @@ def add_DebugServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'script.Debug', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.Debug', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
