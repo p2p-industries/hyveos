@@ -134,6 +134,7 @@ impl Actor {
     }
 }
 
+#[derive(Clone)]
 pub struct Client {
     inner: SpecialClient<Command>,
 }

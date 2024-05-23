@@ -13,8 +13,8 @@ use tokio::sync::mpsc;
 use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
-    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, ping, req_resp,
-    round_trip,
+    behaviour::MyBehaviourEvent, client::Client, command::Command, file_transfer, gossipsub, kad,
+    ping, req_resp, round_trip,
 };
 
 #[cfg(feature = "batman")]
@@ -65,6 +65,7 @@ pub struct Actor<
     Identify,
     Neighbours,
     ReqResp,
+    FileTransfer,
     EventError,
     CommandError,
 > {
@@ -82,6 +83,7 @@ pub struct Actor<
     #[cfg_attr(not(feature = "batman"), allow(dead_code))]
     neighbours: Neighbours,
     req_resp: ReqResp,
+    file_transfer: FileTransfer,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
@@ -215,6 +217,7 @@ impl<
         Identify,
         Neighbours,
         ReqResp,
+        FileTransfer,
         EventError,
         CommandError,
     >
@@ -228,6 +231,7 @@ impl<
         Identify,
         Neighbours,
         ReqResp,
+        FileTransfer,
         EventError,
         CommandError,
     >
@@ -261,6 +265,12 @@ where
             Event = <req_resp::Behaviour as NetworkBehaviour>::ToSwarm,
             EventError = void::Void,
             CommandError = void::Void,
+        > + Default,
+    FileTransfer: SubActor<
+            SubCommand = file_transfer::Command,
+            Event = (),
+            CommandError = void::Void,
+            EventError = void::Void,
         > + Default,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
@@ -302,6 +312,7 @@ where
                 identify: Default::default(),
                 neighbours: Default::default(),
                 req_resp: Default::default(),
+                file_transfer: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -383,6 +394,10 @@ where
                 .mdns
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            SwarmEvent::Behaviour(MyBehaviourEvent::FileTransfer(())) => self
+                .file_transfer
+                .handle_event((), self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
             _ => Ok(()),
         }
     }
@@ -417,6 +432,10 @@ where
                 .map_err(|e| void::unreachable(e)),
             Command::ReqResp(command) => self
                 .req_resp
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            Command::FileTransfer(command) => self
+                .file_transfer
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
         }
