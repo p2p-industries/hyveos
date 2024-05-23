@@ -53,4 +53,4 @@ jobs:
 
       - name: Check linting is correct
         working-directory: sdks/python/p2pindustries
-        run: poetry run ruff lint
+        run: poetry run ruff check
