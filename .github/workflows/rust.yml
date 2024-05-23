@@ -53,14 +53,17 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Run complete check
-        run: cargo check --package "$CRATE" --all-features --target "$TARGET"
+        run: cargo check --package "$CRATE" --all-features --target "$TARGET" --tests
 
       - name: Run batman no mdns check
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'engine' }}
-        run: cargo check --package "$CRATE" -F batman --target "$TARGET"
+        run: cargo check --package "$CRATE" -F batman --target "$TARGET" --tests
 
       - name: Run complete build
-        run: cargo build --package "$CRATE" --all-features --target "$TARGET"
+        run: cargo build --package "$CRATE" --all-features --target "$TARGET" --tests
+      
+      - name: Check if we compile without any features activated
+        run: cargo build --package "$CRATE" --no-default-features --target "$TARGET" --tests
 
       - name: Run all tests
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
@@ -69,9 +72,6 @@ jobs:
       - name: Run batman no mdns check
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'engine' }}
         run: cargo test --package "$CRATE" -F batman
-
-      - name: Check if we compile without any features activated
-        run: cargo build --package "$CRATE" --no-default-features --target "$TARGET"
 
       - uses: taiki-e/cache-cargo-install-action@924d49e0af41f449f0ad549559bc608ee4653562 # v1
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
