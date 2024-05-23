@@ -69,6 +69,7 @@ mod tests {
     use super::*;
     use tokio::io::{duplex, split};
 
+    #[allow(clippy::cast_possible_truncation)]
     #[tokio::test]
     async fn test_duplex() {
         #[allow(clippy::cast_possible_truncation)]
@@ -78,13 +79,13 @@ mod tests {
         let (alice_reader, alice_writer) = split(alice);
         let (bob_reader, bob_writer) = split(bob);
 
-        let mut test_buffer = vec![0; TEST_BUFFER_SIZE];
+        let test_buffer = vec![0; TEST_BUFFER_SIZE];
 
         let alice_handle = async move {
             let (reader, mut writer) = duplex(STEP_SIZE as usize * 4);
             tokio::spawn(ack_writer(alice_reader, alice_writer, reader));
             for i in 0..1024 {
-                writer.write_all(&mut test_buffer).await.unwrap();
+                writer.write_all(&test_buffer).await.unwrap();
                 writer.write_u128(i).await.unwrap();
             }
         };
