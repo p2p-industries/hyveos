@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 # ----- STRUCTS for API USERS which encapsulate data -----
 
+
 # API USER work on a RECEIVED message
 @dataclass
 class Message:
@@ -14,16 +15,19 @@ class Message:
     hasTopic: bool
     topic: str
 
+
 # API USER handling of topics for a script
 @dataclass
 class Topic:
     topic: str
 
+
 # API USER handling of a received GossipSub Message
-@dataclass 
+@dataclass
 class GossipSubMessage:
     sender_peer_id: str
     message: Message
+
 
 # API USER handling of fetched DHT Record
 @dataclass
@@ -31,6 +35,7 @@ class DHTRecord:
     key: str
     hasValue: bool
     value: bytes
+
 
 # API USER handling of fetched Peers that are providers of a DHTKey. A wrapper around string
 @dataclass
@@ -40,6 +45,7 @@ class Peer:
 
 # ----- HELPER FUNCTION -----
 
+
 async def construct_message(self, data, topic=None):
     payload = data.encode()
     msg = script_pb2.Message(payload)
@@ -48,13 +54,14 @@ async def construct_message(self, data, topic=None):
     return msg
 
 
-
 # ----- CLASSES for gRPC connection -----
 
 
 class P2PConnection:
-    def __init__(self, socket_path="/var/run/p2p-bridge.sock"):
-        self.channel = grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('grpc.default_authority', 'localhost'),))
+    def __init__(self, socket_path='/var/run/p2p-bridge.sock'):
+        self.channel = grpc.aio.insecure_channel(
+            f'unix:{socket_path}', options=(('grpc.default_authority', 'localhost'),)
+        )
 
 
 class RequestResponseService:
@@ -64,10 +71,10 @@ class RequestResponseService:
         self.stubReqResp = script_pb2_grpc.ReqRespStub(self.channel)
         # maintaining a list of topics subscribed to?
         self.topics = []
-    
+
     async def construct_response(self, data):
         return script_pb2.Response(data.encode())
-        
+
     async def send_request(self, peer_id, data, topic):
         msg = construct_message(data, topic)
         send_request = script_pb2.SendRequest(peer_id=peer_id, msg=msg)
@@ -84,7 +91,11 @@ class RequestResponseService:
             else:
                 hasTopic = False
                 receive_request_msg_topic = None
-            yield Message(data=receive_request_msg_data, hasTopic=hasTopic, topic=receive_request_msg_topic)
+            yield Message(
+                data=receive_request_msg_data,
+                hasTopic=hasTopic,
+                topic=receive_request_msg_topic,
+            )
 
     async def respond(self, seq: int, response):
         send_response = script_pb2.SendResponse(seq=seq, response=response)
@@ -96,16 +107,16 @@ class RequestResponseService:
             await self.stubReqResp.Subscribe(topicProto)
             self.topics.append(Topic(topic=topic))
         else:
-            print(f"Already subscribed to topic-str {topic}")
+            print(f'Already subscribed to topic-str {topic}')
 
     async def unsubscribe(self, topic: str):
         topicProto = script_pb2.Topic(topic)
         await self.stubReqResp.Unsubscribe(topicProto)
         try:
             self.topics.remove(Topic(topic=topic))
-        except ValueError as v:
-            print(f"{topic} is not a topic-string in the subscribed list")
-        
+        except ValueError:
+            print(f'{topic} is not a topic-string in the subscribed list')
+
 
 class DiscoveryService:
     def __init__(self, channel):
@@ -116,7 +127,7 @@ class DiscoveryService:
         self.neighbours_peerIDs = []
 
         asyncio.create_task(self.maintain_current_neighbours())
-    
+
     async def maintain_current_neighbours(self):
         self.discover()
         while True:
@@ -127,7 +138,7 @@ class DiscoveryService:
             async for neighbourEvent in self.stubDiscovery.SubscribeEvents(self.empty):
                 self._handle_neighbour_event(neighbourEvent)
         except grpc.RpcError as e:
-            print(f"RPC failed: {e}")
+            print(f'RPC failed: {e}')
 
     def _handle_neighbour_event(self, event):
         field = event.WhichOneOf('event')
@@ -139,13 +150,13 @@ class DiscoveryService:
         elif field == 'lost':
             self.neighbours_peerIDs.remove(event.lost.peer_id)
         else:
-            print("Nothing has been set in this neighbourEvent!")
+            print('Nothing has been set in this neighbourEvent!')
 
     async def discover(self):
         async for peer in self.stubDiscovery.GetCurrentNeighbors(self.empty):
-           discovered = peer.peer_id
-           self.discovered_list.append(discovered)
-    
+            discovered = peer.peer_id
+            self.discovered_list.append(discovered)
+
     async def getOwnId(self):
         peer = self.stubDiscovery.GetOwnId(self.empty)
         return peer.peer_id
@@ -164,19 +175,19 @@ class GossipSubService:
             await self.stubReqResp.Subscribe(topicProto)
             self.subscriptions.append(Topic(topic=topic))
         else:
-            print(f"Already subscribed to topic-str {topic}")
+            print(f'Already subscribed to topic-str {topic}')
 
     async def unsubscribe_from_topic(self, topic):
         topicProto = script_pb2.Topic(topic)
         await self.stubReqResp.Unsubscribe(topicProto)
         try:
             self.subscriptions.remove(Topic(topic=topic))
-        except ValueError as v:
-            print(f"{topic} is not a topic-string in the subscribed list")
-    
+        except ValueError:
+            print(f'{topic} is not a topic-string in the subscribed list')
+
     async def publish(self, msg):
         assert msg.topic is not None
-        
+
         await self.stubGossipSub.Publish(msg)
 
     async def receive_message(self):
@@ -188,7 +199,10 @@ class GossipSubService:
             data = gossipSubMsg.data.decode()
             topic = gossipSubMsg.topic
 
-            yield GossipSubMessage(sender_peer_id=sender_peer_id, message=Message(data=data, hasTopic=True, topic=topic))
+            yield GossipSubMessage(
+                sender_peer_id=sender_peer_id,
+                message=Message(data=data, hasTopic=True, topic=topic),
+            )
 
 
 class DHTService:
@@ -213,7 +227,7 @@ class DHTService:
 
     async def get_record(self, dht_key):
         fetched_dht_record = await self.stubDHT.GetRecord(dht_key)
-        fetched_record_key = fetched_dht_record.key.key 
+        fetched_record_key = fetched_dht_record.key.key
         if fetched_dht_record.HasField('value'):
             hasValue = True
             value = fetched_dht_record.value.decode()
@@ -222,10 +236,10 @@ class DHTService:
             value = None
         fetched_record_struct = DHTRecord(fetched_record_key, hasValue, value)
         return fetched_record_struct
-    
+
     async def provide(self, dht_key):
         await self.stubDHT.Provide(dht_key)
-    
+
     async def get_providers_generator(self, dht_key):
         async for peer in self.stubDHT.GetProviders(dht_key):
             yield Peer(peer_id=peer.peer_id)
