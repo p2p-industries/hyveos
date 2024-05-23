@@ -70,7 +70,7 @@ async def run() -> None:
         receive_task = asyncio.create_task(receive_requests(stubReqResp))
 
         # Start request worker
-        request_worker_task = asyncio.create_task(request_worker(request_queue, stubReqResp, discovered_peer_id))
+        request_worker_task = asyncio.create_task(request_worker(request_queue, stubReqResp, discovered_peer_id))        
 
         await receive_task
         await request_worker_task
