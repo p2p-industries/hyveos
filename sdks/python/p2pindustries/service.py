@@ -123,8 +123,8 @@ class RequestResponseService:
         try:
             self.topics.remove(Topic(topic=topic))
         except ValueError as v:
-            print(f"{topic} is not a topic-string in the subscribed list")
-        
+            print(f'{topic} is not a topic-string in the subscribed list')
+
 
 class DiscoveryService:
     def __init__(self, channel):
