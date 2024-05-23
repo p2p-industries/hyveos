@@ -11,6 +11,7 @@ grpcio = "^1.64.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.5"
+grpcio-tools = "^1.64.0"
 
 [tool.ruff]
 exclude = [
