@@ -167,14 +167,6 @@ class FilePath(_message.Message):
     path: str
     def __init__(self, path: _Optional[str] = ...) -> None: ...
 
-class File(_message.Message):
-    __slots__ = ("path", "id")
-    PATH_FIELD_NUMBER: _ClassVar[int]
-    ID_FIELD_NUMBER: _ClassVar[int]
-    path: FilePath
-    id: ID
-    def __init__(self, path: _Optional[_Union[FilePath, _Mapping]] = ..., id: _Optional[_Union[ID, _Mapping]] = ...) -> None: ...
-
 class CID(_message.Message):
     __slots__ = ("hash", "id")
     HASH_FIELD_NUMBER: _ClassVar[int]

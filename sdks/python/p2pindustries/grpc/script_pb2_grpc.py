@@ -643,7 +643,7 @@ class FileTransferStub(object):
         """
         self.PublishFile = channel.unary_unary(
                 '/script.FileTransfer/PublishFile',
-                request_serializer=script__pb2.File.SerializeToString,
+                request_serializer=script__pb2.FilePath.SerializeToString,
                 response_deserializer=script__pb2.CID.FromString,
                 _registered_method=True)
         self.GetFile = channel.unary_unary(
@@ -675,7 +675,7 @@ def add_FileTransferServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'PublishFile': grpc.unary_unary_rpc_method_handler(
                     servicer.PublishFile,
-                    request_deserializer=script__pb2.File.FromString,
+                    request_deserializer=script__pb2.FilePath.FromString,
                     response_serializer=script__pb2.CID.SerializeToString,
             ),
             'GetFile': grpc.unary_unary_rpc_method_handler(
@@ -708,7 +708,7 @@ class FileTransfer(object):
             request,
             target,
             '/script.FileTransfer/PublishFile',
-            script__pb2.File.SerializeToString,
+            script__pb2.FilePath.SerializeToString,
             script__pb2.CID.FromString,
             options,
             channel_credentials,
