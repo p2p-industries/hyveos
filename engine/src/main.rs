@@ -32,7 +32,7 @@ use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    bridge::Bridge,
+    bridge::{Bridge, BuiltBridge},
     p2p::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor},
     printer::Printer,
 };
@@ -286,19 +286,17 @@ async fn main() -> anyhow::Result<()> {
 
     let file_provider = client
         .file_transfer()
-        .create_provider(store_directory)
+        .create_provider(store_directory.clone())
         .await
         .expect("Failed to create file provider");
 
-    tokio::spawn(async move {
-        file_provider.run().await;
-    });
+    tokio::spawn(file_provider.run());
 
-    let bridge = Bridge::new(client.clone());
+    let BuiltBridge { bridge, .. } = Bridge::build(client.clone(), store_directory)
+        .await
+        .expect("Failed to create bridge");
 
-    tokio::spawn(async move {
-        bridge.run().await;
-    });
+    tokio::spawn(bridge.run());
 
     let gos = client.gossipsub();
 
