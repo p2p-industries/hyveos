@@ -4,11 +4,12 @@ import argparse
 
 from prometheus_client import Gauge, start_http_server
 
-
-def create_bridge(name, gauge):
-    async def bridge(name):
-        async for data in gossipSub.recv(topic_name):
-            gauge.set(data)
+def create_bridge(gauges):
+    async def bridge():
+        async for data in gossipSub.recv():
+            # Some message unpacking
+            (topic, bytes) = data
+            gauges[topic].set(bytes)
 
     return bridge
 
@@ -18,7 +19,7 @@ async def main(port, metric_names):
 
     start_http_server(port)
 
-    producers = [create_bridge(name, gauges[name])() for name in metric_names]
+    producers = [create_bridge(gauges)() for name in metric_names]
     await asyncio.gather(*producers)
 
 
