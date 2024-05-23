@@ -54,3 +54,6 @@ jobs:
       - name: Check linting is correct
         working-directory: sdks/python/p2pindustries
         run: poetry run ruff check
+
+      - name: Check if compiled protobuf is up-to-date
+        run:  mkdir proto-check && python -m grpc_tools.protoc -I./protos --python_out=./proto-check --pyi_out=./proto-check --grpc_python_out=./proto-check ./protos/script.proto && diff -r ./proto-check ./sdks/python/p2pindustries/grpc
