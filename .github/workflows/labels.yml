@@ -13,7 +13,6 @@ jobs:
       issues: write
     steps:
       - run: gh issue edit "$NUMBER" --add-labels "$LABELS"
-        # only run when the title starts with (case insensitive) "tracing"
         if:  ${{ startsWith(github.event.issue.title, 'Tracking') }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
