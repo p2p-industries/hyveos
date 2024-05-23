@@ -27,11 +27,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
         with:
           ssh-private-key: |
             ${{ secrets.GITSECRET }}
@@ -102,17 +102,17 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
         with:
           ssh-private-key: |
             ${{ secrets.GITSECRET }}
             ${{ secrets.GIT_STREAM_SECRET }}
 
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
           toolchain: stable
           components: clippy
@@ -130,13 +130,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
         with:
           ssh-private-key: |
             ${{ secrets.GITSECRET }}
             ${{ secrets.GIT_STREAM_SECRET }}
 
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
           toolchain: stable
           components: rustfmt
@@ -152,7 +152,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
         with:
           ssh-private-key: |
             ${{ secrets.GITSECRET }}
@@ -169,7 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
         with:
           ssh-private-key: |
             ${{ secrets.GITSECRET }}
