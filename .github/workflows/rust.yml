@@ -46,7 +46,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - uses: r7kamura/rust-problem-matchers@9fe7ca9f6550e5d6358e179d451cc25ea6b54f98 # v1.5.0
-        if: ${{ matrix.target == "x86_64-unknown-linux-gnu" }}
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
