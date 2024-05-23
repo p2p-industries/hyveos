@@ -1,11 +1,12 @@
+import asyncio
 import grpc
-import script_pb2
-import script_pb2_grpc
+import scripting.script_pb2 as script_pb2
+import scripting.script_pb2_grpc as script_pb2_grpc
 
 
 class P2PConnection:
     def __init__(self, socket_path="/var/run/p2p-bridge.sock"):
-        self.channel = grpc.aio.insecure_channel(f'unix:{socket_path}')
+        self.channel = grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('grpc.default_authority', 'localhost'),))
 
 
 class RequestResponseService:
@@ -31,18 +32,47 @@ class RequestResponseService:
 
 
 class DiscoveryService:
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self, channel):
+        self.channel = channel
+        self.empty = script_pb2.Empty()
+        self.stubDiscovery = script_pb2_grpc.DiscoveryStub(self.channel)
+        # maintaining a list of peer_id's that we are currently connected to
+        self.neighbours_list = []
 
-    def discover(self):
+    async def SubscribeEvents(self):
+        async for event in self.stubDiscovery.SubscribeEvents(self.empty):
+            pass
+
+
+    async def discover(self):
+        async for peer in self.stubDiscovery.GetCurrentNeighbors(self.empty):
+           discovered = peer.peer_id
+           self.discovered_list.append(discovered)
+
+class GossipSubService:
+    def __init__(self, channel):
+        self.channel = channel
+        self.empty = script_pb2.Empty()
+        self.stub = script_pb2_grpc.GossipSubStub(self.channel)
+
+    async def subscribe_to_topic(self, string):
+        pass
+
+    async def unsubscribe_from_topic(self, string):
+        pass 
+    
+    async def publish(self):
+        pass
+
+    async def receive_message(self):
         pass
 
 
 def main():
-    conn = P2PConnection()
+    channel = P2PConnection()
 
-    discovery_service = DiscoveryService(conn)
-    reqres_service = RequestResponseService(conn)
+    discovery_service = DiscoveryService(channel)
+    reqres_service = RequestResponseService(channel)
 
     reqres_service.request()
 

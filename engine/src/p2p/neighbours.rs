@@ -4,7 +4,6 @@ use libp2p::PeerId;
 use libp2p_batman_adv::{
     Event as BatmanEvent, ReadOnlyNeighbourStore, ResolvedNeighbour, UnresolvedNeighbour,
 };
-use macaddress::MacAddress;
 use tokio::sync::{broadcast, oneshot};
 
 use super::{
@@ -40,14 +39,8 @@ impl_from_special_command!(Neighbours);
 
 #[derive(Debug)]
 pub enum Event {
-    ResolvedNeighbour {
-        mac: MacAddress,
-        neighbour: ResolvedNeighbour,
-    },
-    LostNeighbour {
-        mac: MacAddress,
-        neighbour: ResolvedNeighbour,
-    },
+    ResolvedNeighbour(ResolvedNeighbour),
+    LostNeighbour(ResolvedNeighbour),
 }
 
 impl SubActor for Actor {
@@ -99,19 +92,19 @@ impl SubActor for Actor {
     ) -> Result<(), Self::EventError> {
         match event {
             BatmanEvent::NeighbourUpdate(update) => {
-                for (mac, neighbour) in update.resolved {
+                for (_, neighbour) in update.resolved {
                     behaviour
                         .kad
                         .add_address(&neighbour.peer_id, neighbour.batman_addr.clone());
                     behaviour.gossipsub.add_explicit_peer(&neighbour.peer_id);
 
-                    let event = Event::ResolvedNeighbour { mac, neighbour };
+                    let event = Event::ResolvedNeighbour(neighbour);
 
                     let _ = self.sender.send(Arc::new(event));
                 }
 
-                for (mac, neighbour) in update.lost_resolved {
-                    let event = Event::LostNeighbour { mac, neighbour };
+                for (_, neighbour) in update.lost_resolved {
+                    let event = Event::LostNeighbour(neighbour);
 
                     let _ = self.sender.send(Arc::new(event));
                 }
