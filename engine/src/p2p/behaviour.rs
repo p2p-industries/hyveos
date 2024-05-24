@@ -2,11 +2,11 @@ use libp2p::{
     gossipsub, identify,
     identity::Keypair,
     kad::{self, store::MemoryStore},
-    mdns, ping,
+    ping,
     swarm::NetworkBehaviour,
 };
 
-use super::{req_resp, round_trip};
+use super::{file_transfer, req_resp, round_trip};
 
 #[cfg(feature = "location")]
 use super::location;
@@ -18,12 +18,14 @@ pub struct MyBehaviour {
     pub ping: ping::Behaviour,
     pub identify: identify::Behaviour,
     pub kad: kad::Behaviour<MemoryStore>,
+    #[cfg(feature = "mdns")]
+    pub mdns: libp2p::mdns::tokio::Behaviour,
     pub gossipsub: gossipsub::Behaviour,
-    pub mdns: mdns::tokio::Behaviour,
     pub req_resp: req_resp::Behaviour,
     pub round_trip: round_trip::Behaviour,
     #[cfg(feature = "location")]
     pub location: location::Behaviour,
+    pub file_transfer: libp2p_stream::Behaviour,
 }
 
 impl MyBehaviour {
@@ -38,6 +40,15 @@ impl MyBehaviour {
             ),
             ping: ping::Behaviour::default(),
             kad: kad::Behaviour::new(peer_id, MemoryStore::new(peer_id)),
+            #[cfg(feature = "mdns")]
+            mdns: libp2p::mdns::tokio::Behaviour::new(
+                libp2p::mdns::Config {
+                    // enable_ipv6: true,
+                    ..Default::default()
+                },
+                peer_id,
+            )
+            .expect("Failed to create mdns behaviour"),
             gossipsub: gossipsub::Behaviour::new(
                 gossipsub::MessageAuthenticity::Signed(keypair.clone()),
                 gossipsub::Config::default(),
@@ -47,18 +58,11 @@ impl MyBehaviour {
                 "/industries/id/1.0.0".into(),
                 public,
             )),
-            mdns: mdns::tokio::Behaviour::new(
-                mdns::Config {
-                    enable_ipv6: false,
-                    ..Default::default()
-                },
-                peer_id,
-            )
-            .expect("Failed to init mdns"),
             req_resp: req_resp::new(),
             round_trip: round_trip::new(),
             #[cfg(feature = "location")]
             location: location::new(),
+            file_transfer: file_transfer::new(),
         }
     }
 }

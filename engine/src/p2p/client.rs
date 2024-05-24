@@ -5,7 +5,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::p2p::command::Command;
 
-use super::{command::RecvResult, gossipsub, kad, ping, req_resp, round_trip};
+use super::{command::RecvResult, file_transfer, gossipsub, kad, ping, req_resp, round_trip};
 
 #[cfg(feature = "batman")]
 use super::neighbours;
@@ -21,6 +21,7 @@ impl Client {
         Self { peer_id, sender }
     }
 
+    #[inline]
     fn special<C, T>(&self) -> T
     where
         T: From<SpecialClient<C>>,
@@ -31,6 +32,10 @@ impl Client {
             peer_id: self.peer_id,
             _phantom: PhantomData,
         })
+    }
+
+    pub fn peer_id(&self) -> PeerId {
+        self.peer_id
     }
 
     pub fn kad(&self) -> kad::Client {
@@ -57,6 +62,10 @@ impl Client {
     pub fn req_resp(&self) -> req_resp::Client {
         self.special()
     }
+
+    pub fn file_transfer(&self) -> file_transfer::Client {
+        self.special()
+    }
 }
 
 pub struct SpecialClient<T> {
@@ -70,6 +79,16 @@ impl<T> Clone for SpecialClient<T> {
         Self {
             sender: self.sender.clone(),
             peer_id: self.peer_id,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> SpecialClient<T> {
+    pub fn new(sender: mpsc::Sender<Command>, peer_id: PeerId) -> Self {
+        Self {
+            sender,
+            peer_id,
             _phantom: PhantomData,
         }
     }

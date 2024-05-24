@@ -3,22 +3,15 @@
 
 mod behaviour;
 
-use std::{io, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
+use ifaddr::if_name_to_index;
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use thiserror::Error;
 
 pub use crate::behaviour::{store::ReadOnlyNeighbourStore, Behaviour, Event};
-
-fn if_name_to_index(name: impl Into<Vec<u8>>) -> io::Result<u32> {
-    let ifname = std::ffi::CString::new(name)?;
-    match unsafe { libc::if_nametoindex(ifname.as_ptr()) } {
-        0 => Err(io::Error::last_os_error()),
-        otherwise => Ok(otherwise),
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Config {

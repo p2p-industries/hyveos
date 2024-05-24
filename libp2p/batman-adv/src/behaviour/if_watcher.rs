@@ -2,12 +2,13 @@ use std::{
     collections::{HashSet, VecDeque},
     future::Future,
     io,
-    net::{IpAddr, Ipv6Addr, SocketAddrV6},
+    net::IpAddr,
     pin::Pin,
     task::{ready, Context, Poll},
 };
 
 use futures::{stream::FusedStream, Stream, StreamExt as _, TryStreamExt as _};
+use ifaddr::IfAddr;
 #[cfg(target_os = "linux")]
 use netlink_packet_core::NetlinkPayload;
 #[cfg(target_os = "linux")]
@@ -22,18 +23,6 @@ use netlink_proto::{
 };
 #[cfg(target_os = "linux")]
 use rtnetlink::constants::RTMGRP_IPV6_IFADDR;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IfAddr {
-    pub if_index: u32,
-    pub addr: Ipv6Addr,
-}
-
-impl IfAddr {
-    pub fn with_port(&self, port: u16) -> std::net::SocketAddr {
-        SocketAddrV6::new(self.addr, port, 0, self.if_index).into()
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IfEvent {

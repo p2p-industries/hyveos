@@ -4,31 +4,199 @@ syntax = "proto2";
 
 package script;
 
-message Request {
-  required string peer_id = 1;
-  required bytes data = 2;
-  optional uint64 seq = 3;
-}
 
-message Response { required bytes data = 1; }
+// ----- MESSAGES -----
 
 message Empty {}
 
+// Unique identifier in the form of a stringified ULID
+message ID {
+  required string ulid = 1;
+}
+
+// The topic of a message
+message Topic {
+  required string topic = 1;
+}
+
+// An optional topic for a message
+message OptionalTopic {
+  optional Topic topic = 1;
+}
+
+// A query for a topic that can be a regex
+message TopicQuery {
+  oneof query {
+    Topic topic = 1;
+    string regex = 2;
+  }
+}
+
+// An optional query for a topic
+message OptionalTopicQuery {
+  optional TopicQuery query = 1;
+}
+
+// A message with an optional topic
+message Message {
+  required bytes data = 1;
+  required OptionalTopic topic = 2;
+}
+
+// A request to a peer with an optional topic
+message SendRequest {
+  required string peer_id = 1;
+  required Message msg = 2;
+}
+
+// A request from a peer with an optional topic
+message RecvRequest {
+  required string peer_id = 1;
+  required Message msg = 2;
+  // Sequence number for request-response matching
+  required uint64 seq = 3;
+}
+
+// A received response to a request or an error
+message Response {
+  oneof response {
+    bytes data = 1;
+    string error = 2;
+  }
+}
+
+// A response to a request
 message SendResponse {
+  // Sequence number for request-response matching
   required uint64 seq = 1;
   required Response response = 2;
 }
 
-message Discovered { required string peer_id = 1; }
+// A peer in the network
+message Peer {
+  required string peer_id = 1;
+}
+
+// A list of peers
+message Peers {
+  repeated Peer peers = 1;
+}
+
+// A neighbour discovery event
+message NeighbourEvent {
+  oneof event {
+    Peers init = 1;
+    Peer discovered = 2;
+    Peer lost = 3;
+  }
+}
+
+// A mesh topology event
+message MeshTopologyEvent {
+  required Peer peer = 1;
+  required NeighbourEvent event = 2;
+}
+
+message GossipSubMessageID {
+  required bytes id = 1;
+}
+
+// A message for publishing in a gossipsub topic
+message GossipSubMessage {
+  required bytes data = 1;
+  required Topic topic = 2;
+}
+
+// A received message from a gossipsub topic
+message GossipSubRecvMessage {
+  required string peer_id = 1;
+  required GossipSubMessage msg = 2;
+  required GossipSubMessageID msg_id = 3;
+}
+
+// A DHT key with a topic
+message DHTKey {
+  required Topic topic = 1;
+  required bytes key = 2;
+}
+
+// A record for putting in the DHT
+message DHTPutRecord {
+  required DHTKey key = 1;
+  required bytes value = 2;
+}
+
+// A record for getting from the DHT
+message DHTGetRecord {
+  required DHTKey key = 1;
+  // The value of the record will be empty if the key is not found
+  optional bytes value = 2;
+}
+
+// A file path on the local filesystem
+message FilePath {
+  required string path = 1;
+}
+
+// The cid of a file
+message CID {
+  required bytes hash = 1;
+  required ID id = 2;
+}
+
+
+// ----- SERVICES -----
 
 service ReqResp {
-  rpc Send(Request) returns (Response) {}
+  // Send a request with an optional topic to a peer and wait for a response
+  rpc Send(SendRequest) returns (Response) {}
 
-  rpc Recv(Empty) returns (stream Request) {}
+  // Receive requests from peers that either have no topic or have a topic that has been subscribed to
+  rpc Recv(OptionalTopicQuery) returns (stream RecvRequest) {}
 
+  // Respond to a request received from Recv
   rpc Respond(SendResponse) returns (Empty) {}
 }
 
 service Discovery {
-  rpc Discover(Empty) returns (stream Discovered) {}
+  // Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
+  rpc SubscribeEvents(Empty) returns (stream NeighbourEvent) {}
+
+  // Get the peer id of the current stack
+  rpc GetOwnId(Empty) returns (Peer) {}
+}
+
+service GossipSub {
+  // Subscribe to a gossipsub topic to receive messages published in that topic
+  rpc Subscribe(Topic) returns (stream GossipSubRecvMessage) {}
+
+  // Publish a message in a gossipsub topic
+  rpc Publish(GossipSubMessage) returns (GossipSubMessageID) {}
+}
+
+service DHT {
+  // Put a record in the DHT
+  rpc PutRecord(DHTPutRecord) returns (Empty) {}
+
+  // Get a record from the DHT. The value of the record will be empty if the key is not found.
+  rpc GetRecord(DHTKey) returns (DHTGetRecord) {}
+
+  // Mark the current stack as a provider for a key in the DHT
+  rpc Provide(DHTKey) returns (Empty) {}
+
+  // Get the providers of a key in the DHT
+  rpc GetProviders(DHTKey) returns (stream Peer) {}
+}
+
+service FileTransfer {
+  // Publish a file in the stack and get the cid of the file
+  rpc PublishFile(FilePath) returns (CID) {}
+
+  // Request a file with a cid from the stack
+  rpc GetFile(CID) returns (FilePath) {}
+}
+
+service Debug {
+  // Subscribe to mesh topology events to get notified when the mesh topology changes
+  rpc SubscribeMeshTopology(Empty) returns (stream MeshTopologyEvent) {}
 }

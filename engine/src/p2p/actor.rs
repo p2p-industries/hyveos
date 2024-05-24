@@ -1,19 +1,20 @@
 use std::{error::Error, marker::PhantomData, time::Duration};
 
 use libp2p::{
+    core::Transport,
     futures::StreamExt,
     identity::Keypair,
     kad::Mode,
     swarm::{NetworkBehaviour, SwarmEvent},
-    Swarm, SwarmBuilder,
+    Multiaddr, Swarm, SwarmBuilder,
 };
 use tokio::sync::mpsc;
 
 use crate::p2p::behaviour::MyBehaviour;
 
 use super::{
-    behaviour::MyBehaviourEvent, client::Client, command::Command, gossipsub, kad, ping, req_resp,
-    round_trip,
+    behaviour::MyBehaviourEvent, client::Client, command::Command, file_transfer, gossipsub, kad,
+    ping, req_resp, round_trip,
 };
 
 #[cfg(feature = "batman")]
@@ -64,12 +65,14 @@ pub struct Actor<
     Identify,
     Neighbours,
     ReqResp,
+    FileTransfer,
     EventError,
     CommandError,
 > {
     swarm: Swarm<MyBehaviour>,
     receiver: mpsc::Receiver<Command>,
     kad: Kad,
+    #[cfg_attr(not(feature = "mdns"), allow(dead_code))]
     mdns: Mdns,
     gossipsub: Gossipsub,
     round_trip: RoundTrip,
@@ -80,6 +83,7 @@ pub struct Actor<
     #[cfg_attr(not(feature = "batman"), allow(dead_code))]
     neighbours: Neighbours,
     req_resp: ReqResp,
+    file_transfer: FileTransfer,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
 }
@@ -172,6 +176,37 @@ impl<T> LocationActor for T where
 {
 }
 
+#[cfg(feature = "mdns")]
+pub(crate) trait MdnsActor:
+    SubActor<
+        SubCommand = (),
+        Event = libp2p::mdns::Event,
+        CommandError = void::Void,
+        EventError = void::Void,
+    > + Default
+{
+}
+
+#[cfg(not(feature = "mdns"))]
+pub(crate) trait MdnsActor:
+    SubActor<SubCommand = void::Void, Event = void::Void> + Default
+{
+}
+
+#[cfg(feature = "mdns")]
+impl<T> MdnsActor for T where
+    T: SubActor<
+            SubCommand = (),
+            Event = libp2p::mdns::Event,
+            CommandError = void::Void,
+            EventError = void::Void,
+        > + Default
+{
+}
+
+#[cfg(not(feature = "mdns"))]
+impl<T> MdnsActor for T where T: SubActor<SubCommand = void::Void, Event = void::Void> + Default {}
+
 impl<
         Kad,
         Mdns,
@@ -182,6 +217,7 @@ impl<
         Identify,
         Neighbours,
         ReqResp,
+        FileTransfer,
         EventError,
         CommandError,
     >
@@ -195,17 +231,13 @@ impl<
         Identify,
         Neighbours,
         ReqResp,
+        FileTransfer,
         EventError,
         CommandError,
     >
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
-    Mdns: SubActor<
-            SubCommand = (),
-            Event = libp2p::mdns::Event,
-            EventError = void::Void,
-            CommandError = void::Void,
-        > + Default,
+    Mdns: MdnsActor,
     Gossipsub:
         SubActor<SubCommand = gossipsub::Command, Event = libp2p::gossipsub::Event> + Default,
     RoundTrip: SubActor<
@@ -234,6 +266,12 @@ where
             EventError = void::Void,
             CommandError = void::Void,
         > + Default,
+    FileTransfer: SubActor<
+            SubCommand = file_transfer::Command,
+            Event = (),
+            CommandError = void::Void,
+            EventError = void::Void,
+        > + Default,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
         + From<<Gossipsub as SubActor>::EventError>
@@ -246,7 +284,14 @@ where
     pub fn build(keypair: Keypair) -> (Client, Self) {
         let swarm = SwarmBuilder::with_existing_identity(keypair)
             .with_tokio()
-            .with_quic()
+            .with_other_transport(|keypair| {
+                libp2p_quic::tokio::Transport::new(libp2p_quic::Config::new(keypair)).map(
+                    |(peer_id, muxer), _| {
+                        (peer_id, libp2p::core::muxing::StreamMuxerBox::new(muxer))
+                    },
+                )
+            })
+            .expect("Failed to build quic transport")
             .with_behaviour(MyBehaviour::new)
             .expect("Failed to build swarm")
             .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
@@ -267,20 +312,21 @@ where
                 identify: Default::default(),
                 neighbours: Default::default(),
                 req_resp: Default::default(),
+                file_transfer: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
         )
     }
 
-    pub fn setup(&mut self) {
+    pub fn setup(&mut self, listen_addrs: impl Iterator<Item = Multiaddr>) {
         self.swarm.behaviour_mut().kad.set_mode(Some(Mode::Server));
-        self.swarm
-            .listen_on("/ip6/::/udp/0/quic-v1".parse().unwrap())
-            .expect("Failed to listen on IPv6");
-        self.swarm
-            .listen_on("/ip4/0.0.0.0/udp/0/quic-v1".parse().unwrap())
-            .expect("Failed to listen on IPv4");
+        for addr in listen_addrs {
+            println!("Listening on: {addr:?}");
+            self.swarm
+                .listen_on(addr)
+                .expect("Failed to listen on address");
+        }
     }
 
     pub async fn drive(mut self) {
@@ -313,10 +359,6 @@ where
                 .kad
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(Into::into),
-            SwarmEvent::Behaviour(MyBehaviourEvent::Mdns(event)) => self
-                .mdns
-                .handle_event(event, self.swarm.behaviour_mut())
-                .map_err(|e| void::unreachable(e)),
             SwarmEvent::Behaviour(MyBehaviourEvent::Gossipsub(event)) => self
                 .gossipsub
                 .handle_event(event, self.swarm.behaviour_mut())
@@ -346,6 +388,15 @@ where
             SwarmEvent::Behaviour(MyBehaviourEvent::ReqResp(event)) => self
                 .req_resp
                 .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "mdns")]
+            SwarmEvent::Behaviour(MyBehaviourEvent::Mdns(event)) => self
+                .mdns
+                .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            SwarmEvent::Behaviour(MyBehaviourEvent::FileTransfer(())) => self
+                .file_transfer
+                .handle_event((), self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
             _ => Ok(()),
         }
@@ -381,6 +432,10 @@ where
                 .map_err(|e| void::unreachable(e)),
             Command::ReqResp(command) => self
                 .req_resp
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            Command::FileTransfer(command) => self
+                .file_transfer
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
         }

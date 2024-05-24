@@ -1,0 +1,11 @@
+[package]
+name = "ifaddr"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+
+[dependencies]
+libc = "0.2.153"
+libp2p = { workspace = true }
+macaddress = { workspace = true }
+thiserror = { workspace = true }

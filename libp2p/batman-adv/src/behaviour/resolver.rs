@@ -12,6 +12,7 @@ use std::{
 
 use futures::SinkExt as _;
 use hashlink::{linked_hash_map::Entry, LinkedHashMap};
+use ifaddr::IfAddr;
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use socket2::{Domain, Socket, Type};
@@ -28,8 +29,6 @@ use self::{
     packet::{Packet, Request, Response},
     socket::AsyncSocket as _,
 };
-
-use super::if_watcher::IfAddr;
 
 const DISCOVERED_CHANNEL_BUFFER: usize = 2;
 
