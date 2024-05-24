@@ -6,7 +6,7 @@ from stream import ManagedStream
 
 class RequestResponseService:
     """
-    Direct peer-to-peer message exchange
+    Direct peer-to-peer message exchange (Unicast)
     """
 
     def __init__(self, conn):
@@ -59,17 +59,17 @@ class RequestResponseService:
         query : str, optional
             Either a topic subscribed to or a regex that describes topics if this argument is specified (default: None)
         haveTopicQuery : bool
-            Receive from a topic descirbed by the query, is set in accordance with `query` (default: False)
+            Receive from a topic described by the query, is set in accordance with `query` (default: False)
         haveRegex : bool
             Query is specified as a regex, not a single `topic` string (default: False)
 
         Returns
         -------
-        ManagedStream
+        stream : ManagedStream
             Iterator to handle the stream of RecvRequests
         """
 
-        assert (query is None and haveTopicQuery is False) or (
+        assert (query is None and haveTopicQuery is False and haveRegex is None) or (
             query is not None and haveTopicQuery is True
         ), 'having a topicQuery and providing a query have to match'
 
@@ -97,7 +97,7 @@ class RequestResponseService:
         seq : int
             Sequence number for request-response matching
         data : str | bytes
-            Reponse message data, if error is specified, this won't reach the peer
+            Reponse message data. If error is specified, this won't reach the peer
         error : str
             Respond with an error message if an error occurred (default:  None)
 
@@ -115,5 +115,5 @@ class RequestResponseService:
                 send_data = data.encode('utf-8')
             response.data = send_data
 
-        send_response = script_pb2.Message(seq, response)
+        send_response = script_pb2.SendResponse(seq, response)
         await self.stub.Respond(send_response)

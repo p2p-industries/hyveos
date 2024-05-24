@@ -13,7 +13,8 @@ class GossipSubService:
         self.stub = script_pb2_grpc.GossipSubStub(conn)
 
     async def subscribe(self, topic: str) -> ManagedStream:
-        """Subscribe to a GossipSub Topic to receive messages published in that topic
+        """
+        Subscribe to a GossipSub Topic to receive messages published in that topic
 
         Parameters
         ----------
@@ -22,7 +23,7 @@ class GossipSubService:
 
         Returns
         -------
-        gossip_sub_recv_messages_stream : ManagedStream
+        straem : ManagedStream
             Stream of received messages from a GossipSub topic
         """
 
@@ -30,7 +31,8 @@ class GossipSubService:
         return ManagedStream(gossip_sub_recv_messages_stream)
 
     async def publish(self, data: str | bytes, topic: str) -> bytes:
-        """Publish a message in a GossipSub Topic
+        """
+        Publish a message in a GossipSub Topic
 
         Parameters
         ----------

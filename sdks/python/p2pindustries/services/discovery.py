@@ -14,32 +14,38 @@ class DiscoveryService:
         self.empty = script_pb2.Empty()
 
     async def discovery_events(self) -> ManagedStream:
-        """Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
+        """
+        Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
 
         Returns
         -------
-        ManagedStream
+        stream : ManagedStream
+            Iterator to handle the stream of neighbour events
         """
         neighbour_event_stream = self.stub.SubscribeEvents(self.empty)
         return ManagedStream(neighbour_event_stream)
 
     async def get_own_peer_object(self) -> script_pb2.Peer:
-        """Get the Peer object of the current node
+        """
+        Get the Peer object of the current node
 
         Returns
         -------
-        script_pb2.Peer
+        peer : script_pb2.Peer
+            Own Peer object
         """
 
         peer = await self.stub.GetOwnId(self.empty)
         return peer
 
     async def get_own_id(self) -> str:
-        """Get the peer_id of the current node
+        """
+        Get the peer_id of the current node
 
         Returns
         -------
         peer_id : str
+            Own peer_id
         """
 
         peer = await self.stub.GetOwnId(self.empty)
