@@ -1,7 +1,6 @@
 use futures::stream::Stream;
 use std::{io, path::PathBuf, pin::Pin};
-#[cfg_attr(not(feature = "batman"), allow(unused_imports))]
-use tokio::{net::UnixListener, sync::mpsc};
+use tokio::net::UnixListener;
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server as TonicServer;
 use ulid::Ulid;
@@ -13,17 +12,21 @@ use self::{
 use crate::p2p::Client;
 
 #[cfg(feature = "batman")]
+use tokio::sync::mpsc;
+
+#[cfg(feature = "batman")]
 use self::debug::DebugServer;
 #[cfg(feature = "batman")]
 use crate::debug::Command as DebugCommand;
 
-#[cfg(feature = "batman")]
-mod debug;
 mod dht;
 mod discovery;
 mod file_transfer;
 mod gossipsub;
 mod req_resp;
+
+#[cfg(feature = "batman")]
+mod debug;
 
 mod script {
     #![allow(clippy::pedantic)]
@@ -40,28 +43,20 @@ type DebugCommandSender = mpsc::Sender<DebugCommand>;
 #[cfg(not(feature = "batman"))]
 type DebugCommandSender = ();
 
-pub struct BuiltBridge {
-    pub bridge: Bridge,
+pub struct Bridge {
+    pub client: BridgeClient,
     pub ulid: Ulid,
     pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
 }
 
-pub struct Bridge {
-    client: Client,
-    socket_stream: UnixListenerStream,
-    shared_dir_path: PathBuf,
-    #[cfg(feature = "batman")]
-    debug_command_sender: mpsc::Sender<DebugCommand>,
-}
-
 impl Bridge {
-    pub async fn build(
+    pub async fn new(
         client: Client,
         mut base_path: PathBuf,
         #[cfg_attr(not(feature = "batman"), allow(unused_variables))]
         debug_command_sender: DebugCommandSender,
-    ) -> io::Result<BuiltBridge> {
+    ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
 
@@ -81,7 +76,7 @@ impl Bridge {
         let socket = UnixListener::bind(&socket_path)?;
         let socket_stream = UnixListenerStream::new(socket);
 
-        let bridge = Self {
+        let client = BridgeClient {
             client,
             socket_stream,
             shared_dir_path: shared_dir_path.clone(),
@@ -89,14 +84,24 @@ impl Bridge {
             debug_command_sender,
         };
 
-        Ok(BuiltBridge {
-            bridge,
+        Ok(Self {
+            client,
             ulid,
             socket_path,
             shared_dir_path,
         })
     }
+}
 
+pub struct BridgeClient {
+    client: Client,
+    socket_stream: UnixListenerStream,
+    shared_dir_path: PathBuf,
+    #[cfg(feature = "batman")]
+    debug_command_sender: mpsc::Sender<DebugCommand>,
+}
+
+impl BridgeClient {
     pub async fn run(self) {
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());

@@ -30,7 +30,7 @@ use tokio_stream::StreamExt as _;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    bridge::{Bridge, BuiltBridge},
+    bridge::Bridge,
     p2p::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor},
     printer::Printer,
 };
@@ -301,12 +301,14 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(not(feature = "batman"))]
     let debug_command_sender = ();
 
-    let BuiltBridge { bridge, .. } =
-        Bridge::build(client.clone(), store_directory, debug_command_sender)
-            .await
-            .expect("Failed to create bridge");
+    let Bridge {
+        client: bridge_client,
+        ..
+    } = Bridge::new(client.clone(), store_directory, debug_command_sender)
+        .await
+        .expect("Failed to create bridge");
 
-    tokio::spawn(bridge.run());
+    tokio::spawn(bridge_client.run());
 
     let gos = client.gossipsub();
 

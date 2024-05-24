@@ -14,7 +14,11 @@ const CONTANIER_SHARED_DIR: &str = "/shared/data";
 impl<T: AsRef<Path>> From<T> for script::FilePath {
     fn from(path: T) -> Self {
         Self {
-            path: path.as_ref().to_string_lossy().to_string(),
+            path: path
+                .as_ref()
+                .to_str()
+                .expect("We can only handle unicode paths at the moment")
+                .to_string(),
         }
     }
 }
