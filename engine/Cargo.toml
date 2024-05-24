@@ -58,15 +58,18 @@ console-subscriber = { version = "0.2.0", optional = true }
 bytes = "1.6.0"
 indicatif = { version = "0.17.8", features = ["tokio", "in_memory"] }
 dirs = "5.0.1"
-regex = { version = "1.10.4", default-features = false, features = ["perf", "std"] }
-cbor4ii = "0.3.2"
+regex = { version = "1.10.4", default-features = false, features = [
+    "perf",
+    "std",
+] }
+cbor4ii = { version = "0.3.2", optional = true }
 drop-stream = "0.3.0"
 
 [build-dependencies]
 tonic-build = { workspace = true }
 
 [features]
-batman = ["dep:libp2p-batman-adv"]
+batman = ["dep:libp2p-batman-adv", "dep:cbor4ii"]
 location = []
 mdns = ["libp2p/mdns"]
 clipboard = ["dep:arboard"]
