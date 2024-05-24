@@ -1,4 +1,5 @@
 from ..protocol.script_pb2_grpc import DebugStub
+from ..protocol.script_pb2 import MeshTopologyEvent
 from stream import ManagedStream
 
 
@@ -10,7 +11,7 @@ class DebugService:
     def __init__(self, conn):
         self.stub = DebugStub(conn)
 
-    def get_mesh_topology(self):
+    def get_mesh_topology(self) -> ManagedStream[MeshTopologyEvent]:
         """
         Returns a stream of mesh topology events to observe the
         underlying connectivity state of the network
