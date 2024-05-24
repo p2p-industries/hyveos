@@ -934,51 +934,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
 
 [[package]]
-name = "engine"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arboard",
- "async-once-cell",
- "asynchronous-codec",
- "base64-simd",
- "bytes",
- "cbor4ii",
- "clap",
- "console-subscriber",
- "dashmap",
- "dirs",
- "drop-stream",
- "futures",
- "ifaddr",
- "indicatif",
- "libp2p",
- "libp2p-batman-adv",
- "libp2p-quic 0.10.2 (git+ssh://git@github.com/p2p-industries/libp2p-quic.git?rev=a977b79242091a338e7ccc411f5878b8c5fccce6)",
- "libp2p-stream",
- "macaddress",
- "netdev",
- "patricia_tree",
- "pin-project",
- "prost",
- "rand",
- "regex",
- "rustyline",
- "serde",
- "sha2",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tonic 0.11.0",
- "tonic-build",
- "tracing",
- "tracing-subscriber",
- "ulid",
- "void",
-]
-
-[[package]]
 name = "enum-as-inner"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3701,6 +3656,51 @@ checksum = "d91ed6c858b01f942cd56b37a94b3e0a1798290327d1236e4d9cf4eaca44d29d"
 dependencies = [
  "base64ct",
  "der",
+]
+
+[[package]]
+name = "stack"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arboard",
+ "async-once-cell",
+ "asynchronous-codec",
+ "base64-simd",
+ "bytes",
+ "cbor4ii",
+ "clap",
+ "console-subscriber",
+ "dashmap",
+ "dirs",
+ "drop-stream",
+ "futures",
+ "ifaddr",
+ "indicatif",
+ "libp2p",
+ "libp2p-batman-adv",
+ "libp2p-quic 0.10.2 (git+ssh://git@github.com/p2p-industries/libp2p-quic.git?rev=a977b79242091a338e7ccc411f5878b8c5fccce6)",
+ "libp2p-stream",
+ "macaddress",
+ "netdev",
+ "patricia_tree",
+ "pin-project",
+ "prost",
+ "rand",
+ "regex",
+ "rustyline",
+ "serde",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tonic 0.11.0",
+ "tonic-build",
+ "tracing",
+ "tracing-subscriber",
+ "ulid",
+ "void",
 ]
 
 [[package]]

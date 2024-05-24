@@ -3,12 +3,12 @@ members = [
     "crates/batman-neighbours-core",
     "crates/batman-neighbours-daemon",
     "crates/libp2p/batman-adv",
-    "crates/engine",
+    "crates/stack",
     "crates/macaddress",
     "crates/ifaddr",
     "sdks/rust",
 ]
-default-members = ["crates/batman-neighbours-daemon", "crates/engine"]
+default-members = ["crates/batman-neighbours-daemon", "crates/stack"]
 resolver = "2"
 
 [workspace.package]
@@ -31,7 +31,7 @@ serde = { version = "1.0.202", features = ["derive", "rc"] }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
 batman-neighbours-daemon = { version = "0.1.0", path = "crates/batman-neighbours-daemon" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
-engine = { version = "0.1.0", path = "crates/engine" }
+stack = { version = "0.1.0", path = "crates/stack" }
 libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
