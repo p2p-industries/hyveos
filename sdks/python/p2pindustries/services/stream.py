@@ -14,12 +14,6 @@ class ManagedStream(Generic[T]):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.stream.cancel()
 
-        try:
-            await self.stream
-        except grpc.aio.AioRpcError as e:
-            if e.code() != grpc.StatusCode.CANCELLED:
-                print(f'Stream Cancellation error: {e}')
-
     def __aiter__(self):
         return self
 
