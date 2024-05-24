@@ -15,7 +15,7 @@ grpcio-tools = "^1.64.0"
 
 [tool.ruff]
 exclude = [
-  'grpc'
+  'protocol'
 ]
 
 indent-width = 4
