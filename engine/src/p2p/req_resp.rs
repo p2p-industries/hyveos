@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
 use libp2p::{
     request_response::{
@@ -18,6 +18,8 @@ use super::{
 };
 use crate::impl_from_special_command;
 
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {
     pub data: Vec<u8>,
@@ -33,6 +35,7 @@ pub struct InboundRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseError {
+    Timeout,
     TopicNotSubscribed(Option<Arc<str>>),
     Script(String),
 }
@@ -46,6 +49,7 @@ impl From<String> for ResponseError {
 impl Display for ResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ResponseError::Timeout => write!(f, "Request timed out"),
             ResponseError::TopicNotSubscribed(Some(topic)) => {
                 write!(f, "Peer is not subscribed to topic '{topic}'")
             }
@@ -245,7 +249,11 @@ impl Client {
             })
             .await
             .map_err(RequestError::Send)?;
-        receiver.await.map_err(RequestError::Oneshot)
+
+        tokio::time::timeout(REQUEST_TIMEOUT, receiver)
+            .await
+            .unwrap_or(Ok(Response::Error(ResponseError::Timeout)))
+            .map_err(RequestError::Oneshot)
     }
 
     pub async fn subscribe(
