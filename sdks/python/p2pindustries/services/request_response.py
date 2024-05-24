@@ -35,7 +35,7 @@ class RequestResponseService:
 
         optional_topic = script_pb2.OptionalTopic()
         if topic is not None:
-            script_pb2.OptionalTopic(script_pb2.Topic(topic))
+            optional_topic.topic = script_pb2.Topic(topic)
 
         send_data = data
         if isinstance(data) == str:
