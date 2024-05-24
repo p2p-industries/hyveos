@@ -1,15 +1,21 @@
-use futures::{
-    future,
-    stream::{self, StreamExt as _, TryStreamExt as _},
-};
-use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use super::{
     script::{self, discovery_server::Discovery},
     ServerStream, TonicResult,
 };
-use crate::p2p::{neighbours::Event, Client};
+use crate::p2p::Client;
+
+#[cfg(feature = "batman")]
+use futures::{
+    future,
+    stream::{self, StreamExt as _, TryStreamExt as _},
+};
+#[cfg(feature = "batman")]
+use tokio_stream::wrappers::BroadcastStream;
+
+#[cfg(feature = "batman")]
+use crate::p2p::neighbours::Event;
 
 pub struct DiscoveryServer {
     client: Client,
@@ -25,6 +31,7 @@ impl DiscoveryServer {
 impl Discovery for DiscoveryServer {
     type SubscribeEventsStream = ServerStream<script::NeighbourEvent>;
 
+    #[cfg(feature = "batman")]
     async fn subscribe_events(
         &self,
         _request: TonicRequest<script::Empty>,
@@ -73,6 +80,14 @@ impl Discovery for DiscoveryServer {
         Ok(TonicResponse::new(Box::pin(
             stream::once(future::ready(Ok(init))).chain(sub_stream),
         )))
+    }
+
+    #[cfg(not(feature = "batman"))]
+    async fn subscribe_events(
+        &self,
+        _request: TonicRequest<script::Empty>,
+    ) -> TonicResult<Self::SubscribeEventsStream> {
+        return Err(Status::unavailable("batman feature is not enabled"));
     }
 
     async fn get_own_id(&self, _request: TonicRequest<script::Empty>) -> TonicResult<script::Peer> {

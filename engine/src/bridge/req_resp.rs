@@ -1,5 +1,7 @@
-use futures::TryStreamExt as _;
+use drop_stream::DropStream;
+use futures::StreamExt as _;
 use regex::Regex;
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::p2p::{
@@ -39,42 +41,41 @@ impl From<Response> for script::Response {
         Self {
             response: Some(match response {
                 Response::Data(data) => script::response::Response::Data(data),
-                Response::Error(err) => script::response::Response::Error(err),
+                Response::Error(e) => script::response::Response::Error(e.to_string()),
             }),
         }
     }
 }
 
 impl TryFrom<script::Response> for Response {
-    type Error = tonic::Status;
+    type Error = Status;
 
-    fn try_from(response: script::Response) -> Result<Self, tonic::Status> {
+    fn try_from(response: script::Response) -> Result<Self, Status> {
         Ok(
             match response
                 .response
-                .ok_or(tonic::Status::invalid_argument("Response is missing"))?
+                .ok_or(Status::invalid_argument("Response is missing"))?
             {
                 script::response::Response::Data(data) => Self::Data(data),
-                script::response::Response::Error(err) => Self::Error(err),
+                script::response::Response::Error(e) => Self::Error(e.into()),
             },
         )
     }
 }
 
 impl TryFrom<script::TopicQuery> for TopicQuery {
-    type Error = tonic::Status;
+    type Error = Status;
 
-    fn try_from(query: script::TopicQuery) -> Result<Self, tonic::Status> {
+    fn try_from(query: script::TopicQuery) -> Result<Self, Status> {
         Ok(
             match query
                 .query
-                .ok_or(tonic::Status::invalid_argument("Query is missing"))?
+                .ok_or(Status::invalid_argument("Query is missing"))?
             {
-                script::topic_query::Query::Regex(regex) => {
-                    Self::Regex(Regex::new(&regex).map_err(|e| {
-                        tonic::Status::invalid_argument(format!("Invalid regex: {e}"))
-                    })?)
-                }
+                script::topic_query::Query::Regex(regex) => Self::Regex(
+                    Regex::new(&regex)
+                        .map_err(|e| Status::invalid_argument(format!("Invalid regex: {e}")))?,
+                ),
                 script::topic_query::Query::Topic(topic) => Self::String(topic.topic.into()),
             },
         )
@@ -125,20 +126,29 @@ impl ReqResp for ReqRespServer {
             .map(TryInto::try_into)
             .transpose()?;
 
-        let stream = self
-            .client
+        let client = self.client.clone();
+
+        let (id, receiver) = client
             .req_resp()
             .subscribe(query)
             .await
-            .map_err(|e| Status::internal(format!("{e:?}")))?
-            .map_ok(|req| script::RecvRequest {
+            .map_err(|e| Status::internal(format!("{e:?}")))?;
+
+        let stream = ReceiverStream::new(receiver).map(|req| {
+            Ok(script::RecvRequest {
                 peer_id: req.peer_id.to_string(),
                 msg: req.req.into(),
                 seq: req.id,
             })
-            .map_err(|e| Status::internal(e.to_string()));
+        });
 
-        Ok(TonicResponse::new(Box::pin(stream)))
+        let drop_stream = DropStream::new(stream, move || {
+            tokio::spawn(async move {
+                let _ = client.req_resp().unsubscribe(id).await;
+            });
+        });
+
+        Ok(TonicResponse::new(Box::pin(drop_stream)))
     }
 
     async fn respond(

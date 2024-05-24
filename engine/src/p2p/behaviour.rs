@@ -8,6 +8,9 @@ use libp2p::{
 
 use super::{file_transfer, req_resp, round_trip};
 
+#[cfg(feature = "batman")]
+use super::debug;
+
 #[cfg(feature = "location")]
 use super::location;
 
@@ -26,6 +29,8 @@ pub struct MyBehaviour {
     #[cfg(feature = "location")]
     pub location: location::Behaviour,
     pub file_transfer: libp2p_stream::Behaviour,
+    #[cfg(feature = "batman")]
+    pub debug: debug::Behaviour,
 }
 
 impl MyBehaviour {
@@ -63,6 +68,8 @@ impl MyBehaviour {
             #[cfg(feature = "location")]
             location: location::new(),
             file_transfer: file_transfer::new(),
+            #[cfg(feature = "batman")]
+            debug: debug::new(),
         }
     }
 }

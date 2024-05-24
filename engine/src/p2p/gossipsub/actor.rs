@@ -41,6 +41,8 @@ pub enum CommandError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum EventError {
+    #[error("Publish error: {0}")]
+    Publish(#[from] PublishError),
     #[error("Message without topic: `{0}`")]
     MessageWithoutTopic(TopicHash),
     #[error("Broadcast error: `{0}`")]
@@ -79,7 +81,7 @@ impl SubActor for Actor {
     fn handle_event(
         &mut self,
         event: Self::Event,
-        _behaviour: &mut MyBehaviour,
+        behaviour: &mut MyBehaviour,
     ) -> Result<(), Self::EventError> {
         match event {
             Event::Message {
@@ -87,6 +89,7 @@ impl SubActor for Actor {
                 message_id,
                 message,
             } => {
+                self.garbage_collect(&mut behaviour.gossipsub)?;
                 let topic_hash = message.topic.clone();
                 let received_message = ReceivedMessage {
                     propagation_source,

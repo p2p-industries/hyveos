@@ -1,6 +1,5 @@
-use std::{collections::HashMap, pin::Pin, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
-use futures::{future, Stream, TryStreamExt as _};
 use libp2p::{
     request_response::{
         cbor, Config, Event, InboundRequestId, Message, OutboundRequestId, ProtocolSupport,
@@ -11,14 +10,15 @@ use libp2p::{
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{broadcast, oneshot};
-use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
+use tokio::sync::{mpsc, oneshot};
 
 use super::{
     actor::SubActor,
     client::{RequestError, SpecialClient},
 };
 use crate::impl_from_special_command;
+
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {
@@ -34,9 +34,37 @@ pub struct InboundRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ResponseError {
+    Timeout,
+    TopicNotSubscribed(Option<Arc<str>>),
+    Script(String),
+}
+
+impl From<String> for ResponseError {
+    fn from(e: String) -> Self {
+        ResponseError::Script(e)
+    }
+}
+
+impl Display for ResponseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResponseError::Timeout => write!(f, "Request timed out"),
+            ResponseError::TopicNotSubscribed(Some(topic)) => {
+                write!(f, "Peer is not subscribed to topic '{topic}'")
+            }
+            ResponseError::TopicNotSubscribed(None) => {
+                write!(f, "Peer is not subscribed to the empty topic")
+            }
+            ResponseError::Script(e) => write!(f, "Script error: {e}"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
     Data(Vec<u8>),
-    Error(String),
+    Error(ResponseError),
 }
 
 #[derive(Debug, Clone)]
@@ -63,8 +91,8 @@ pub fn new() -> Behaviour {
     )
 }
 
-pub type InboundRequestStream =
-    Pin<Box<dyn Stream<Item = Result<InboundRequest, BroadcastStreamRecvError>> + Send>>;
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub struct SubscriptionId(u64);
 
 pub enum Command {
     Request {
@@ -74,8 +102,9 @@ pub enum Command {
     },
     Subscribe {
         query: Option<TopicQuery>,
-        sender: oneshot::Sender<InboundRequestStream>,
+        sender: oneshot::Sender<(SubscriptionId, mpsc::Receiver<InboundRequest>)>,
     },
+    Unsubscribe(SubscriptionId),
     Respond {
         id: u64,
         response: Response,
@@ -84,22 +113,12 @@ pub enum Command {
 
 impl_from_special_command!(ReqResp);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Actor {
     response_senders: HashMap<OutboundRequestId, oneshot::Sender<Response>>,
-    request_sender: broadcast::Sender<InboundRequest>,
+    request_subscriptions: HashMap<u64, (Option<TopicQuery>, mpsc::Sender<InboundRequest>)>,
     response_channels: HashMap<u64, ResponseChannel<Response>>,
-}
-
-impl Default for Actor {
-    fn default() -> Self {
-        let (sender, _) = broadcast::channel(10);
-        Self {
-            response_senders: HashMap::new(),
-            request_sender: sender,
-            response_channels: HashMap::new(),
-        }
-    }
+    next_subscription_id: u64,
 }
 
 impl SubActor for Actor {
@@ -123,21 +142,22 @@ impl SubActor for Actor {
                 self.response_senders.insert(id, sender);
             }
             Command::Subscribe { query, sender } => {
-                let receiver = self.request_sender.subscribe();
+                let id = self.next_subscription_id;
+                self.next_subscription_id += 1;
 
-                let stream = BroadcastStream::new(receiver).try_filter(move |req| {
-                    future::ready(match (query.as_ref(), req.req.topic.as_ref()) {
-                        (Some(query), Some(topic)) => query.is_match(topic),
-                        (None, None) => true,
-                        _ => false,
-                    })
-                });
+                let (request_sender, request_receiver) = mpsc::channel(10);
 
-                let _ = sender.send(Box::pin(stream));
+                self.request_subscriptions
+                    .insert(id, (query, request_sender));
+
+                let _ = sender.send((SubscriptionId(id), request_receiver));
+            }
+            Command::Unsubscribe(id) => {
+                self.request_subscriptions.remove(&id.0);
             }
             Command::Respond { id, response } => {
                 if let Some(channel) = self.response_channels.remove(&id) {
-                    _ = behaviour.req_resp.send_response(channel, response);
+                    let _ = behaviour.req_resp.send_response(channel, response);
                 }
             }
         }
@@ -148,7 +168,7 @@ impl SubActor for Actor {
     fn handle_event(
         &mut self,
         event: Self::Event,
-        _behaviour: &mut super::behaviour::MyBehaviour,
+        behaviour: &mut super::behaviour::MyBehaviour,
     ) -> Result<(), Self::EventError> {
         match event {
             Event::Message { peer, message } => match message {
@@ -159,6 +179,7 @@ impl SubActor for Actor {
                 } => {
                     // This is safe because InboundRequestId is a newtype around u64
                     let id = unsafe { std::mem::transmute::<InboundRequestId, u64>(request_id) };
+                    let topic = req.topic.clone();
 
                     let request = InboundRequest {
                         id,
@@ -166,8 +187,25 @@ impl SubActor for Actor {
                         req,
                     };
 
-                    self.response_channels.insert(id, channel);
-                    self.request_sender.send(request).unwrap();
+                    let mut sent_to_subscriber = false;
+                    for (query, sender) in self.request_subscriptions.values() {
+                        let is_match = match (query.as_ref(), topic.as_ref()) {
+                            (Some(query), Some(topic)) => query.is_match(topic),
+                            (None, None) => true,
+                            _ => false,
+                        };
+
+                        if is_match && sender.try_send(request.clone()).is_ok() {
+                            sent_to_subscriber = true;
+                        }
+                    }
+
+                    if sent_to_subscriber {
+                        self.response_channels.insert(id, channel);
+                    } else {
+                        let response = Response::Error(ResponseError::TopicNotSubscribed(topic));
+                        let _ = behaviour.req_resp.send_response(channel, response);
+                    }
                 }
                 Message::Response {
                     request_id,
@@ -211,22 +249,30 @@ impl Client {
             })
             .await
             .map_err(RequestError::Send)?;
-        receiver.await.map_err(RequestError::Oneshot)
+
+        tokio::time::timeout(REQUEST_TIMEOUT, receiver)
+            .await
+            .unwrap_or(Ok(Response::Error(ResponseError::Timeout)))
+            .map_err(RequestError::Oneshot)
     }
 
     pub async fn subscribe(
         &self,
         query: Option<TopicQuery>,
-    ) -> Result<
-        Pin<Box<dyn Stream<Item = Result<InboundRequest, BroadcastStreamRecvError>> + Send>>,
-        RequestError,
-    > {
+    ) -> Result<(SubscriptionId, mpsc::Receiver<InboundRequest>), RequestError> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .send(Command::Subscribe { query, sender })
             .await
             .map_err(RequestError::Send)?;
         receiver.await.map_err(RequestError::Oneshot)
+    }
+
+    pub async fn unsubscribe(&self, id: SubscriptionId) -> Result<(), RequestError> {
+        self.inner
+            .send(Command::Unsubscribe(id))
+            .await
+            .map_err(RequestError::Send)
     }
 
     pub async fn send_response(&self, id: u64, response: Response) -> Result<(), RequestError> {

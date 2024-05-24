@@ -18,6 +18,9 @@ use super::{
 };
 
 #[cfg(feature = "batman")]
+use super::debug;
+
+#[cfg(feature = "batman")]
 use super::neighbours;
 
 #[cfg(feature = "location")]
@@ -66,6 +69,7 @@ pub struct Actor<
     Neighbours,
     ReqResp,
     FileTransfer,
+    Debug,
     EventError,
     CommandError,
 > {
@@ -84,8 +88,54 @@ pub struct Actor<
     neighbours: Neighbours,
     req_resp: ReqResp,
     file_transfer: FileTransfer,
+    #[cfg_attr(not(feature = "batman"), allow(dead_code))]
+    debug: Debug,
     _phantom: PhantomData<EventError>,
     _command: PhantomData<CommandError>,
+}
+
+#[cfg(feature = "batman")]
+pub(crate) trait DebugActor:
+    SubActor<
+        SubCommand = debug::Command,
+        Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
+        CommandError = void::Void,
+        EventError = void::Void,
+    > + Default
+{
+}
+
+#[cfg(feature = "batman")]
+impl<T> DebugActor for T where
+    T: SubActor<
+            SubCommand = debug::Command,
+            Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
+            CommandError = void::Void,
+            EventError = void::Void,
+        > + Default
+{
+}
+
+#[cfg(not(feature = "batman"))]
+pub(crate) trait DebugActor:
+    SubActor<
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = void::Void,
+        SubCommand = void::Void,
+    > + Default
+{
+}
+
+#[cfg(not(feature = "batman"))]
+impl<T> DebugActor for T where
+    T: SubActor<
+            CommandError = void::Void,
+            EventError = void::Void,
+            Event = void::Void,
+            SubCommand = void::Void,
+        > + Default
+{
 }
 
 #[cfg(feature = "batman")]
@@ -218,6 +268,7 @@ impl<
         Neighbours,
         ReqResp,
         FileTransfer,
+        Debug,
         EventError,
         CommandError,
     >
@@ -232,6 +283,7 @@ impl<
         Neighbours,
         ReqResp,
         FileTransfer,
+        Debug,
         EventError,
         CommandError,
     >
@@ -272,6 +324,7 @@ where
             CommandError = void::Void,
             EventError = void::Void,
         > + Default,
+    Debug: DebugActor,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
         + From<<Gossipsub as SubActor>::EventError>
@@ -313,6 +366,7 @@ where
                 neighbours: Default::default(),
                 req_resp: Default::default(),
                 file_transfer: Default::default(),
+                debug: Default::default(),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
@@ -398,6 +452,11 @@ where
                 .file_transfer
                 .handle_event((), self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "batman")]
+            SwarmEvent::Behaviour(MyBehaviourEvent::Debug(event)) => self
+                .debug
+                .handle_event(event, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
             _ => Ok(()),
         }
     }
@@ -436,6 +495,11 @@ where
                 .map_err(|e| void::unreachable(e)),
             Command::FileTransfer(command) => self
                 .file_transfer
+                .handle_command(command, self.swarm.behaviour_mut())
+                .map_err(|e| void::unreachable(e)),
+            #[cfg(feature = "batman")]
+            Command::Debug(command) => self
+                .debug
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
         }
