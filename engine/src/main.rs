@@ -22,13 +22,11 @@ use libp2p::{
     Multiaddr,
 };
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
-
 use tokio::{
     io::{AsyncSeekExt, AsyncWriteExt},
     time::Instant,
 };
-
-use tokio_stream::StreamExt;
+use tokio_stream::StreamExt as _;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
@@ -38,7 +36,7 @@ use crate::{
 };
 
 #[cfg(feature = "batman")]
-use crate::p2p::neighbours::Event as NeighboursEvent;
+use crate::{debug::DebugClient, p2p::neighbours::Event as NeighboursEvent};
 #[cfg(feature = "batman")]
 use rustyline::ExternalPrinter;
 #[cfg(feature = "batman")]
@@ -47,6 +45,8 @@ use std::sync::Arc;
 use tokio::sync::broadcast::Receiver;
 
 mod bridge;
+#[cfg(feature = "batman")]
+mod debug;
 mod p2p;
 mod printer;
 
@@ -292,9 +292,19 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(file_provider.run());
 
-    let BuiltBridge { bridge, .. } = Bridge::build(client.clone(), store_directory)
-        .await
-        .expect("Failed to create bridge");
+    #[cfg(feature = "batman")]
+    let (debug_client, debug_command_sender) = DebugClient::build(client.clone());
+
+    #[cfg(feature = "batman")]
+    tokio::spawn(debug_client.run());
+
+    #[cfg(not(feature = "batman"))]
+    let debug_command_sender = ();
+
+    let BuiltBridge { bridge, .. } =
+        Bridge::build(client.clone(), store_directory, debug_command_sender)
+            .await
+            .expect("Failed to create bridge");
 
     tokio::spawn(bridge.run());
 

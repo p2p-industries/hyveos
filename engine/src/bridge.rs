@@ -1,6 +1,7 @@
 use futures::stream::Stream;
 use std::{io, path::PathBuf, pin::Pin};
-use tokio::net::UnixListener;
+#[cfg_attr(not(feature = "batman"), allow(unused_imports))]
+use tokio::{net::UnixListener, sync::mpsc};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server as TonicServer;
 use ulid::Ulid;
@@ -11,6 +12,13 @@ use self::{
 };
 use crate::p2p::Client;
 
+#[cfg(feature = "batman")]
+use self::debug::DebugServer;
+#[cfg(feature = "batman")]
+use crate::debug::Command as DebugCommand;
+
+#[cfg(feature = "batman")]
+mod debug;
 mod dht;
 mod discovery;
 mod file_transfer;
@@ -26,6 +34,12 @@ type TonicResult<T> = tonic::Result<tonic::Response<T>>;
 
 type ServerStream<T> = Pin<Box<dyn Stream<Item = tonic::Result<T>> + Send>>;
 
+#[cfg(feature = "batman")]
+type DebugCommandSender = mpsc::Sender<DebugCommand>;
+
+#[cfg(not(feature = "batman"))]
+type DebugCommandSender = ();
+
 pub struct BuiltBridge {
     pub bridge: Bridge,
     pub ulid: Ulid,
@@ -37,10 +51,17 @@ pub struct Bridge {
     client: Client,
     socket_stream: UnixListenerStream,
     shared_dir_path: PathBuf,
+    #[cfg(feature = "batman")]
+    debug_command_sender: mpsc::Sender<DebugCommand>,
 }
 
 impl Bridge {
-    pub async fn build(client: Client, mut base_path: PathBuf) -> io::Result<BuiltBridge> {
+    pub async fn build(
+        client: Client,
+        mut base_path: PathBuf,
+        #[cfg_attr(not(feature = "batman"), allow(unused_variables))]
+        debug_command_sender: DebugCommandSender,
+    ) -> io::Result<BuiltBridge> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
 
@@ -49,6 +70,14 @@ impl Bridge {
         let socket_path = base_path.join("bridge.sock");
         let shared_dir_path = base_path.join("shared");
 
+        if socket_path.exists() {
+            tokio::fs::remove_file(&socket_path).await?;
+        }
+
+        if !shared_dir_path.exists() {
+            tokio::fs::create_dir(&shared_dir_path).await?;
+        }
+
         let socket = UnixListener::bind(&socket_path)?;
         let socket_stream = UnixListenerStream::new(socket);
 
@@ -56,6 +85,8 @@ impl Bridge {
             client,
             socket_stream,
             shared_dir_path: shared_dir_path.clone(),
+            #[cfg(feature = "batman")]
+            debug_command_sender,
         };
 
         Ok(BuiltBridge {
@@ -81,6 +112,12 @@ impl Bridge {
             ))
             .add_service(script::gossip_sub_server::GossipSubServer::new(gossipsub))
             .add_service(script::req_resp_server::ReqRespServer::new(req_resp));
+
+        #[cfg(feature = "batman")]
+        let debug = DebugServer::new(self.debug_command_sender);
+
+        #[cfg(feature = "batman")]
+        let router = router.add_service(script::debug_server::DebugServer::new(debug));
 
         router
             .serve_with_incoming(self.socket_stream)
