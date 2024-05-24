@@ -1,0 +1,23 @@
+[package]
+name = "bridge"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+
+[dependencies]
+drop-stream = "0.3.0"
+futures = { workspace = true }
+libp2p = { workspace = true }
+p2p-stack = { workspace = true }
+prost = { workspace = true }
+regex = { workspace = true }
+tokio = { workspace = true, features = ["fs", "sync"] }
+tokio-stream = { workspace = true }
+tonic = { workspace = true }
+ulid = { workspace = true }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[features]
+batman = ["p2p-stack/batman"]

@@ -1,0 +1,28 @@
+[package]
+name = "batman-neighbours-daemon"
+version = "0.1.0"
+edition = "2021"
+authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
+
+[dependencies]
+batman-neighbours-core = { workspace = true }
+clap = { workspace = true }
+futures = { workspace = true }
+tarpc = { workspace = true, features = [
+    "serde-transport",
+    "serde-transport-bincode",
+    "unix",
+] }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "macros",
+    "fs",
+    "net",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+genetlink = "0.2.5"
+netlink-packet-core = { workspace = true }
+netlink-packet-generic = "0.3.3"
+netlink-packet-utils = "0.5.2"
+uzers = "0.12.0"
