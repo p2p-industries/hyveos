@@ -33,7 +33,7 @@ impl GossipSub for GossipSubServer {
         let receiver = self
             .client
             .gossipsub()
-            .get_topic(IdentTopic::new(topic.clone()))
+            .get_topic(IdentTopic::new(format!("script/{topic}")))
             .subscribe()
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
@@ -67,7 +67,7 @@ impl GossipSub for GossipSubServer {
 
         self.client
             .gossipsub()
-            .get_topic(IdentTopic::new(topic))
+            .get_topic(IdentTopic::new(format!("script/{topic}")))
             .publish(data)
             .await
             .map(|message_id| TonicResponse::new(script::GossipSubMessageId { id: message_id.0 }))

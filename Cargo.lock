@@ -864,6 +864,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "drop-stream"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "891f9e96a0033f896499eac852abf4460eb91fc9565896440ded0e9462c78c14"
+dependencies = [
+ "futures-core",
+]
+
+[[package]]
 name = "dtoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -934,10 +943,12 @@ dependencies = [
  "asynchronous-codec",
  "base64-simd",
  "bytes",
+ "cbor4ii",
  "clap",
  "console-subscriber",
  "dashmap",
  "dirs",
+ "drop-stream",
  "futures",
  "ifaddr",
  "indicatif",

@@ -8,6 +8,9 @@ use crate::p2p::command::Command;
 use super::{command::RecvResult, file_transfer, gossipsub, kad, ping, req_resp, round_trip};
 
 #[cfg(feature = "batman")]
+use super::debug;
+
+#[cfg(feature = "batman")]
 use super::neighbours;
 
 #[derive(Clone)]
@@ -64,6 +67,11 @@ impl Client {
     }
 
     pub fn file_transfer(&self) -> file_transfer::Client {
+        self.special()
+    }
+
+    #[cfg(feature = "batman")]
+    pub fn debug(&self) -> debug::Client {
         self.special()
     }
 }

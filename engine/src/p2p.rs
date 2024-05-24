@@ -2,7 +2,6 @@ mod actor;
 mod behaviour;
 mod client;
 mod command;
-
 pub mod file_transfer;
 pub mod gossipsub;
 mod identify;
@@ -10,6 +9,9 @@ pub mod kad;
 pub mod ping;
 pub mod req_resp;
 pub mod round_trip;
+
+#[cfg(feature = "batman")]
+pub mod debug;
 
 #[cfg(feature = "mdns")]
 pub mod mdns;
@@ -57,6 +59,11 @@ impl From<void::Void> for CommandError {
 }
 
 #[cfg(feature = "batman")]
+type DebugActor = debug::Actor;
+#[cfg(not(feature = "batman"))]
+type DebugActor = ();
+
+#[cfg(feature = "batman")]
 type NeighbourActor = neighbours::Actor;
 #[cfg(not(feature = "batman"))]
 type NeighbourActor = ();
@@ -82,6 +89,7 @@ pub type FullActor = Actor<
     NeighbourActor,
     req_resp::Actor,
     file_transfer::Actor,
+    DebugActor,
     EventError,
     CommandError,
 >;

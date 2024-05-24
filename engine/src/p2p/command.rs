@@ -3,6 +3,9 @@ use tokio::sync::{mpsc, oneshot};
 use super::{file_transfer, gossipsub, kad, ping, req_resp, round_trip};
 
 #[cfg(feature = "batman")]
+use super::debug;
+
+#[cfg(feature = "batman")]
 use super::neighbours;
 
 #[cfg(feature = "location")]
@@ -35,4 +38,6 @@ pub enum Command {
     Neighbours(neighbours::Command),
     ReqResp(req_resp::Command),
     FileTransfer(file_transfer::Command),
+    #[cfg(feature = "batman")]
+    Debug(debug::Command),
 }
