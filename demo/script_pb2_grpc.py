@@ -19,10 +19,10 @@ except ImportError:
 
 if _version_not_supported:
     warnings.warn(
-        f'The grpc package installed is at version {GRPC_VERSION},'
+        f'The protocol package installed is at version {GRPC_VERSION},'
         + f' but the generated code in script_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
-        + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
+        + f' Please upgrade your protocol module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
         + f' This warning will become an error in {EXPECTED_ERROR_RELEASE},'
         + f' scheduled for release on {SCHEDULED_RELEASE_DATE}.',
@@ -37,7 +37,7 @@ class ReqRespStub(object):
         """Constructor.
 
         Args:
-            channel: A grpc.Channel.
+            channel: A protocol.Channel.
         """
         self.Send = channel.unary_unary(
                 '/script.ReqResp/Send',
@@ -194,7 +194,7 @@ class DiscoveryStub(object):
         """Constructor.
 
         Args:
-            channel: A grpc.Channel.
+            channel: A protocol.Channel.
         """
         self.Discover = channel.unary_stream(
                 '/script.Discovery/Discover',

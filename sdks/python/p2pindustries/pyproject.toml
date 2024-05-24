@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "p2pindustries"
+version = "0.1.0"
+description = ""
+authors = [
+    "Lukas Altun <laltun@student.ethz.ch>",
+    "Linus Meierhoefer <linusmeierhoefer@protonmail.com>",
+    "Hannes <55623006+umgefahren@users.noreply.github.com>",
+    "Josef Zoller <josef@walterzollerpiano.com>",
+]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+grpcio = "^1.64.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.5"
+grpcio-tools = "^1.64.0"
+
+[tool.ruff]
+exclude = ['protocol']
+
+indent-width = 4
+target-version = 'py310'
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+line-ending = 'auto'
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
