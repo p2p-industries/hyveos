@@ -57,7 +57,10 @@ class RequestResponseService:
         return response
 
     async def receive(
-        self, query: str = None, haveTopicQuery: bool = False, haveRegex: bool = False
+        self,
+        query: str = None,
+        have_topic_query: bool = False,
+        have_regex: bool = False,
     ) -> ManagedStream[RecvRequest]:
         """
         Receive requests from peers that either have no topic or have a topic that has been subscribed to
@@ -66,9 +69,9 @@ class RequestResponseService:
         ----------
         query : str, optional
             Either a topic subscribed to or a regex that describes topics if this argument is specified (default: None)
-        haveTopicQuery : bool
+        have_topic_query : bool
             Receive from a topic described by the query, is set in accordance with `query` (default: False)
-        haveRegex : bool
+        have_regex : bool
             Query is specified as a regex, not a single `topic` string (default: False)
 
         Returns
@@ -77,15 +80,15 @@ class RequestResponseService:
             Iterator to handle the stream of RecvRequests
         """
 
-        assert (query is None and haveTopicQuery is False and haveRegex is None) or (
-            query is not None and haveTopicQuery is True
+        assert (query is None and have_topic_query is False and have_regex is None) or (
+            query is not None and have_topic_query is True
         ), 'having a topicQuery and providing a query have to match'
 
         optional_topic_query = OptionalTopicQuery()
 
-        if haveTopicQuery:
+        if have_topic_query:
             topic_query = TopicQuery()
-            if not haveRegex:
+            if not have_regex:
                 topic_struct = Topic(query)
                 topic_query.topic = topic_struct
             else:
