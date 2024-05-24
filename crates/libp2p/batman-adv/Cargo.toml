@@ -16,7 +16,7 @@ libp2p = { workspace = true, features = ["serde"] }
 macaddress = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
-socket2 = "0.5.6"
+socket2 = "0.5.7"
 tarpc = { workspace = true, features = [
     "serde-transport",
     "serde-transport-bincode",
