@@ -138,14 +138,6 @@ message FilePath {
   required string path = 1;
 }
 
-// A file with an ID
-message File {
-  required FilePath path = 1;
-  // This is not the cid of the file.
-  // The cid will be created in the stack by combining this id with the file content hash
-  required ID id = 2;
-}
-
 // The cid of a file
 message CID {
   required bytes hash = 1;
@@ -198,7 +190,7 @@ service DHT {
 
 service FileTransfer {
   // Publish a file in the stack and get the cid of the file
-  rpc PublishFile(File) returns (CID) {}
+  rpc PublishFile(FilePath) returns (CID) {}
 
   // Request a file with a cid from the stack
   rpc GetFile(CID) returns (FilePath) {}

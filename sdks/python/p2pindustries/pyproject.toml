@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "p2pindustries"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+grpcio = "^1.64.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.5"
+grpcio-tools = "^1.64.0"
+
+[tool.ruff]
+exclude = [
+  'grpc'
+]
+
+indent-width = 4
+target-version = 'py310'
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+line-ending = 'auto'
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
