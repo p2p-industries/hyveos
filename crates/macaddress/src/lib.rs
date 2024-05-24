@@ -3,6 +3,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use core::{fmt::Display, net::Ipv6Addr, str::FromStr};
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -257,9 +258,10 @@ impl From<Ipv6Addr> for MacAddress {
 mod tests {
     extern crate alloc;
 
-    use super::*;
     use alloc::string::ToString;
     use core::net::Ipv6Addr;
+
+    use super::*;
 
     #[test]
     fn test_eui48_from_str() {

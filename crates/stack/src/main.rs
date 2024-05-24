@@ -1,6 +1,8 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
+#[cfg(feature = "batman")]
+use std::sync::Arc;
 use std::{
     env::{args, temp_dir},
     fmt::Write as _,
@@ -9,8 +11,10 @@ use std::{
 };
 
 use base64_simd::{Out, URL_SAFE};
+use bridge::Bridge;
 use clap::Parser;
 use dirs::data_local_dir;
+use futures::stream::TryStreamExt as _;
 use libp2p::{
     gossipsub::IdentTopic,
     identity::Keypair,
@@ -21,33 +25,22 @@ use libp2p::{
     multiaddr::Protocol,
     Multiaddr,
 };
+use p2p_stack::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor};
+#[cfg(feature = "batman")]
+use p2p_stack::{DebugClient, NeighbourEvent};
+#[cfg(feature = "batman")]
+use rustyline::ExternalPrinter;
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
+#[cfg(feature = "batman")]
+use tokio::sync::broadcast::Receiver;
 use tokio::{
     io::{AsyncSeekExt, AsyncWriteExt},
     time::Instant,
 };
-use tokio_stream::StreamExt as _;
 use tracing_subscriber::EnvFilter;
 
-use crate::{
-    bridge::Bridge,
-    p2p::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor},
-    printer::Printer,
-};
+use crate::printer::Printer;
 
-#[cfg(feature = "batman")]
-use crate::{debug::DebugClient, p2p::neighbours::Event as NeighboursEvent};
-#[cfg(feature = "batman")]
-use rustyline::ExternalPrinter;
-#[cfg(feature = "batman")]
-use std::sync::Arc;
-#[cfg(feature = "batman")]
-use tokio::sync::broadcast::Receiver;
-
-mod bridge;
-#[cfg(feature = "batman")]
-mod debug;
-mod p2p;
 mod printer;
 
 const APP_NAME: &str = "p2p-industries-engine";
@@ -399,7 +392,7 @@ async fn main() -> anyhow::Result<()> {
                                 .get_record(RecordKey::new(&key))
                                 .await
                                 .expect("Failed to issue command")
-                                .collect()
+                                .try_collect()
                                 .await;
                             println!("Get Result: {res:?}");
                         }
@@ -408,7 +401,7 @@ async fn main() -> anyhow::Result<()> {
                                 .bootstrap()
                                 .await
                                 .expect("Failed to issue command")
-                                .collect()
+                                .try_collect()
                                 .await;
                             println!("Bootstrap Result: {res:?}");
                         }
@@ -421,7 +414,7 @@ async fn main() -> anyhow::Result<()> {
                                 .get_providers(RecordKey::new(&key))
                                 .await
                                 .unwrap()
-                                .collect()
+                                .try_collect()
                                 .await;
                             println!("Providers Result: {res:?}");
                         }
@@ -629,7 +622,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                         ["FILE", "LIST"] => match file_transfer.list().await {
                             Ok(files) => {
-                                let all_files = files.collect::<Result<Vec<_>, _>>().await;
+                                let all_files = files.try_collect::<Vec<_>>().await;
                                 match all_files {
                                     Ok(files) => {
                                         if files.is_empty() {
@@ -743,12 +736,12 @@ async fn main() -> anyhow::Result<()> {
 
 #[cfg(feature = "batman")]
 async fn neighbours_task(
-    mut sub: Receiver<Arc<NeighboursEvent>>,
+    mut sub: Receiver<Arc<NeighbourEvent>>,
     mut printer: Printer<impl ExternalPrinter>,
 ) {
     while let Ok(event) = sub.recv().await {
         match event.as_ref() {
-            NeighboursEvent::ResolvedNeighbour(neighbour) => {
+            NeighbourEvent::ResolvedNeighbour(neighbour) => {
                 writeln!(
                     printer,
                     "Resolved neighbour {}: {}",
@@ -756,7 +749,7 @@ async fn neighbours_task(
                 )
                 .expect("Failed to print");
             }
-            NeighboursEvent::LostNeighbour(neighbour) => {
+            NeighbourEvent::LostNeighbour(neighbour) => {
                 writeln!(
                     printer,
                     "Lost neighbour {}: {}",

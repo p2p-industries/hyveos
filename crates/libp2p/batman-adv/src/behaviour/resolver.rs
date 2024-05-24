@@ -1,6 +1,3 @@
-mod packet;
-mod socket;
-
 use std::{
     collections::VecDeque,
     future::Future,
@@ -23,12 +20,14 @@ use tokio::{
 };
 use tokio_util::sync::PollSender;
 
-use crate::{Config, ResolvedNeighbour};
-
 use self::{
     packet::{Packet, Request, Response},
     socket::AsyncSocket as _,
 };
+use crate::{Config, ResolvedNeighbour};
+
+mod packet;
+mod socket;
 
 const DISCOVERED_CHANNEL_BUFFER: usize = 2;
 

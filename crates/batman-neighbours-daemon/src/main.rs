@@ -1,8 +1,5 @@
 #![warn(clippy::expect_used, clippy::unwrap_used, clippy::pedantic)]
 
-#[cfg(target_os = "linux")]
-mod batman;
-
 use std::{
     fs::Permissions,
     io,
@@ -29,6 +26,9 @@ use tarpc::{
     tokio_serde::formats::Bincode,
 };
 use tokio::sync::Mutex;
+
+#[cfg(target_os = "linux")]
+mod batman;
 
 #[derive(Parser)]
 struct Args {

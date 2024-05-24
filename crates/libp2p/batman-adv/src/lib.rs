@@ -1,8 +1,6 @@
 #![warn(clippy::expect_used, clippy::unwrap_used, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions, clippy::must_use_candidate)]
 
-mod behaviour;
-
 use std::{sync::Arc, time::Duration};
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
@@ -12,6 +10,8 @@ use macaddress::MacAddress;
 use thiserror::Error;
 
 pub use crate::behaviour::{store::ReadOnlyNeighbourStore, Behaviour, Event};
+
+mod behaviour;
 
 #[derive(Debug, Clone)]
 pub struct Config {

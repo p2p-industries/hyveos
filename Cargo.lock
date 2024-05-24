@@ -429,6 +429,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bridge"
+version = "0.1.0"
+dependencies = [
+ "drop-stream",
+ "futures",
+ "libp2p",
+ "p2p-stack",
+ "prost",
+ "regex",
+ "tokio",
+ "tokio-stream",
+ "tonic 0.11.0",
+ "tonic-build",
+ "ulid",
+]
+
+[[package]]
 name = "bs58"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2849,6 +2866,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "p2p-stack"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-once-cell",
+ "asynchronous-codec",
+ "base64-simd",
+ "bytes",
+ "cbor4ii",
+ "dashmap",
+ "futures",
+ "indicatif",
+ "libp2p",
+ "libp2p-batman-adv",
+ "libp2p-quic 0.10.2 (git+ssh://git@github.com/p2p-industries/libp2p-quic.git?rev=a977b79242091a338e7ccc411f5878b8c5fccce6)",
+ "libp2p-stream",
+ "pin-project",
+ "regex",
+ "serde",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+ "ulid",
+ "void",
+]
+
+[[package]]
 name = "parking"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3664,43 +3711,25 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arboard",
- "async-once-cell",
- "asynchronous-codec",
  "base64-simd",
- "bytes",
- "cbor4ii",
+ "bridge",
  "clap",
  "console-subscriber",
- "dashmap",
  "dirs",
- "drop-stream",
  "futures",
  "ifaddr",
  "indicatif",
  "libp2p",
- "libp2p-batman-adv",
- "libp2p-quic 0.10.2 (git+ssh://git@github.com/p2p-industries/libp2p-quic.git?rev=a977b79242091a338e7ccc411f5878b8c5fccce6)",
- "libp2p-stream",
  "macaddress",
  "netdev",
+ "p2p-stack",
  "patricia_tree",
- "pin-project",
- "prost",
  "rand",
- "regex",
  "rustyline",
- "serde",
- "sha2",
- "thiserror",
  "tokio",
- "tokio-stream",
- "tokio-util",
- "tonic 0.11.0",
- "tonic-build",
  "tracing",
  "tracing-subscriber",
  "ulid",
- "void",
 ]
 
 [[package]]

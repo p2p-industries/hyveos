@@ -1,7 +1,3 @@
-mod if_watcher;
-mod resolver;
-pub mod store;
-
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     future::Future as _,
@@ -38,13 +34,16 @@ use tokio::{
 };
 use tokio_stream::wrappers::WatchStream;
 
-use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeighbour};
-
 use self::{
     if_watcher::{IfEvent, IfWatcher},
     resolver::NeighbourResolver,
     store::{NeighbourStore, ReadOnlyNeighbourStore},
 };
+use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeighbour};
+
+mod if_watcher;
+mod resolver;
+pub mod store;
 
 const DISCOVERED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;
 const RESOLVED_NEIGHBOUR_CHANNEL_BUFFER: usize = 1;

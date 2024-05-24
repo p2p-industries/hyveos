@@ -6,6 +6,6 @@ authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
 
 [dependencies]
 macaddress = { workspace = true }
+serde = { workspace = true }
 tarpc = { workspace = true }
 thiserror = { workspace = true }
-serde = { workspace = true }
