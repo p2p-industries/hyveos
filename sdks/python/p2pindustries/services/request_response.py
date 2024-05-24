@@ -116,4 +116,4 @@ class RequestResponseService:
             response.data = send_data
 
         send_response = script_pb2.Message(seq, response)
-        self.stub.Respond(send_response)
+        await self.stub.Respond(send_response)
