@@ -55,7 +55,7 @@ async def run() -> None:
     request_queue = asyncio.Queue()
 
     socket_path = "/home/pi/p2p-bridge.sock"
-    async with grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('grpc.default_authority', 'localhost'),)) as channel:
+    async with grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('protocol.default_authority', 'localhost'),)) as channel:
         stubDiscovery = script_pb2_grpc.DiscoveryStub(channel)
         stubReqResp = script_pb2_grpc.ReqRespStub(channel)
 

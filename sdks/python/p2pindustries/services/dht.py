@@ -1,26 +1,14 @@
-from ..grpc.script_pb2_grpc import DHTStub
-from ..grpc.script_pb2 import DHTPutRecord, DHTKey, Topic
+from ..protocol.script_pb2_grpc import DHTStub
+from ..protocol.script_pb2 import DHTPutRecord, DHTKey, Topic
+from stream import ManagedStream
+from util import enc
 
-def enc(value: str | bytes):
-    if type(value) is str:
-        return value.encode('UTF-8')
-
-    return value
-
-class DHTProviderStream:
-    def __init__(self, stream):
-        self.stream = stream
-
-    def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.stream.cancel()
-
-    def __anext__(self):
-        pass
 
 class DHTService:
     """
     Exposes the distributed hash table present in the p2p network
     """
+
     def __init__(self, conn):
         self.stub = DHTStub(conn)
 
@@ -28,11 +16,12 @@ class DHTService:
         """
         Puts a record in the DHT table under a specific topic
         """
-        await self.stub.PutRecord(DHTPutRecord(key=DHTKey(topic=Topic(topic), key=enc(key)),
-                                               value=enc(value)))
+        await self.stub.PutRecord(
+            DHTPutRecord(key=DHTKey(topic=Topic(topic), key=enc(key)), value=enc(value))
+        )
 
     async def get_record(self, topic: str, key: str | bytes):
-        """"
+        """ "
         Retrieved a record in the DHT table under a specific topic
         """
         record = await self.stub.GetRecord(DHTKey(topic=Topic(topic), key=enc(key)))
@@ -49,4 +38,4 @@ class DHTService:
         Returns an asynchronous iterator representing the providers of a record under a specific topic
         """
         stream = self.stub.GetProviders(DHTKey(topic=Topic(topic), key=enc(key)))
-
+        return ManagedStream(stream)
