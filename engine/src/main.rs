@@ -1,9 +1,16 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
-use std::{env::args, fmt::Write as _};
+use std::{
+    env::{args, temp_dir},
+    fmt::Write as _,
+    io,
+    path::PathBuf,
+};
 
+use base64_simd::{Out, URL_SAFE};
 use clap::Parser;
+use dirs::data_local_dir;
 use libp2p::{
     gossipsub::IdentTopic,
     identity::Keypair,
@@ -16,14 +23,17 @@ use libp2p::{
 };
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 
-use tokio::time::Instant;
+use tokio::{
+    io::{AsyncSeekExt, AsyncWriteExt},
+    time::Instant,
+};
 
 use tokio_stream::StreamExt;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
     bridge::Bridge,
-    p2p::{gossipsub::ReceivedMessage, FullActor},
+    p2p::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor},
     printer::Printer,
 };
 
@@ -40,10 +50,22 @@ mod bridge;
 mod p2p;
 mod printer;
 
+const APP_NAME: &str = "p2p-industries-engine";
+
+fn default_store_directory() -> PathBuf {
+    data_local_dir().unwrap_or_else(temp_dir).join(APP_NAME)
+}
+
 #[derive(Debug, Parser)]
 pub struct Opts {
     #[clap(short, long, value_delimiter = ',')]
     pub listen_addrs: Option<Vec<ifaddr::IfAddr>>,
+    #[clap(short, long, default_value_os_t = default_store_directory())]
+    pub store_directory: PathBuf,
+    #[clap(short, long)]
+    pub random_directory: bool,
+    #[clap(short, long)]
+    pub clean: bool,
 }
 
 #[derive(rustyline::Completer, rustyline::Helper, rustyline::Validator, rustyline::Highlighter)]
@@ -144,6 +166,16 @@ fn diy_hints() -> DiyHinter {
             CommandHint::new("NEIGH LIST UNRESOLVED", "NEIGH LIST UNRESOLVED"),
         );
     }
+    tree.insert("FILE HELP", CommandHint::new("FILE HELP", "FILE HELP"));
+    tree.insert("FILE LIST", CommandHint::new("FILE LIST", "FILE LIST"));
+    tree.insert(
+        "FILE IMPORT path",
+        CommandHint::new("FILE IMPORT path", "FILE IMPORT"),
+    );
+    tree.insert(
+        "FILE GET ulid hash path",
+        CommandHint::new("FILE GET ulid hash path", "FILE GET"),
+    );
     DiyHinter { tree }
 }
 
@@ -181,7 +213,60 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let Opts { listen_addrs } = Opts::parse();
+    #[cfg(feature = "console-subscriber")]
+    console_subscriber::init();
+
+    let Opts {
+        listen_addrs,
+        store_directory,
+        random_directory,
+        clean,
+    } = Opts::parse();
+
+    let store_directory = if random_directory {
+        store_directory.join(ulid::Ulid::new().to_string())
+    } else {
+        store_directory
+    };
+
+    if clean {
+        let number_of_cleans: usize = store_directory
+            .read_dir()
+            .expect("Failed to read directory")
+            .map(|e| {
+                let entry = e?;
+                if entry.file_type()?.is_dir() {
+                    let m = entry
+                        .path()
+                        .file_name()
+                        .map(|e| e.to_string_lossy().to_string())
+                        .unwrap();
+                    let m = ulid::Ulid::from_string(&m)
+                        .map(|_| {
+                            std::fs::remove_dir_all(entry.path())?;
+                            Ok::<_, std::io::Error>(1)
+                        })
+                        .unwrap_or(Ok(0usize))?;
+                    return Ok(m);
+                } else if entry.file_type()?.is_file() {
+                    std::fs::remove_file(entry.path())?;
+                    return Ok(1);
+                }
+
+                Ok::<usize, io::Error>(0)
+            })
+            .collect::<std::io::Result<Vec<usize>>>()
+            .expect("Failed to clean up")
+            .into_iter()
+            .sum();
+        println!("Cleaned up {number_of_cleans} directories and files");
+    }
+
+    println!("Store directory: {store_directory:?}");
+
+    if !store_directory.exists() {
+        std::fs::create_dir_all(&store_directory)?;
+    }
 
     let listen_addrs: Vec<_> = listen_addrs.map_or_else(fallback_listen_addrs, |e| {
         e.into_iter().map(Multiaddr::from).collect()
@@ -197,6 +282,16 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move {
         Box::pin(actor.drive()).await;
+    });
+
+    let file_provider = client
+        .file_transfer()
+        .create_provider(store_directory)
+        .await
+        .expect("Failed to create file provider");
+
+    tokio::spawn(async move {
+        file_provider.run().await;
     });
 
     let bridge = Bridge::new(client.clone());
@@ -498,6 +593,122 @@ async fn main() -> anyhow::Result<()> {
                             }
                         }
                     }
+                } else if line.to_uppercase().starts_with("FILE") {
+                    let file_transfer = client.file_transfer();
+                    let split = line
+                        .split_whitespace()
+                        .enumerate()
+                        .map(|(idx, e)| {
+                            if idx <= 1 {
+                                e.to_uppercase()
+                            } else {
+                                e.to_string()
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
+
+                    match &inner_split[..] {
+                        ["FILE", "HELP"] => {
+                            help_message(&[
+                                ("FILE HELP", "Show this help"),
+                                ("FILE LIST", "List files"),
+                                ("FILE IMPORT path", "Import a file"),
+                                ("FILE GET ulid hash path", "Get a file"),
+                            ]);
+                        }
+                        ["FILE", "LIST"] => match file_transfer.list().await {
+                            Ok(files) => {
+                                let all_files = files.collect::<Result<Vec<_>, _>>().await;
+                                match all_files {
+                                    Ok(files) => {
+                                        if files.is_empty() {
+                                            println!("No files");
+                                        } else {
+                                            println!("Files:");
+                                            for Cid { hash, id } in files {
+                                                let hash_base =
+                                                    URL_SAFE.encode_to_string(&hash[..]);
+                                                println!("-  {id}: {hash_base}");
+                                            }
+                                        }
+                                    }
+                                    Err(err) => {
+                                        println!("Failed to list files: {err:?}");
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                println!("Failed to list files: {e:?}");
+                            }
+                        },
+                        ["FILE", "IMPORT", path] => {
+                            if let Ok(path) = path.parse::<PathBuf>() {
+                                match file_transfer
+                                    .import_new_file(
+                                        path.as_path().canonicalize().unwrap().as_path(),
+                                    )
+                                    .await
+                                {
+                                    Err(e) => {
+                                        println!("Failed to import file: {e:?}");
+                                    }
+                                    Ok(Cid { id, hash }) => {
+                                        let hash_base = URL_SAFE.encode_to_string(&hash[..]);
+                                        println!("Imported file with CID {id}: {hash_base}");
+                                        #[cfg(feature = "clipboard")]
+                                        {
+                                            arboard::Clipboard::new()
+                                                .expect("Failed to create clipboard")
+                                                .set_text(format!("{id} {hash_base}"))
+                                                .expect("Failed to set clipboard");
+                                        }
+                                    }
+                                }
+                            } else {
+                                println!("Invalid path");
+                            }
+                        }
+                        ["FILE", "GET", id, hash, path] => {
+                            let cid_from_parts = || {
+                                let id = id.parse().ok()?;
+                                let mut hash_bytes = [0u8; 32];
+                                let out = Out::from_slice(&mut hash_bytes[..]);
+                                let hash_out = URL_SAFE.decode(hash.as_bytes(), out).ok()?;
+                                if hash_out.len() == 32 {
+                                    Some(Cid {
+                                        id,
+                                        hash: hash_bytes,
+                                    })
+                                } else {
+                                    None
+                                }
+                            };
+                            if let Some(cid) = cid_from_parts() {
+                                match file_transfer.get_cid(cid).await {
+                                    Ok(cid_path) => {
+                                        let mut new_file = tokio::fs::File::create(path)
+                                            .await
+                                            .expect("Failed to create file");
+                                        new_file.flush().await?;
+                                        let mut file = tokio::fs::File::open(cid_path).await?;
+                                        file.seek(std::io::SeekFrom::Start(0)).await.unwrap();
+                                        tokio::io::copy(&mut file, &mut new_file)
+                                            .await
+                                            .expect("Failed to copy file");
+                                    }
+                                    Err(e) => {
+                                        println!("Failed to get file: {e:?}");
+                                    }
+                                }
+                            } else {
+                                println!("Invalid CID");
+                            }
+                        }
+                        _ => {
+                            println!("Invalid command");
+                        }
+                    }
                 } else {
                     println!("Invalid command");
                 }
@@ -527,7 +738,7 @@ async fn neighbours_task(
 ) {
     while let Ok(event) = sub.recv().await {
         match event.as_ref() {
-            NeighboursEvent::ResolvedNeighbour { neighbour, .. } => {
+            NeighboursEvent::ResolvedNeighbour(neighbour) => {
                 writeln!(
                     printer,
                     "Resolved neighbour {}: {}",
@@ -535,7 +746,7 @@ async fn neighbours_task(
                 )
                 .expect("Failed to print");
             }
-            NeighboursEvent::LostNeighbour { neighbour, .. } => {
+            NeighboursEvent::LostNeighbour(neighbour) => {
                 writeln!(
                     printer,
                     "Lost neighbour {}: {}",

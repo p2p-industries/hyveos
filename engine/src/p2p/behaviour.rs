@@ -6,7 +6,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
 };
 
-use super::{req_resp, round_trip};
+use super::{file_transfer, req_resp, round_trip};
 
 #[cfg(feature = "location")]
 use super::location;
@@ -25,6 +25,7 @@ pub struct MyBehaviour {
     pub round_trip: round_trip::Behaviour,
     #[cfg(feature = "location")]
     pub location: location::Behaviour,
+    pub file_transfer: libp2p_stream::Behaviour,
 }
 
 impl MyBehaviour {
@@ -42,7 +43,7 @@ impl MyBehaviour {
             #[cfg(feature = "mdns")]
             mdns: libp2p::mdns::tokio::Behaviour::new(
                 libp2p::mdns::Config {
-                    enable_ipv6: true,
+                    // enable_ipv6: true,
                     ..Default::default()
                 },
                 peer_id,
@@ -61,6 +62,7 @@ impl MyBehaviour {
             round_trip: round_trip::new(),
             #[cfg(feature = "location")]
             location: location::new(),
+            file_transfer: file_transfer::new(),
         }
     }
 }
