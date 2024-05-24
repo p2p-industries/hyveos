@@ -181,5 +181,5 @@ testing = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "importlib-metad
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.11"
-content-hash = "16d8f247060dedbdd5af2ba430c5426283d01a9d92ebf8771fd7fbe434f500c5"
+python-versions = "^3.10"
+content-hash = "7c073f6db95cb10e1ba19ecc52642d8727aa73001e9c37cb9a34ed1d2d43ba20"
