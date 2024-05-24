@@ -1,7 +1,17 @@
-import protocol.script_pb2 as script_pb2
-import protocol.script_pb2_grpc as script_pb2_grpc
-
+from ..protocol.script_pb2_grpc import ReqRespStub
+from ..protocol.script_pb2 import (
+    Response,
+    OptionalTopic,
+    OptionalTopicQuery,
+    TopicQuery,
+    Topic,
+    Message,
+    SendRequest,
+    RecvRequest,
+    SendResponse,
+)
 from stream import ManagedStream
+from util import enc
 
 
 class RequestResponseService:
@@ -10,11 +20,11 @@ class RequestResponseService:
     """
 
     def __init__(self, conn):
-        self.stub = script_pb2_grpc.ReqRespStub(conn)
+        self.stub = ReqRespStub(conn)
 
     async def send_request(
         self, peer_id: str, data: str | bytes, topic: str = None
-    ) -> script_pb2.Response:
+    ) -> Response:
         """
         Send a request with an optional topic to a peer and await a response
 
@@ -29,20 +39,18 @@ class RequestResponseService:
 
         Returns
         -------
-        response : script_pb2.Response
+        response : Response
             Reponse from Peer `peer_id` to the sent request, awaited
         """
 
-        optional_topic = script_pb2.OptionalTopic()
+        optional_topic = OptionalTopic()
         if topic is not None:
-            optional_topic.topic = script_pb2.Topic(topic)
+            optional_topic.topic = Topic(topic)
 
-        send_data = data
-        if isinstance(data) == str:
-            send_data = data.encode('utf-8')
+        send_data = enc(data)
 
-        message = script_pb2.Message(send_data, optional_topic)
-        send_request = script_pb2.SendRequest(peer_id, message)
+        message = Message(send_data, optional_topic)
+        send_request = SendRequest(peer_id, message)
 
         response = await self.stub.Send(send_request)
 
@@ -50,7 +58,7 @@ class RequestResponseService:
 
     async def receive(
         self, query: str = None, haveTopicQuery: bool = False, haveRegex: bool = False
-    ) -> ManagedStream:
+    ) -> ManagedStream[RecvRequest]:
         """
         Receive requests from peers that either have no topic or have a topic that has been subscribed to
 
@@ -65,7 +73,7 @@ class RequestResponseService:
 
         Returns
         -------
-        stream : ManagedStream
+        stream : ManagedStream[RecvRequest]
             Iterator to handle the stream of RecvRequests
         """
 
@@ -73,12 +81,12 @@ class RequestResponseService:
             query is not None and haveTopicQuery is True
         ), 'having a topicQuery and providing a query have to match'
 
-        optional_topic_query = script_pb2.OptionalTopicQuery()
+        optional_topic_query = OptionalTopicQuery()
 
         if haveTopicQuery:
-            topic_query = script_pb2.TopicQuery()
+            topic_query = TopicQuery()
             if not haveRegex:
-                topic_struct = script_pb2.Topic(query)
+                topic_struct = Topic(query)
                 topic_query.topic = topic_struct
             else:
                 regex = query
@@ -106,14 +114,11 @@ class RequestResponseService:
         None
         """
 
-        response = script_pb2.Reponse()
+        response = Response()
         if error is not None:
             response.error = error
         else:
-            send_data = data
-            if isinstance(data) == str:
-                send_data = data.encode('utf-8')
-            response.data = send_data
+            response.data = enc(data)
 
-        send_response = script_pb2.SendResponse(seq, response)
+        send_response = SendResponse(seq, response)
         await self.stub.Respond(send_response)

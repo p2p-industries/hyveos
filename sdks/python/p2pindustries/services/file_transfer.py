@@ -22,7 +22,7 @@ class FileTransferService:
     def __init__(self, conn):
         self.stub = FileTransferStub(conn)
 
-    async def publish_file(self, file_path: str, file_id: str):
+    async def publish_file(self, file_path: str, file_id: str) -> FileToken:
         """
         Publishes a file to the p2p network
         :param file_path: The local path to the file
@@ -34,7 +34,7 @@ class FileTransferService:
         )
         return FileToken(cid.hash, cid.id)
 
-    async def get_file(self, file_token: FileToken):
+    async def get_file(self, file_token: FileToken) -> FilePath:
         """
         Downloads a file from the p2p network
         :param file_token: The has

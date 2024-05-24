@@ -1,6 +1,5 @@
-import protocol.script_pb2 as script_pb2
-import protocol.script_pb2_grpc as script_pb2_grpc
-
+from ..protocol.script_pb2_grpc import DiscoveryStub
+from ..protocol.script_pb2 import Peer, Empty, NeighbourEvent
 from stream import ManagedStream
 
 
@@ -10,28 +9,28 @@ class DiscoveryService:
     """
 
     def __init__(self, conn):
-        self.stub = script_pb2_grpc.DiscoveryStub(conn)
-        self.empty = script_pb2.Empty()
+        self.stub = DiscoveryStub(conn)
+        self.empty = Empty()
 
-    async def discovery_events(self) -> ManagedStream:
+    async def discovery_events(self) -> ManagedStream[NeighbourEvent]:
         """
         Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
 
         Returns
         -------
-        stream : ManagedStream
+        stream : ManagedStream[NeighbourEvent]
             Iterator to handle the stream of neighbour events
         """
         neighbour_event_stream = self.stub.SubscribeEvents(self.empty)
         return ManagedStream(neighbour_event_stream)
 
-    async def get_own_peer_object(self) -> script_pb2.Peer:
+    async def get_own_peer_object(self) -> Peer:
         """
         Get the Peer object of the current node
 
         Returns
         -------
-        peer : script_pb2.Peer
+        peer : Peer
             Own Peer object
         """
 

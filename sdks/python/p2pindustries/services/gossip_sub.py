@@ -1,7 +1,11 @@
-import protocol.script_pb2 as script_pb2
-import protocol.script_pb2_grpc as script_pb2_grpc
-
+from ..protocol.script_pb2_grpc import GossipSubStub
+from ..protocol.script_pb2 import (
+    GossipSubMessage,
+    GossipSubRecvMessage,
+    Topic,
+)
 from stream import ManagedStream
+from util import enc
 
 
 class GossipSubService:
@@ -10,9 +14,9 @@ class GossipSubService:
     """
 
     def __init__(self, conn):
-        self.stub = script_pb2_grpc.GossipSubStub(conn)
+        self.stub = GossipSubStub(conn)
 
-    async def subscribe(self, topic: str) -> ManagedStream:
+    async def subscribe(self, topic: str) -> ManagedStream[GossipSubRecvMessage]:
         """
         Subscribe to a GossipSub Topic to receive messages published in that topic
 
@@ -23,11 +27,11 @@ class GossipSubService:
 
         Returns
         -------
-        straem : ManagedStream
+        straem : ManagedStream[GossipSubRecvMessage]
             Stream of received messages from a GossipSub topic
         """
 
-        gossip_sub_recv_messages_stream = self.stub.Subscribe(script_pb2.Topic(topic))
+        gossip_sub_recv_messages_stream = self.stub.Subscribe(Topic(topic))
         return ManagedStream(gossip_sub_recv_messages_stream)
 
     async def publish(self, data: str | bytes, topic: str) -> bytes:
@@ -47,13 +51,9 @@ class GossipSubService:
             ID of the sent message
         """
 
-        send_data = data
-        if isinstance(data) == str:
-            send_data = data.encode('utf-8')
+        send_data = enc(data)
 
-        gossip_sub_message = script_pb2.GossipSubMessage(
-            send_data, script_pb2.Topic(topic)
-        )
+        gossip_sub_message = GossipSubMessage(send_data, Topic(topic))
         gossip_sub_message_id = await self.stub.Publish(gossip_sub_message)
 
         return gossip_sub_message_id.id
