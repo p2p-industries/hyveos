@@ -21,7 +21,7 @@ class DHTService:
         )
 
     async def get_record(self, topic: str, key: str | bytes):
-        """ "
+        """
         Retrieved a record in the DHT table under a specific topic
         """
         record = await self.stub.GetRecord(DHTKey(topic=Topic(topic), key=enc(key)))

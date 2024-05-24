@@ -110,7 +110,10 @@ class RequestResponseService:
         if error is not None:
             response.error = error
         else:
-            response.data = data
+            send_data = data
+            if isinstance(data) == str:
+                send_data = data.encode('utf-8')
+            response.data = send_data
 
         send_response = script_pb2.Message(seq, response)
         self.stub.Respond(send_response)
