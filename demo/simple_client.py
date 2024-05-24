@@ -55,7 +55,7 @@ async def run() -> None:
     request_queue = asyncio.Queue()
 
     socket_path = "/home/pi/p2p-bridge.sock"
-    async with grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('grpc.default_authority', 'localhost'),)) as channel:
+    async with grpc.aio.insecure_channel(f'unix:{socket_path}', options=(('protocol.default_authority', 'localhost'),)) as channel:
         stubDiscovery = script_pb2_grpc.DiscoveryStub(channel)
         stubReqResp = script_pb2_grpc.ReqRespStub(channel)
 
@@ -70,7 +70,7 @@ async def run() -> None:
         receive_task = asyncio.create_task(receive_requests(stubReqResp))
 
         # Start request worker
-        request_worker_task = asyncio.create_task(request_worker(request_queue, stubReqResp, discovered_peer_id))
+        request_worker_task = asyncio.create_task(request_worker(request_queue, stubReqResp, discovered_peer_id))        
 
         await receive_task
         await request_worker_task
