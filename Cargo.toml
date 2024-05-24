@@ -1,14 +1,14 @@
 [workspace]
 members = [
-    "batman-neighbours-core",
-    "batman-neighbours-daemon",
-    "libp2p/batman-adv",
-    "engine",
-    "macaddress",
-    "ifaddr",
+    "crates/batman-neighbours-core",
+    "crates/batman-neighbours-daemon",
+    "crates/libp2p/batman-adv",
+    "crates/engine",
+    "crates/macaddress",
+    "crates/ifaddr",
     "sdks/rust",
 ]
-default-members = ["batman-neighbours-daemon", "engine"]
+default-members = ["crates/batman-neighbours-daemon", "crates/engine"]
 resolver = "2"
 
 [workspace.package]
@@ -28,13 +28,13 @@ tracing = { version = "0.1.40" }
 rand = { version = "0.8.5" }
 tarpc = { version = "0.34.0" }
 serde = { version = "1.0.202", features = ["derive", "rc"] }
-batman-neighbours-core = { version = "0.1.0", path = "batman-neighbours-core" }
-batman-neighbours-daemon = { version = "0.1.0", path = "batman-neighbours-daemon" }
+batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
+batman-neighbours-daemon = { version = "0.1.0", path = "crates/batman-neighbours-daemon" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
-engine = { version = "0.1.0", path = "engine" }
-libp2p-batman-adv = { version = "0.1.0", path = "libp2p/batman-adv" }
-ifaddr = { version = "0.1.0", path = "ifaddr" }
-macaddress = { version = "0.1.0", path = "macaddress" }
+engine = { version = "0.1.0", path = "crates/engine" }
+libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
+ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
+macaddress = { version = "0.1.0", path = "crates/macaddress" }
 prost = "0.12"
 tonic = "0.11.0"
 tonic-build = { version = "0.11.0", features = ["prost"] }
