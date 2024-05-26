@@ -179,3 +179,23 @@ jobs:
         run: |
           WORKSPACE_MEMBERS=$(cargo metadata --format-version=1 --no-deps | jq -c '.packages | map(.name)')
           echo "members=${WORKSPACE_MEMBERS}" >> $GITHUB_OUTPUT
+
+  cargo-deny:
+    name: Enforce depency licenses and advisories
+    needs: ensure-lockfile-uptodate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
+
+      - uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12
+        with:
+          tool: cargo-deny@0.14.24
+
+      - name: Run cargo deny
+        run: cargo deny --all-features check advisories bans licenses sources

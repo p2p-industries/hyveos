@@ -3,6 +3,7 @@ name = "macaddress"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
+publish = { workspace = true }
 
 [dependencies]
 serde = { workspace = true, optional = true }

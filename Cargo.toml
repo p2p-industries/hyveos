@@ -15,6 +15,7 @@ resolver = "2"
 
 [workspace.package]
 rust-version = "1.77.0"
+publish = false
 
 [workspace.dependencies]
 anyhow = { version = "1.0.82" }
