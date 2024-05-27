@@ -10,9 +10,11 @@ anyhow = { workspace = true }
 arboard = { version = "3.4.0", optional = true }
 base64-simd = { workspace = true }
 bridge = { workspace = true }
+bytes = { workspace = true, features = ["serde"] }
 clap = { workspace = true }
 console-subscriber = { version = "0.2.0", optional = true }
 dirs = "5.0.1"
+docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
 ifaddr = { workspace = true }
 indicatif = { version = "0.17.8", features = ["tokio", "in_memory"] }
@@ -28,7 +30,9 @@ patricia_tree = "0.8.0"
 p2p-stack = { workspace = true }
 rand = { workspace = true }
 rustyline = { version = "14.0.0", features = ["derive"] }
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 ulid = { workspace = true }

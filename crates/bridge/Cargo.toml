@@ -2,10 +2,11 @@
 name = "bridge"
 version = "0.1.0"
 edition = "2021"
-rust-version.workspace = true
-publish.workspace = true
+rust-version = { workspace = true }
+publish = { workspace = true }
 
 [dependencies]
+const_format = "0.2.32"
 drop-stream = "0.3.0"
 futures = { workspace = true }
 libp2p = { workspace = true }
@@ -14,7 +15,9 @@ prost = { workspace = true }
 regex = { workspace = true }
 tokio = { workspace = true, features = ["fs", "sync"] }
 tokio-stream = { workspace = true }
+tokio-util = { workspace = true }
 tonic = { workspace = true }
+tracing = { workspace = true }
 ulid = { workspace = true }
 
 [build-dependencies]

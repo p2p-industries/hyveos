@@ -5,6 +5,7 @@ pub mod kad;
 pub mod ping;
 pub mod req_resp;
 pub mod round_trip;
+pub mod scripting;
 
 #[cfg(feature = "batman")]
 pub mod debug;

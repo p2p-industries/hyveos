@@ -3,6 +3,7 @@ name = "batman-neighbours-daemon"
 version = "0.1.0"
 edition = "2021"
 authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
+rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]

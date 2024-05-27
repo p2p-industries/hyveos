@@ -139,6 +139,7 @@ impl SubActor for Actor {
                 req,
                 sender,
             } => {
+                tracing::debug!("Sending request to peer {peer_id}");
                 let id = behaviour.req_resp.send_request(&peer_id, req);
                 self.response_senders.insert(id, sender);
             }
@@ -158,6 +159,7 @@ impl SubActor for Actor {
             }
             Command::Respond { id, response } => {
                 if let Some(channel) = self.response_channels.remove(&id) {
+                    tracing::debug!("Responding to request with id {id}");
                     let _ = behaviour.req_resp.send_response(channel, response);
                 }
             }
@@ -181,6 +183,8 @@ impl SubActor for Actor {
                     // This is safe because InboundRequestId is a newtype around u64
                     let id = unsafe { std::mem::transmute::<InboundRequestId, u64>(request_id) };
                     let topic = req.topic.clone();
+
+                    tracing::debug!("Received request with id {id} from peer {peer}");
 
                     let request = InboundRequest {
                         id,
@@ -212,6 +216,8 @@ impl SubActor for Actor {
                     request_id,
                     response,
                 } => {
+                    tracing::debug!("Received response for request with id {request_id}");
+
                     if let Some(sender) = self.response_senders.remove(&request_id) {
                         sender.send(response).unwrap();
                     }

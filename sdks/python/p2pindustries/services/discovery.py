@@ -1,6 +1,6 @@
 from ..protocol.script_pb2_grpc import DiscoveryStub
 from ..protocol.script_pb2 import Peer, Empty, NeighbourEvent
-from stream import ManagedStream
+from .stream import ManagedStream
 
 
 class DiscoveryService:
@@ -12,7 +12,7 @@ class DiscoveryService:
         self.stub = DiscoveryStub(conn)
         self.empty = Empty()
 
-    async def discovery_events(self) -> ManagedStream[NeighbourEvent]:
+    def discovery_events(self) -> ManagedStream[NeighbourEvent]:
         """
         Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
 

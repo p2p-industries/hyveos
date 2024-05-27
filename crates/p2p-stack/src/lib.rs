@@ -17,7 +17,7 @@ mod subactors;
 mod debug_client;
 
 pub mod file_transfer {
-    pub use crate::subactors::file_transfer::Cid;
+    pub use crate::subactors::file_transfer::{Cid, ClientError};
 }
 
 pub mod gossipsub {
@@ -26,6 +26,10 @@ pub mod gossipsub {
 
 pub mod req_resp {
     pub use crate::subactors::req_resp::{Request, Response, TopicQuery};
+}
+
+pub mod scripting {
+    pub use crate::subactors::scripting::ActorToClient;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -92,6 +96,7 @@ pub type FullActor = Actor<
     subactors::identify::Actor,
     NeighbourActor,
     subactors::req_resp::Actor,
+    subactors::scripting::Actor,
     subactors::file_transfer::Actor,
     DebugActor,
     EventError,

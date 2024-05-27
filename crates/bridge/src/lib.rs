@@ -8,6 +8,7 @@ use tokio::net::UnixListener;
 #[cfg(feature = "batman")]
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnixListenerStream;
+use tokio_util::sync::CancellationToken;
 use tonic::transport::Server as TonicServer;
 use ulid::Ulid;
 
@@ -32,18 +33,21 @@ mod script {
     tonic::include_proto!("script");
 }
 
+pub const CONTAINER_SHARED_DIR: &str = "/p2p/shared";
+
 type TonicResult<T> = tonic::Result<tonic::Response<T>>;
 
 type ServerStream<T> = Pin<Box<dyn Stream<Item = tonic::Result<T>> + Send>>;
 
 #[cfg(feature = "batman")]
-type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
+pub type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
 
 #[cfg(not(feature = "batman"))]
-type DebugCommandSender = ();
+pub type DebugCommandSender = ();
 
 pub struct Bridge {
     pub client: BridgeClient,
+    pub cancellation_token: CancellationToken,
     pub ulid: Ulid,
     pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
@@ -53,11 +57,12 @@ impl Bridge {
     pub async fn new(
         client: Client,
         mut base_path: PathBuf,
-        #[cfg_attr(not(feature = "batman"), allow(unused_variables))]
-        debug_command_sender: DebugCommandSender,
+        #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
+
+        tracing::debug!(id=%ulid, "Creating bridge with path {}", base_path.display());
 
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -75,16 +80,22 @@ impl Bridge {
         let socket = UnixListener::bind(&socket_path)?;
         let socket_stream = UnixListenerStream::new(socket);
 
+        let cancellation_token = CancellationToken::new();
+
         let client = BridgeClient {
             client,
-            socket_stream,
+            cancellation_token: cancellation_token.clone(),
+            ulid,
+            base_path,
             shared_dir_path: shared_dir_path.clone(),
+            socket_stream,
             #[cfg(feature = "batman")]
             debug_command_sender,
         };
 
         Ok(Self {
             client,
+            cancellation_token,
             ulid,
             socket_path,
             shared_dir_path,
@@ -94,8 +105,11 @@ impl Bridge {
 
 pub struct BridgeClient {
     client: Client,
-    socket_stream: UnixListenerStream,
+    cancellation_token: CancellationToken,
+    ulid: Ulid,
+    base_path: PathBuf,
     shared_dir_path: PathBuf,
+    socket_stream: UnixListenerStream,
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
 }
@@ -123,9 +137,17 @@ impl BridgeClient {
         #[cfg(feature = "batman")]
         let router = router.add_service(script::debug_server::DebugServer::new(debug));
 
+        tracing::debug!(id=%self.ulid, "Starting bridge");
+
         router
-            .serve_with_incoming(self.socket_stream)
+            .serve_with_incoming_shutdown(self.socket_stream, self.cancellation_token.cancelled())
             .await
             .expect("GRPC server failed");
+
+        tokio::fs::remove_dir_all(self.base_path)
+            .await
+            .expect("Failed to remove bridge directory");
+
+        tracing::debug!(id=%self.ulid, "Bridge stopped");
     }
 }

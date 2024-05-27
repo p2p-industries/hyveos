@@ -1,7 +1,7 @@
 from ..protocol.script_pb2_grpc import DHTStub
 from ..protocol.script_pb2 import DHTPutRecord, DHTKey, Topic, DHTGetRecord, Peer
-from stream import ManagedStream
-from util import enc
+from .stream import ManagedStream
+from .util import enc
 
 
 class DHTService:
@@ -33,7 +33,7 @@ class DHTService:
         """
         await self.stub.Provide(DHTKey(topic=Topic(topic), key=enc(key)))
 
-    async def get_providers(self, topic: str, key: str | bytes) -> ManagedStream[Peer]:
+    def get_providers(self, topic: str, key: str | bytes) -> ManagedStream[Peer]:
         """
         Returns an asynchronous iterator representing the providers of a record under a specific topic
         """

@@ -3,17 +3,11 @@
 
 #[cfg(feature = "batman")]
 use std::sync::Arc;
-use std::{
-    env::{args, temp_dir},
-    fmt::Write as _,
-    io,
-    path::PathBuf,
-};
+use std::{env::temp_dir, fmt::Write as _, io, path::PathBuf};
 
 use base64_simd::{Out, URL_SAFE};
-use bridge::Bridge;
 use clap::Parser;
-use dirs::data_local_dir;
+use dirs::{data_local_dir, runtime_dir};
 use futures::stream::TryStreamExt as _;
 use libp2p::{
     gossipsub::IdentTopic,
@@ -23,13 +17,11 @@ use libp2p::{
         GetRecordOk, RecordKey,
     },
     multiaddr::Protocol,
-    Multiaddr,
+    Multiaddr, PeerId,
 };
 use p2p_stack::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor};
 #[cfg(feature = "batman")]
 use p2p_stack::{DebugClient, NeighbourEvent};
-#[cfg(feature = "batman")]
-use rustyline::ExternalPrinter;
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 #[cfg(feature = "batman")]
 use tokio::sync::broadcast::Receiver;
@@ -39,9 +31,10 @@ use tokio::{
 };
 use tracing_subscriber::EnvFilter;
 
-use crate::printer::Printer;
+use crate::{printer::SharedPrinter, scripting::ScriptingManagerBuilder};
 
 mod printer;
+mod scripting;
 
 const APP_NAME: &str = "p2p-industries-engine";
 
@@ -59,6 +52,8 @@ pub struct Opts {
     pub random_directory: bool,
     #[clap(short, long)]
     pub clean: bool,
+    #[clap(short, long)]
+    pub vim: bool,
 }
 
 #[derive(rustyline::Completer, rustyline::Helper, rustyline::Validator, rustyline::Highlighter)]
@@ -111,18 +106,29 @@ impl Hinter for DiyHinter {
             return None;
         }
 
-        self.tree.iter_prefix(line).find_map(|(_, hint)| {
-            if hint.display.starts_with(line) {
+        let line = line.to_uppercase();
+
+        let line_str = line.as_str();
+
+        let hint = self.tree.iter_prefix(line_str).find_map(|(_, hint)| {
+            if hint.display.starts_with(line_str) {
                 Some(hint.suffix(pos))
             } else {
                 None
             }
-        })
+        });
+
+        hint
     }
 }
 
 fn diy_hints() -> DiyHinter {
     let mut tree = patricia_tree::StringPatriciaMap::new();
+    tree.insert("ME", CommandHint::new("ME", "ME"));
+    tree.insert(
+        "SCRIPT HELP",
+        CommandHint::new("SCRIPT HELP", "SCRIPT HELP"),
+    );
     tree.insert("KAD HELP", CommandHint::new("KAD HELP", "KAD HELP"));
     tree.insert(
         "KAD PUT key value",
@@ -169,6 +175,17 @@ fn diy_hints() -> DiyHinter {
         "FILE GET ulid hash path",
         CommandHint::new("FILE GET ulid hash path", "FILE GET"),
     );
+    tree.insert(
+        "SCRIPT DEPLOY SELF|peer_id image",
+        CommandHint::new("SCRIPT DEPLOY SELF|peer_id image", "SCRIPT DEPLOY"),
+    );
+    tree.insert(
+        "SCRIPT LOCAL DEPLOY SELF|peer_id image",
+        CommandHint::new(
+            "SCRIPT LOCAL DEPLOY SELF|peer_id image",
+            "SCRIPT LOCAL DEPLOY",
+        ),
+    );
     DiyHinter { tree }
 }
 
@@ -202,19 +219,33 @@ fn fallback_listen_addrs() -> Vec<Multiaddr> {
 #[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
-
-    #[cfg(feature = "console-subscriber")]
-    console_subscriber::init();
-
     let Opts {
         listen_addrs,
         store_directory,
         random_directory,
         clean,
+        vim,
     } = Opts::parse();
+
+    let mut builder = rustyline::Config::builder();
+    if vim {
+        builder = builder.edit_mode(rustyline::EditMode::Vi);
+    }
+
+    let h = diy_hints();
+
+    let mut rl: Editor<DiyHinter, DefaultHistory> = Editor::with_config(builder.build())?;
+    rl.set_helper(Some(h));
+
+    let rl_printer = SharedPrinter::from(rl.create_external_printer()?);
+
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(rl_printer.clone())
+        .init();
+
+    #[cfg(feature = "console-subscriber")]
+    console_subscriber::init();
 
     let store_directory = if random_directory {
         store_directory.join(ulid::Ulid::new().to_string())
@@ -291,17 +322,26 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "batman")]
     tokio::spawn(debug_client.run());
 
-    #[cfg(not(feature = "batman"))]
-    let debug_command_sender = ();
-
-    let Bridge {
-        client: bridge_client,
-        ..
-    } = Bridge::new(client.clone(), store_directory, debug_command_sender)
+    let scripting_command_broker = client
+        .scripting()
+        .subscribe()
         .await
-        .expect("Failed to create bridge");
+        .expect("Failed to get command broker")
+        .expect("Failed to get command broker");
 
-    tokio::spawn(bridge_client.run());
+    let runtime_base_path =
+        runtime_dir().unwrap_or_else(|| PathBuf::from("/tmp").join(APP_NAME).join("runtime"));
+
+    let (scripting_manager, scripting_client) = ScriptingManagerBuilder::new(
+        scripting_command_broker,
+        client.clone(),
+        runtime_base_path,
+        #[cfg(feature = "batman")]
+        debug_command_sender,
+    )
+    .with_printer(rl_printer.clone())
+    .build();
+    tokio::spawn(scripting_manager.run());
 
     let gos = client.gossipsub();
 
@@ -335,16 +375,6 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-
-    let mut builder = rustyline::Config::builder();
-    if args().any(|arg| &arg == "--vim" || &arg == "-v") {
-        builder = builder.edit_mode(rustyline::EditMode::Vi);
-    }
-
-    let h = diy_hints();
-
-    let mut rl: Editor<DiyHinter, DefaultHistory> = Editor::with_config(builder.build())?;
-    rl.set_helper(Some(h));
 
     loop {
         let readline = rl.readline(">> ");
@@ -457,8 +487,10 @@ async fn main() -> anyhow::Result<()> {
                                 continue;
                             }
 
-                            let mut printer = Printer::from(rl.create_external_printer()?);
+                            let local_printer = rl_printer.clone();
                             tokio::spawn(async move {
+                                let mut printer = local_printer;
+
                                 loop {
                                     let msg = recv.recv().await.expect("Failed to receive");
                                     let from = msg.from;
@@ -481,8 +513,10 @@ async fn main() -> anyhow::Result<()> {
                             let mut res =
                                 topic_handle.subscribe().await.expect("Failed to subscribe");
 
-                            let mut printer = Printer::from(rl.create_external_printer()?);
+                            let local_printer = rl_printer.clone();
                             tokio::spawn(async move {
+                                let mut printer = local_printer;
+
                                 loop {
                                     match res.recv().await {
                                         Ok(msg) => {
@@ -505,8 +539,10 @@ async fn main() -> anyhow::Result<()> {
                 } else if line.to_uppercase().trim() == "PING" {
                     let ping = client.ping();
                     if let Ok(mut sub) = ping.subscribe().await {
-                        let mut printer = Printer::from(rl.create_external_printer()?);
+                        let local_printer = rl_printer.clone();
                         tokio::spawn(async move {
+                            let mut printer = local_printer;
+
                             while let Ok(event) = sub.recv().await {
                                 let peer = event.peer;
                                 if let Ok(dur) = event.result {
@@ -545,10 +581,7 @@ async fn main() -> anyhow::Result<()> {
                             }
                             ["NEIGH", "SUB"] => {
                                 if let Ok(sub) = neighbours.subscribe().await {
-                                    tokio::spawn(neighbours_task(
-                                        sub,
-                                        Printer::from(rl.create_external_printer()?),
-                                    ));
+                                    tokio::spawn(neighbours_task(sub, rl_printer.clone()));
                                 } else {
                                     println!("Failed to subscribe");
                                 }
@@ -595,6 +628,114 @@ async fn main() -> anyhow::Result<()> {
                                 println!("Invalid command");
                             }
                         }
+                    }
+                } else if line.to_uppercase().starts_with("SCRIPT") {
+                    let split = line
+                        .split_whitespace()
+                        .enumerate()
+                        .map(|(idx, word)| {
+                            if idx == 0 || idx == 1 {
+                                word.to_uppercase()
+                            } else {
+                                word.to_string()
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    let inner_split = split.iter().map(String::as_str).collect::<Vec<_>>();
+                    match &inner_split[..] {
+                        ["SCRIPT", "HELP"] => {
+                            help_message(&[
+                                (
+                                    "SCRIPT DEPLOY SELF|peer_id image ports...",
+                                    "Deploy a docker image to a peer, exposing the specified ports",
+                                ),
+                                (
+                                    "SCRIPT LOCAL DEPLOY SELF|peer_id image ports...",
+                                    "Deploy a local docker image to a peer, exposing the specified ports",
+                                ),
+                            ]);
+                        }
+                        ["SCRIPT", "DEPLOY", self_, image, ports @ ..]
+                            if self_.to_uppercase() == "SELF" =>
+                        {
+                            let ports = ports.iter().map(|e| e.parse().expect("Invalid port"));
+                            match scripting_client
+                                .self_deploy_image(image, false, true, ports)
+                                .await
+                            {
+                                Ok(ulid) => {
+                                    println!("Self-deployed image {image} with ULID {ulid}");
+                                }
+                                Err(e) => {
+                                    println!("Failed to self-deploy image: {e:?}");
+                                }
+                            }
+                        }
+                        ["SCRIPT", "DEPLOY", peer_id, image, ports @ ..] => {
+                            let peer: PeerId = peer_id.parse().expect("Invalid peer ID");
+                            let ports = ports.iter().map(|e| e.parse().expect("Invalid port"));
+                            match scripting_client
+                                .deploy_image(image, false, peer, true, ports)
+                                .await
+                            {
+                                Ok(ulid) => {
+                                    println!(
+                                        "Deployed image {image} to {peer_id} with ULID {ulid}"
+                                    );
+                                }
+                                Err(e) => {
+                                    println!("Failed to deploy image: {e:?}");
+                                }
+                            }
+                        }
+                        ["SCRIPT", "LOCAL", deploy, self_, image, ports @ ..]
+                            if deploy.to_uppercase() == "DEPLOY"
+                                && self_.to_uppercase() == "SELF" =>
+                        {
+                            let ports = ports.iter().map(|e| e.parse().expect("Invalid port"));
+                            match scripting_client
+                                .self_deploy_image(image, true, true, ports)
+                                .await
+                            {
+                                Ok(ulid) => {
+                                    println!("Self-deployed image {image} with ULID {ulid}");
+                                }
+                                Err(e) => {
+                                    println!("Failed to self-deploy image: {e:?}");
+                                }
+                            }
+                        }
+                        ["SCRIPT", "LOCAL", deploy, peer_id, image, ports @ ..]
+                            if deploy.to_uppercase() == "DEPLOY" =>
+                        {
+                            let peer: PeerId = peer_id.parse().expect("Invalid peer ID");
+                            let ports = ports.iter().map(|e| e.parse().expect("Invalid port"));
+                            match scripting_client
+                                .deploy_image(image, true, peer, true, ports)
+                                .await
+                            {
+                                Ok(ulid) => {
+                                    println!(
+                                        "Deployed image {image} to {peer_id} with ULID {ulid}"
+                                    );
+                                }
+                                Err(e) => {
+                                    println!("Failed to deploy image: {e:?}");
+                                }
+                            }
+                        }
+                        _ => {
+                            println!("Invalid command");
+                        }
+                    }
+                } else if line.to_uppercase().trim() == "ME" {
+                    println!("Peer ID: {}", client.peer_id());
+                    #[cfg(feature = "clipboard")]
+                    {
+                        arboard::Clipboard::new()
+                            .expect("Failed to create clipboard")
+                            .set_text(client.peer_id().to_string())
+                            .expect("Failed to set clipboard");
                     }
                 } else if line.to_uppercase().starts_with("FILE") {
                     let file_transfer = client.file_transfer();
@@ -735,10 +876,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 #[cfg(feature = "batman")]
-async fn neighbours_task(
-    mut sub: Receiver<Arc<NeighbourEvent>>,
-    mut printer: Printer<impl ExternalPrinter>,
-) {
+async fn neighbours_task(mut sub: Receiver<Arc<NeighbourEvent>>, mut printer: SharedPrinter) {
     while let Ok(event) = sub.recv().await {
         match event.as_ref() {
             NeighbourEvent::ResolvedNeighbour(neighbour) => {

@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import script_pb2 as script__pb2
+from . import script_pb2 as script__pb2
 
 GRPC_GENERATED_VERSION = '1.64.0'
 GRPC_VERSION = grpc.__version__

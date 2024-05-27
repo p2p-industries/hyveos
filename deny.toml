@@ -96,6 +96,7 @@ allow = [
     "BSL-1.0",
     "MPL-2.0",
     "ISC",
+    "Zlib",
     #"Apache-2.0 WITH LLVM-exception",
 ]
 
@@ -110,8 +111,16 @@ exceptions = [
     # Each entry is the crate and version constraint, and its specific allow
     # list
     #{ allow = ["Zlib"], crate = "adler32" },
-    { allow = ["ISC", "MIT", "OpenSSL"], crate = "ring" },
-    { allow = ["MIT", "Apache-2.0", "Unicode-DFS-2016"], crate = "unicode-ident" }
+    { allow = [
+        "ISC",
+        "MIT",
+        "OpenSSL",
+    ], crate = "ring" },
+    { allow = [
+        "MIT",
+        "Apache-2.0",
+        "Unicode-DFS-2016",
+    ], crate = "unicode-ident" },
 ]
 
 

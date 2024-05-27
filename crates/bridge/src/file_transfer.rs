@@ -1,15 +1,14 @@
 use std::path::{Path, PathBuf};
 
+use const_format::concatcp;
 use p2p_stack::{file_transfer::Cid, Client};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 use ulid::Ulid;
 
 use crate::{
     script::{self, file_transfer_server::FileTransfer},
-    TonicResult,
+    TonicResult, CONTAINER_SHARED_DIR,
 };
-
-const CONTANIER_SHARED_DIR: &str = "/shared/data";
 
 impl<T: AsRef<Path>> From<T> for script::FilePath {
     fn from(path: T) -> Self {
@@ -90,12 +89,20 @@ impl FileTransfer for FileTransferServer {
         &self,
         request: TonicRequest<script::FilePath>,
     ) -> TonicResult<script::Cid> {
+        tracing::debug!("Received publish_file request");
+
         let container_file_path = PathBuf::from(request.into_inner());
 
         let file_path = self.shared_dir_path.join(
             container_file_path
-                .strip_prefix(CONTANIER_SHARED_DIR)
-                .map_err(|_| Status::invalid_argument("File must be in shared directory"))?,
+                .strip_prefix(CONTAINER_SHARED_DIR)
+                .map_err(|_| {
+                    Status::invalid_argument(concatcp!(
+                        "File must be in shared directory (",
+                        CONTAINER_SHARED_DIR,
+                        ")"
+                    ))
+                })?,
         );
 
         self.client
@@ -108,6 +115,8 @@ impl FileTransfer for FileTransferServer {
     }
 
     async fn get_file(&self, request: TonicRequest<script::Cid>) -> TonicResult<script::FilePath> {
+        tracing::debug!("Received get_file request");
+
         let cid = request.into_inner();
 
         let ulid_string = cid.id.ulid.clone();
@@ -123,7 +132,7 @@ impl FileTransfer for FileTransferServer {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let container_file_path = PathBuf::from(CONTANIER_SHARED_DIR).join(ulid_string);
+        let container_file_path = PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string);
 
         Ok(TonicResponse::new(container_file_path.into()))
     }

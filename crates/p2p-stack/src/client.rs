@@ -7,7 +7,7 @@ use tokio::sync::{mpsc, oneshot};
 use crate::subactors::{debug, neighbours};
 use crate::{
     command::{Command, RecvResult},
-    subactors::{file_transfer, gossipsub, kad, ping, req_resp, round_trip},
+    subactors::{file_transfer, gossipsub, kad, ping, req_resp, round_trip, scripting},
 };
 
 #[derive(Clone)]
@@ -60,6 +60,10 @@ impl Client {
     }
 
     pub fn req_resp(&self) -> req_resp::Client {
+        self.special()
+    }
+
+    pub fn scripting(&self) -> scripting::Client {
         self.special()
     }
 

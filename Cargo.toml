@@ -1,16 +1,11 @@
 [workspace]
-members = [
-    "crates/batman-neighbours-core",
+members = ["crates/*", "crates/libp2p/batman-adv", "sdks/rust"]
+exclude = ["crates/libp2p"]
+default-members = [
     "crates/batman-neighbours-daemon",
-    "crates/bridge",
-    "crates/ifaddr",
-    "crates/libp2p/batman-adv",
-    "crates/macaddress",
-    "crates/p2p-stack",
     "crates/stack",
     "sdks/rust",
 ]
-default-members = ["crates/batman-neighbours-daemon", "crates/stack"]
 resolver = "2"
 
 [workspace.package]
@@ -18,14 +13,18 @@ rust-version = "1.77.0"
 publish = false
 
 [workspace.dependencies]
+async-compression = { version = "0.4.10" }
 anyhow = { version = "1.0.82" }
 base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
 batman-neighbours-daemon = { version = "0.1.0", path = "crates/batman-neighbours-daemon" }
 bridge = { version = "0.1.0", path = "crates/bridge" }
+bytes = { version = "1.6.0" }
 clap = { version = "4.5.4", features = ["derive"] }
+docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.30" }
 ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
+indicatif = { version = "0.17.8", features = ["tokio"] }
 libp2p = { version = "0.53.2", features = ["tokio"] }
 libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 libp2p-quic = { version = "0.10.2", git = "ssh://git@github.com/p2p-industries/libp2p-quic.git", rev = "a977b79242091a338e7ccc411f5878b8c5fccce6" }
@@ -34,13 +33,14 @@ macaddress = { version = "0.1.0", path = "crates/macaddress" }
 netlink-packet-core = { version = "0.7.0" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
 p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
+pin-project = { version = "1.1.5" }
 prost = { version = "0.12" }
 rand = { version = "0.8.5" }
 regex = { version = "1.10.4", default-features = false, features = [
     "perf",
     "std",
 ] }
-serde = { version = "1.0.202", features = ["derive", "rc"] }
+serde = { version = "1.0.203", features = ["derive", "rc"] }
 stack = { version = "0.1.0", path = "crates/stack" }
 thiserror = { version = "1" }
 tarpc = { version = "0.34.0" }

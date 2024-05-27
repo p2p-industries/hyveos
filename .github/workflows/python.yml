@@ -3,15 +3,15 @@ name: Python SDK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "python-sdk" ]
+    branches: ["main", "python-sdk"]
     paths:
-      - '**.py'
-      - '**.proto'
+      - "**.py"
+      - "**.proto"
   pull_request:
-    branches: [ "main", "python-sdk" ]
+    branches: ["main", "python-sdk"]
     paths:
-      - '**.py'
-      - '**.proto'
+      - "**.py"
+      - "**.proto"
 
 jobs:
   build:
@@ -47,7 +47,7 @@ jobs:
         run: poetry install --no-interaction --no-root
         working-directory: sdks/python/p2pindustries
 
-      - name: Check formatting is correct 
+      - name: Check formatting is correct
         working-directory: sdks/python/p2pindustries
         run: poetry run ruff format --check
 
@@ -57,4 +57,8 @@ jobs:
 
       - name: Check if compiled protobuf is up-to-date
         working-directory: sdks/python/p2pindustries
-        run:  mkdir proto-check && poetry run python -m grpc_tools.protoc -I../../../protos --python_out=./proto-check --pyi_out=./proto-check --grpc_python_out=./proto-check ../../../protos/script.proto && diff -r --exclude='__init__.py' ./proto-check ./protocol
+        run: |
+          mkdir proto-check
+          poetry run python -m grpc_tools.protoc -I../../../protos --python_out=./proto-check --pyi_out=./proto-check --grpc_python_out=./proto-check ../../../protos/script.proto
+          ../../../scripts/fix_grpc_imports.sh ./proto-check
+          diff -r --exclude='__init__.py' ./proto-check ./protocol

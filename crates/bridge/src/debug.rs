@@ -63,6 +63,8 @@ impl Debug for DebugServer {
         &self,
         _request: TonicRequest<script::Empty>,
     ) -> TonicResult<Self::SubscribeMeshTopologyStream> {
+        tracing::debug!("Received subscribe_mesh_topology request");
+
         let command_sender = self.command_sender.clone();
 
         let (sender, receiver) = oneshot::channel();

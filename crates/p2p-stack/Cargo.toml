@@ -2,19 +2,20 @@
 name = "p2p-stack"
 version = "0.1.0"
 edition = "2021"
-publish.workspace = true
-rust-version.workspace = true
+rust-version = { workspace = true }
+publish = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
 async-once-cell = "0.5.3"
 asynchronous-codec = { version = "0.7.0", features = ["cbor"] }
 base64-simd = "0.8.0"
-bytes = "1.6.0"
+bytes = { workspace = true }
 cbor4ii = { version = "0.3.2", optional = true }
 dashmap = "5.5.3"
+docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
-indicatif = { version = "0.17.8", features = ["tokio"] }
+indicatif = { workspace = true }
 libp2p = { workspace = true, features = [
     "tokio",
     "identify",
@@ -30,7 +31,7 @@ libp2p = { workspace = true, features = [
 libp2p-batman-adv = { workspace = true, optional = true }
 libp2p-stream = { workspace = true }
 libp2p-quic = { workspace = true, features = ["tokio"] }
-pin-project = "1.1.5"
+pin-project = { workspace = true }
 regex = { workspace = true }
 sha2 = { version = "0.10.8", features = ["asm"] }
 serde = { workspace = true }

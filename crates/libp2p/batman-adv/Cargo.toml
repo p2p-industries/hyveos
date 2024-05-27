@@ -2,8 +2,8 @@
 name = "libp2p-batman-adv"
 version = "0.1.0"
 edition = "2021"
-rust-version = { workspace = true }
 authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
+rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
@@ -13,6 +13,7 @@ futures = { workspace = true }
 hashlink = "0.9.0"
 ifaddr = { workspace = true }
 itertools = "0.12.1"
+libc = "0.2.153"
 libp2p = { workspace = true, features = ["serde"] }
 macaddress = { workspace = true }
 rand = { workspace = true }

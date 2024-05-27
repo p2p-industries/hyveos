@@ -1,4 +1,5 @@
 import grpc
+import os
 
 from .services.debug import DebugService
 from .services.dht import DHTService
@@ -9,10 +10,10 @@ from .services.request_response import RequestResponseService
 
 
 class P2PConnection:
-    def __init__(self, socket_path: str = '/var/run/p2p-bridge.sock'):
+    def __init__(self, socket_path: str = os.environ['P2P_INDUSTRIES_BRIDGE_SOCKET']):
         self.conn = self.channel = grpc.aio.insecure_channel(
-            f'unix:{socket_path}',
-            options=(('protocol.default_authority', 'localhost'),),
+            f'unix://{socket_path}',
+            options=(('grpc.default_authority', 'localhost'),),
         )
 
     async def __aenter__(self):

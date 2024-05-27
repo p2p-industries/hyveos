@@ -34,6 +34,8 @@ impl Discovery for DiscoveryServer {
         &self,
         _request: TonicRequest<script::Empty>,
     ) -> TonicResult<Self::SubscribeEventsStream> {
+        tracing::debug!("Received subscribe_events request");
+
         let neighbours = self.client.neighbours();
 
         let resolved = neighbours
@@ -89,6 +91,8 @@ impl Discovery for DiscoveryServer {
     }
 
     async fn get_own_id(&self, _request: TonicRequest<script::Empty>) -> TonicResult<script::Peer> {
+        tracing::debug!("Received get_own_id request");
+
         let id = self.client.peer_id();
 
         Ok(TonicResponse::new(script::Peer {

@@ -27,6 +27,8 @@ impl GossipSub for GossipSubServer {
         &self,
         request: TonicRequest<script::Topic>,
     ) -> TonicResult<Self::SubscribeStream> {
+        tracing::debug!("Received subscribe request");
+
         let topic = request.into_inner().topic;
 
         let receiver = self
@@ -59,6 +61,8 @@ impl GossipSub for GossipSubServer {
         &self,
         request: TonicRequest<script::GossipSubMessage>,
     ) -> TonicResult<script::GossipSubMessageId> {
+        tracing::debug!("Received publish request");
+
         let script::GossipSubMessage {
             data,
             topic: script::Topic { topic },
