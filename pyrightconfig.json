@@ -1,0 +1,4 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "extraPaths": ["./sdks/python"]
+}

@@ -4,8 +4,8 @@ from ..protocol.script_pb2 import (
     GossipSubRecvMessage,
     Topic,
 )
-from stream import ManagedStream
-from util import enc
+from .stream import ManagedStream
+from .util import enc
 
 
 class GossipSubService:
@@ -31,7 +31,7 @@ class GossipSubService:
             Stream of received messages from a GossipSub topic
         """
 
-        gossip_sub_recv_messages_stream = self.stub.Subscribe(Topic(topic))
+        gossip_sub_recv_messages_stream = self.stub.Subscribe(Topic(topic=topic))
         return ManagedStream(gossip_sub_recv_messages_stream)
 
     async def publish(self, data: str | bytes, topic: str) -> bytes:
@@ -53,7 +53,7 @@ class GossipSubService:
 
         send_data = enc(data)
 
-        gossip_sub_message = GossipSubMessage(send_data, Topic(topic))
+        gossip_sub_message = GossipSubMessage(data=send_data, topic=Topic(topic=topic))
         gossip_sub_message_id = await self.stub.Publish(gossip_sub_message)
 
         return gossip_sub_message_id.id

@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic
+from typing import AsyncIterator, TypeVar, Generic
 
 T = TypeVar('T')
 
@@ -13,11 +13,5 @@ class ManagedStream(Generic[T]):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.stream.cancel()
 
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self) -> T:
-        try:
-            return await self.stream.__anext__()
-        except StopAsyncIteration:
-            raise StopAsyncIteration
+    def __aiter__(self) -> AsyncIterator[T]:
+        return self.stream.__aiter__()

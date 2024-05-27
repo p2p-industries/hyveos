@@ -1,6 +1,7 @@
 from ..protocol.script_pb2_grpc import FileTransferStub
-from ..protocol.script_pb2 import File, FilePath, ID, CID
-from util import enc
+from ..protocol.script_pb2 import FilePath, ID, CID
+from .util import enc
+
 from dataclasses import dataclass
 
 
@@ -22,16 +23,13 @@ class FileTransferService:
     def __init__(self, conn):
         self.stub = FileTransferStub(conn)
 
-    async def publish_file(self, file_path: str, file_id: str) -> FileToken:
+    async def publish_file(self, file_path: str) -> FileToken:
         """
         Publishes a file to the p2p network
         :param file_path: The local path to the file
-        :param file_id: An ID for the file
         :return: A CID token that can be used by other peers to download the file
         """
-        cid = await self.stub.PublishFile(
-            file=File(FilePath(file_path), id=ID(file_id))
-        )
+        cid = await self.stub.PublishFile(FilePath(path=file_path))
         return FileToken(cid.hash, cid.id)
 
     async def get_file(self, file_token: FileToken) -> FilePath:
@@ -40,5 +38,6 @@ class FileTransferService:
         :param file_token: The has
         :return:
         """
-        path = await self.stub.GetFile(CID(enc(file_token.hash), ID(file_token.id)))
-        return path
+        return await self.stub.GetFile(
+            CID(hash=enc(file_token.hash), id=ID(ulid=file_token.id))
+        )
