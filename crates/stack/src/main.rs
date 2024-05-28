@@ -724,6 +724,32 @@ async fn main() -> anyhow::Result<()> {
                                 }
                             }
                         }
+                        ["SCRIPT", "LOCAL", stop, all]
+                            if stop.to_uppercase() == "STOP" && all.to_uppercase() == "ALL" =>
+                        {
+                            match scripting_client.stop_all_containers(false).await {
+                                Ok(()) => {
+                                    println!("Stopped all containers");
+                                }
+                                Err(e) => {
+                                    println!("Failed to stop all containers: {e}");
+                                }
+                            }
+                        }
+                        ["SCRIPT", "LOCAL", stop, id] if stop.to_uppercase() == "STOP" => {
+                            if let Ok(id) = id.parse() {
+                                match scripting_client.stop_container(id).await {
+                                    Ok(()) => {
+                                        println!("Stopped container with id {id}");
+                                    }
+                                    Err(e) => {
+                                        println!("Failed to stop container: {e}");
+                                    }
+                                }
+                            } else {
+                                println!("Invalid ULID");
+                            }
+                        }
                         _ => {
                             println!("Invalid command");
                         }
@@ -871,6 +897,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
+
+    scripting_client.stop_all_containers(true).await?;
 
     Ok(())
 }

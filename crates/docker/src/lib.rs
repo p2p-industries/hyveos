@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     io,
-    net::SocketAddr,
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr},
     ops::Not,
     pin::Pin,
     task::{Context, Poll},
@@ -18,7 +18,7 @@ use bollard::{
     service::{CreateImageInfo, ProgressDetail},
 };
 use bytes::Bytes;
-use futures::{TryFutureExt, TryStreamExt};
+use futures::{FutureExt, TryFutureExt, TryStreamExt};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use lazy_regex::regex;
 use serde::{Deserialize, Serialize};
@@ -272,7 +272,7 @@ impl PulledImage<'_> {
             volumes: HashMap::new(),
             name: None,
             network_mode: None,
-            exposed_ports: Vec::new(),
+            exposed_ports: None,
             env: HashMap::new(),
         }
     }
@@ -296,7 +296,7 @@ impl PulledImage<'_> {
             volumes: HashMap::new(),
             name: None,
             network_mode: None,
-            exposed_ports: Vec::new(),
+            exposed_ports: None,
             env: HashMap::new(),
         }
     }
@@ -314,7 +314,7 @@ pub struct ContainerBuilder<'a, In = Empty, Out = Sink, Err = Sink> {
     volumes: HashMap<String, String>,
     name: Option<String>,
     network_mode: Option<NetworkMode>,
-    exposed_ports: Vec<(u16, SocketAddr)>,
+    exposed_ports: Option<Vec<(u16, SocketAddr)>>,
     env: HashMap<String, String>,
 }
 
@@ -427,7 +427,9 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
     }
 
     pub fn expose_port(mut self, container_port: u16, host: SocketAddr) -> Self {
-        self.exposed_ports.push((container_port, host));
+        self.exposed_ports
+            .get_or_insert_with(Vec::new)
+            .push((container_port, host));
         self
     }
 
@@ -465,22 +467,75 @@ where
             env,
         } = self;
 
-        let exposed_ports = match &exposed_ports[..] {
-            [] => None,
-            ports => {
+        let (port_bindings, exposed_ports) = match exposed_ports.as_deref() {
+            Some([]) => (None, None),
+            Some(ports) => {
                 let mut port_bindings = HashMap::new();
+                let mut exposed_ports = HashMap::new();
                 for (container, host) in ports {
-                    let bindings = port_bindings
-                        .entry(container.to_string())
+                    let tcp_bindings = port_bindings
+                        .entry(format!("{container}/tcp"))
                         .or_insert(Some(Vec::new()))
                         .as_mut()
                         .unwrap();
-                    bindings.push(PortBinding {
+                    tcp_bindings.push(PortBinding {
                         host_ip: Some(host.ip().to_string()),
                         host_port: Some(host.port().to_string()),
                     });
+
+                    let udp_bindings = port_bindings
+                        .entry(format!("{container}/udp"))
+                        .or_insert(Some(Vec::new()))
+                        .as_mut()
+                        .unwrap();
+                    udp_bindings.push(PortBinding {
+                        host_ip: Some(host.ip().to_string()),
+                        host_port: Some(host.port().to_string()),
+                    });
+
+                    exposed_ports.insert(format!("{}/tcp", host.port()), Default::default());
+                    exposed_ports.insert(format!("{}/udp", host.port()), Default::default());
                 }
-                Some(port_bindings)
+                (Some(port_bindings), Some(exposed_ports))
+            }
+            None => {
+                let exposed_ports = docker
+                    .inspect_image(&image)
+                    .await?
+                    .config
+                    .and_then(|c| c.exposed_ports);
+
+                if let Some(exposed_ports) = &exposed_ports {
+                    println!("Found exposed ports in image: {exposed_ports:?}");
+                }
+
+                let port_bindings = exposed_ports.as_ref().map(|ports| {
+                    let mut port_bindings = HashMap::new();
+
+                    for port_name in ports.keys() {
+                        if let Some(port) = port_name
+                            .strip_suffix("/tcp")
+                            .or_else(|| port_name.strip_suffix("/udp"))
+                        {
+                            let bindings = vec![
+                                PortBinding {
+                                    host_ip: Some(Ipv4Addr::UNSPECIFIED.to_string()),
+                                    host_port: Some(port.to_string()),
+                                },
+                                PortBinding {
+                                    host_ip: Some(Ipv6Addr::UNSPECIFIED.to_string()),
+                                    host_port: Some(port.to_string()),
+                                },
+                            ];
+
+                            port_bindings.insert(port_name.clone(), Some(bindings));
+                        }
+                    }
+
+                    port_bindings
+                });
+
+                (port_bindings, exposed_ports)
             }
         };
 
@@ -497,7 +552,7 @@ where
                     .collect()
             }),
             network_mode: network_mode.map(|m| m.as_str().to_string()),
-            port_bindings: exposed_ports,
+            port_bindings,
             ..Default::default()
         };
 
@@ -521,6 +576,7 @@ where
             attach_stdout: stdout.as_ref().map(|_| true),
             attach_stderr: stderr.as_ref().map(|_| true),
             host_config: Some(host_config),
+            exposed_ports,
             env,
             ..Default::default()
         };
@@ -707,33 +763,66 @@ impl<'a> RunningContainer<'a> {
     }
 
     /// Run the container to completion
-    pub async fn run_to_completion(self) -> Result<StoppedContainer<'a>, bollard::errors::Error> {
-        let wait_output = async {
-            let result = self
-                .docker
-                .wait_container::<&str>(&self.id, None)
-                .try_collect::<Vec<_>>()
-                .await?;
-            Ok::<_, bollard::errors::Error>(result)
-        };
+    pub async fn run_to_completion(
+        self,
+        stop: Option<oneshot::Receiver<bool>>,
+    ) -> Result<StoppedContainer<'a>, bollard::errors::Error> {
+        let wait_future = self
+            .docker
+            .wait_container::<&str>(&self.id, None)
+            .try_collect::<Vec<_>>();
+
+        if let Some(stop) = stop {
+            tokio::select! {
+                Err(e) = wait_future => {
+                    return Err(e);
+                }
+                kill = stop => {
+                    if kill.map_or(true, |b| b) {
+                        return self.kill().await;
+                    } else {
+                        return self.stop().await;
+                    }
+                }
+                else => {}
+            }
+        } else {
+            wait_future.await?;
+        }
+
         if let Some(input_handle) = self.input_handle {
-            let _ = tokio::try_join!(
-                wait_output,
-                input_handle.map_err(|e| {
-                    bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
-                }),
-                self.output_handle.map_err(|e| {
-                    bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
-                })
+            tokio::try_join!(
+                input_handle
+                    .map_err(|e| {
+                        bollard::errors::Error::from(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            e,
+                        ))
+                    })
+                    .map(|r| match r {
+                        Ok(Ok(())) => Ok(()),
+                        Ok(Err(e)) => Err(e),
+                        Err(e) => Err(e),
+                    }), // This is just Result::flatten...
+                self.output_handle
+                    .map_err(|e| {
+                        bollard::errors::Error::from(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            e,
+                        ))
+                    })
+                    .map(|r| match r {
+                        Ok(Ok(())) => Ok(()),
+                        Ok(Err(e)) => Err(e),
+                        Err(e) => Err(e),
+                    })
             )?;
         } else {
-            let _ = tokio::try_join!(
-                wait_output,
-                self.output_handle.map_err(|e| {
-                    bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
-                })
-            )?;
+            self.output_handle.await.map_err(|e| {
+                bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
+            })??;
         }
+
         let image = PulledImage {
             image: self.image,
             docker: self.docker,
@@ -828,13 +917,14 @@ mod tests {
     use std::{
         fs::File,
         io::{Read, Write as _},
+        time::Duration,
     };
 
     use once_cell::sync::Lazy;
     use tempfile::{tempdir, NamedTempFile};
     use tokio::{
         io::{AsyncBufReadExt, BufReader},
-        sync::Barrier,
+        sync::{oneshot, Barrier},
     };
 
     use crate::Compression;
@@ -845,7 +935,7 @@ mod tests {
     #[cfg(not(feature = "zstd"))]
     const ZSTD_NUM: usize = 0;
 
-    const TEST_NUM: usize = 9 + ZSTD_NUM;
+    const TEST_NUM: usize = 10 + ZSTD_NUM;
 
     static BARRIER: Lazy<Barrier> = Lazy::new(|| Barrier::new(TEST_NUM));
 
@@ -914,7 +1004,7 @@ mod tests {
             .run()
             .await
             .unwrap();
-        let stopped = container.run_to_completion().await.unwrap();
+        let stopped = container.run_to_completion(None).await.unwrap();
         let image = stopped.remove().await.unwrap();
         wait_before_remove!(image);
     }
@@ -957,6 +1047,33 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.kill().await.unwrap();
+        let image = stopped.remove().await.unwrap();
+        wait_before_remove!(image);
+    }
+
+    #[tokio::test]
+    async fn test_cancel_run_to_completion() {
+        const IMAGE: &str = "alpine:latest";
+        let manager = super::ContainerManager::new().unwrap();
+        let image = manager.pull_image(IMAGE, false).await.unwrap();
+        let container = image
+            .create_container()
+            .enable_stream()
+            .cmd(vec!["sh", "-c", "sleep 1000"])
+            .run()
+            .await
+            .unwrap()
+            .into_owned();
+
+        let (stop_sender, stop_receiver) = oneshot::channel();
+
+        let handle = tokio::spawn(container.run_to_completion(Some(stop_receiver)));
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        stop_sender.send(false).unwrap();
+
+        let stopped = handle.await.unwrap().unwrap();
         let image = stopped.remove().await.unwrap();
         wait_before_remove!(image);
     }
@@ -1035,7 +1152,7 @@ mod tests {
             .await
             .unwrap();
 
-        let stopped = container.run_to_completion().await.unwrap();
+        let stopped = container.run_to_completion(None).await.unwrap();
         let image = stopped.remove().await.unwrap();
         wait_before_remove!(image);
 
