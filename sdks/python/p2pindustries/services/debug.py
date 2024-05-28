@@ -1,5 +1,5 @@
 from ..protocol.script_pb2_grpc import DebugStub
-from ..protocol.script_pb2 import MeshTopologyEvent
+from ..protocol.script_pb2 import MeshTopologyEvent, Empty
 from .stream import ManagedStream
 
 
@@ -16,5 +16,5 @@ class DebugService:
         Returns a stream of mesh topology events to observe the
         underlying connectivity state of the network
         """
-        stream = self.stub.SubscribeMeshTopology()
+        stream = self.stub.SubscribeMeshTopology(Empty())
         return ManagedStream(stream)
