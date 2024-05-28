@@ -1,71 +1,66 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket
 import asyncio
-import argparse
+import uvicorn
+from p2pindustries import P2PConnection
+
+
+class TopologyRelayManager:
+    def __init__(self, debug_service, queue: asyncio.Queue):
+        self.connections = []
+        self.debug_service = debug_service
+        self.queue = queue
+        self.graph = set()
+
+    async def add(self, conn: WebSocket):
+        await conn.accept()
+        self.connections.append(conn)
+
+    async def remove(self, conn: WebSocket):
+        self.connections.remove(conn)
+
+    async def broadcast(self):
+        while True:
+            event = await self.queue.get()
+            for conn in self.connections:
+                await conn.send_text(f"Peer: {event.peer.peer_id} had event {event.event.WhichOneof('event')}")
+
+    async def listen(self):
+        async with self.debug_service.get_mesh_topology() as mesh_events:
+            async for data in mesh_events:
+                await self.queue.put(data)
+
 
 app = FastAPI()
 
 
-class Deployment(BaseModel):
-    peer: str
-    image: str
-
-
-# Asynchronous data-generating functions
-async def data_generator_1():
-    while True:
-        await asyncio.sleep(1)  # Simulate data generation delay
-        yield "Data from generator 1"
-
-
-async def data_generator_2():
-    while True:
-        await asyncio.sleep(2)  # Simulate data generation delay
-        yield "Data from generator 2"
-
-
-# Third asynchronous function to be triggered by PUT request
-async def process_item(deployment):
-    # Simulate some processing
-    await asyncio.sleep(1)
-    print(f"Deployed image {deployment.image} to peer {deployment.peer}")
-
-
-# WebSocket endpoint 1
-@app.websocket("/ws/peer-status")
-async def websocket_endpoint_1(websocket: WebSocket):
-    await websocket.accept()
+async def websocket_endpoint(websocket: WebSocket, manager: TopologyRelayManager):
+    await manager.add(websocket)
     try:
-        async for data in data_generator_1():
-            await websocket.send_text(data)
-    except WebSocketDisconnect:
-        print("Client disconnected from generator 1.")
+        while True:
+            await websocket.receive_text()
+    except Exception as e:
+        print(f"Connection closed: {e}")
+    finally:
+        await manager.remove(websocket)
+        await websocket.close()
 
 
-# WebSocket endpoint 2
-@app.websocket("/ws/mesh-status")
-async def websocket_endpoint_2(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        async for data in data_generator_2():
-            await websocket.send_text(data)
-    except WebSocketDisconnect:
-        print("Client disconnected from generator 2")
+async def main():
+    async with P2PConnection() as p2p_conn:
+        queue = asyncio.Queue()
 
+        manager = TopologyRelayManager(p2p_conn.get_debug_service(), queue)
 
-# PUT endpoint
-@app.put("/docker-deploy/")
-async def update_item(deployment: Deployment):
-    await process_item(deployment)
-    return {"status": "success", "name": deployment.peer, "image": deployment.image}
+        app.add_websocket_route("/topology", lambda websocket: websocket_endpoint(websocket, manager))
 
+        config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+        server = uvicorn.Server(config)
+
+        await asyncio.gather(
+            manager.broadcast(),
+            manager.listen(),
+            server.serve()
+        )
 
 if __name__ == "__main__":
-    import uvicorn
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8080)
-    args = parser.parse_args()
-
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    asyncio.run(main())
