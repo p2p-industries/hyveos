@@ -9,7 +9,7 @@ COPY --from=poetry-builder ${POETRY_HOME} ${POETRY_HOME}
 
 WORKDIR /app/python/sdks
 COPY . .
-RUN poetry install --no-dev
+RUN poetry install --only main
 RUN poetry build
 
 FROM python:3.11-slim
