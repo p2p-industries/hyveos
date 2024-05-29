@@ -17,14 +17,18 @@ class DHTService:
         Puts a record in the DHT table under a specific topic
         """
         await self.stub.PutRecord(
-            DHTPutRecord(key=DHTKey(topic=Topic(topic=topic), key=enc(key)), value=enc(value))
+            DHTPutRecord(
+                key=DHTKey(topic=Topic(topic=topic), key=enc(key)), value=enc(value)
+            )
         )
 
     async def get_record(self, topic: str, key: str | bytes) -> DHTGetRecord:
         """
         Retrieved a record in the DHT table under a specific topic
         """
-        record = await self.stub.GetRecord(DHTKey(topic=Topic(topic=topic), key=enc(key)))
+        record = await self.stub.GetRecord(
+            DHTKey(topic=Topic(topic=topic), key=enc(key))
+        )
         return record
 
     async def provide(self, topic: str, key: str | bytes) -> None:
