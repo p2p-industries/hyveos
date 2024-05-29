@@ -86,7 +86,7 @@ class RequestResponseService:
                 optional_topic_query = OptionalTopicQuery(query=TopicQuery(regex=query))
             else:
                 optional_topic_query = OptionalTopicQuery(
-                    query=TopicQuery(topic=Topic(query))
+                    query=TopicQuery(topic=Topic(topic=query))
                 )
 
         stream = self.stub.Recv(optional_topic_query)
