@@ -1,3 +1,5 @@
+name: Docker Base image
+
 on:
   push:
     branches: [ 'main' ]
@@ -50,9 +52,9 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: sdks/python/
-          push: ${{ github.ref == 'ref/heads/main' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
           platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/aarch64' || 'linux/amd64' }}
 
       - name: Generate artifact attestation
