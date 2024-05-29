@@ -6,7 +6,7 @@ use libp2p::{
     identity::Keypair,
     kad::Mode,
     swarm::{NetworkBehaviour, SwarmEvent},
-    Multiaddr, Swarm, SwarmBuilder,
+    Multiaddr, PeerId, Swarm, SwarmBuilder,
 };
 use libp2p_quic::{tokio::Transport as QuicTransport, Config as QuicConfig};
 use tokio::sync::mpsc;
@@ -24,11 +24,15 @@ use crate::{
 
 const CHANNEL_CAP: usize = 10;
 
-pub trait SubActor {
+pub trait SubActor: Default {
     type SubCommand: Send;
     type CommandError: Error;
     type Event;
     type EventError: Error;
+
+    fn new(_peer_id: PeerId) -> Self {
+        Default::default()
+    }
 
     fn handle_command(
         &mut self,
@@ -99,18 +103,18 @@ pub trait DebugActor:
         Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
         CommandError = void::Void,
         EventError = void::Void,
-    > + Default
+    >
 {
 }
 
 #[cfg(feature = "batman")]
 impl<T> DebugActor for T where
     T: SubActor<
-            SubCommand = debug::Command,
-            Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
-            CommandError = void::Void,
-            EventError = void::Void,
-        > + Default
+        SubCommand = debug::Command,
+        Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
+        CommandError = void::Void,
+        EventError = void::Void,
+    >
 {
 }
 
@@ -121,18 +125,18 @@ pub trait DebugActor:
         EventError = void::Void,
         Event = void::Void,
         SubCommand = void::Void,
-    > + Default
+    >
 {
 }
 
 #[cfg(not(feature = "batman"))]
 impl<T> DebugActor for T where
     T: SubActor<
-            CommandError = void::Void,
-            EventError = void::Void,
-            Event = void::Void,
-            SubCommand = void::Void,
-        > + Default
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = void::Void,
+        SubCommand = void::Void,
+    >
 {
 }
 
@@ -143,18 +147,18 @@ pub trait NeighbourActor:
         EventError = void::Void,
         Event = libp2p_batman_adv::Event,
         SubCommand = neighbours::Command,
-    > + Default
+    >
 {
 }
 
 #[cfg(feature = "batman")]
 impl<T> NeighbourActor for T where
     T: SubActor<
-            CommandError = void::Void,
-            EventError = void::Void,
-            Event = libp2p_batman_adv::Event,
-            SubCommand = neighbours::Command,
-        > + Default
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = libp2p_batman_adv::Event,
+        SubCommand = neighbours::Command,
+    >
 {
 }
 
@@ -165,18 +169,18 @@ pub trait NeighbourActor:
         EventError = void::Void,
         Event = void::Void,
         SubCommand = void::Void,
-    > + Default
+    >
 {
 }
 
 #[cfg(not(feature = "batman"))]
 impl<T> NeighbourActor for T where
     T: SubActor<
-            CommandError = void::Void,
-            EventError = void::Void,
-            Event = void::Void,
-            SubCommand = void::Void,
-        > + Default
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = void::Void,
+        SubCommand = void::Void,
+    >
 {
 }
 
@@ -187,18 +191,18 @@ pub trait LocationActor:
         EventError = location::EventError,
         Event = location::Event,
         SubCommand = location::Command,
-    > + Default
+    >
 {
 }
 
 #[cfg(feature = "location")]
 impl<T> LocationActor for T where
     T: SubActor<
-            CommandError = location::CommandError,
-            EventError = location::EventError,
-            Event = location::Event,
-            SubCommand = location::Command,
-        > + Default
+        CommandError = location::CommandError,
+        EventError = location::EventError,
+        Event = location::Event,
+        SubCommand = location::Command,
+    >
 {
 }
 
@@ -209,18 +213,18 @@ pub trait LocationActor:
         EventError = void::Void,
         Event = void::Void,
         SubCommand = void::Void,
-    > + Default
+    >
 {
 }
 
 #[cfg(not(feature = "location"))]
 impl<T> LocationActor for T where
     T: SubActor<
-            CommandError = void::Void,
-            EventError = void::Void,
-            Event = void::Void,
-            SubCommand = void::Void,
-        > + Default
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = void::Void,
+        SubCommand = void::Void,
+    >
 {
 }
 
@@ -231,26 +235,26 @@ pub trait MdnsActor:
         Event = libp2p::mdns::Event,
         CommandError = void::Void,
         EventError = void::Void,
-    > + Default
+    >
 {
 }
 
 #[cfg(not(feature = "mdns"))]
-pub trait MdnsActor: SubActor<SubCommand = void::Void, Event = void::Void> + Default {}
+pub trait MdnsActor: SubActor<SubCommand = void::Void, Event = void::Void> {}
 
 #[cfg(feature = "mdns")]
 impl<T> MdnsActor for T where
     T: SubActor<
-            SubCommand = (),
-            Event = libp2p::mdns::Event,
-            CommandError = void::Void,
-            EventError = void::Void,
-        > + Default
+        SubCommand = (),
+        Event = libp2p::mdns::Event,
+        CommandError = void::Void,
+        EventError = void::Void,
+    >
 {
 }
 
 #[cfg(not(feature = "mdns"))]
-impl<T> MdnsActor for T where T: SubActor<SubCommand = void::Void, Event = void::Void> + Default {}
+impl<T> MdnsActor for T where T: SubActor<SubCommand = void::Void, Event = void::Void> {}
 
 impl<
         Kad,
@@ -285,48 +289,48 @@ impl<
         CommandError,
     >
 where
-    Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event> + Default,
+    Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event>,
     Mdns: MdnsActor,
     Gossipsub:
-        SubActor<SubCommand = gossipsub::Command, Event = libp2p::gossipsub::Event> + Default,
+        SubActor<SubCommand = gossipsub::Command, Event = libp2p::gossipsub::Event>,
     RoundTrip: SubActor<
             SubCommand = round_trip::Command,
             Event = <round_trip::Behaviour as NetworkBehaviour>::ToSwarm,
             EventError = void::Void,
             CommandError = void::Void,
-        > + Default,
+        >,
     Location: LocationActor,
     Ping: SubActor<
             SubCommand = ping::Command,
             Event = ping::Event,
             CommandError = void::Void,
             EventError = void::Void,
-        > + Default,
+        >,
     Identify: SubActor<
             CommandError = void::Void,
             EventError = void::Void,
             Event = libp2p::identify::Event,
             SubCommand = (),
-        > + Default,
+        >,
     Neighbours: NeighbourActor,
     ReqResp: SubActor<
             SubCommand = req_resp::Command,
             Event = <req_resp::Behaviour as NetworkBehaviour>::ToSwarm,
             EventError = void::Void,
             CommandError = void::Void,
-        > + Default,
+        >,
     Scripting: SubActor<
             SubCommand = scripting::Command,
             Event = scripting::Event,
             CommandError = void::Void,
             EventError = void::Void,
-        > + Default,
+        >,
     FileTransfer: SubActor<
             SubCommand = file_transfer::Command,
             Event = (),
             CommandError = void::Void,
             EventError = void::Void,
-        > + Default,
+        >,
     Debug: DebugActor,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
@@ -356,18 +360,18 @@ where
             Self {
                 swarm,
                 receiver,
-                kad: Default::default(),
-                mdns: Default::default(),
-                gossipsub: Default::default(),
-                round_trip: Default::default(),
-                location: Default::default(),
-                ping: Default::default(),
-                identify: Default::default(),
-                neighbours: Default::default(),
-                req_resp: Default::default(),
-                scripting: Default::default(),
-                file_transfer: Default::default(),
-                debug: Default::default(),
+                kad: SubActor::new(peer_id),
+                mdns: SubActor::new(peer_id),
+                gossipsub: SubActor::new(peer_id),
+                round_trip: SubActor::new(peer_id),
+                location: SubActor::new(peer_id),
+                ping: SubActor::new(peer_id),
+                identify: SubActor::new(peer_id),
+                neighbours: SubActor::new(peer_id),
+                req_resp: SubActor::new(peer_id),
+                scripting: SubActor::new(peer_id),
+                file_transfer: SubActor::new(peer_id),
+                debug: SubActor::new(peer_id),
                 _phantom: PhantomData,
                 _command: PhantomData,
             },
