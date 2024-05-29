@@ -272,6 +272,7 @@ impl PulledImage<'_> {
             volumes: HashMap::new(),
             name: None,
             network_mode: None,
+            privileged: None,
             exposed_ports: None,
             env: HashMap::new(),
         }
@@ -296,6 +297,7 @@ impl PulledImage<'_> {
             volumes: HashMap::new(),
             name: None,
             network_mode: None,
+            privileged: None,
             exposed_ports: None,
             env: HashMap::new(),
         }
@@ -314,6 +316,7 @@ pub struct ContainerBuilder<'a, In = Empty, Out = Sink, Err = Sink> {
     volumes: HashMap<String, String>,
     name: Option<String>,
     network_mode: Option<NetworkMode>,
+    privileged: Option<bool>,
     exposed_ports: Option<Vec<(u16, SocketAddr)>>,
     env: HashMap<String, String>,
 }
@@ -376,6 +379,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             volumes: self.volumes,
             name: self.name,
             network_mode: self.network_mode,
+            privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
         }
@@ -396,6 +400,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             volumes: self.volumes,
             name: self.name,
             network_mode: self.network_mode,
+            privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
         }
@@ -416,6 +421,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             volumes: self.volumes,
             name: self.name,
             network_mode: self.network_mode,
+            privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
         }
@@ -435,6 +441,11 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
 
     pub fn network_mode(mut self, mode: NetworkMode) -> Self {
         self.network_mode = Some(mode);
+        self
+    }
+
+    pub fn privileged(mut self, privileged: bool) -> Self {
+        self.privileged = Some(privileged);
         self
     }
 
@@ -463,6 +474,7 @@ where
             volumes,
             name,
             network_mode,
+            privileged,
             exposed_ports,
             env,
         } = self;
@@ -553,6 +565,7 @@ where
             }),
             network_mode: network_mode.map(|m| m.as_str().to_string()),
             port_bindings,
+            privileged,
             ..Default::default()
         };
 

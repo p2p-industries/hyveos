@@ -371,6 +371,7 @@ impl<'a> ExecutionManager<'a> {
             .name(ulid.to_string())
             .network_mode(NetworkMode::Bridge)
             .add_volumes(volumes)
+            .privileged(true) // Unfortunate hack for now
             .env("P2P_INDUSTRIES_SHARED_DIR", CONTAINER_SHARED_DIR)
             .env("P2P_INDUSTRIES_BRIDGE_SOCKET", CONTAINER_BRIDGE_SOCKET);
 
