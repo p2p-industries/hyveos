@@ -1,15 +1,13 @@
-FROM python:alpine
-
-RUN apk add build-base musl-dev libffi-dev protobuf
-
-RUN python3 -m pip install poetry
+FROM base-python:slim
 
 WORKDIR /app
 
-COPY sdks/python/ /app/sdks/python/
-COPY demo/garden/pump/ /app/demo/garden/pump/
+COPY . /app/demo/garden/pump/
 
 WORKDIR /app/demo/garden/pump
+
+RUN poetry remove p2pindustries
+RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --only main
 
 CMD ["poetry", "run", "python", "main.py"]
