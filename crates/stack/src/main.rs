@@ -3,7 +3,7 @@
 
 #[cfg(feature = "batman")]
 use std::sync::Arc;
-use std::{env::temp_dir, fmt::Write as _, io, path::PathBuf};
+use std::{collections::HashSet, env::temp_dir, fmt::Write as _, io, path::PathBuf};
 
 use base64_simd::{Out, URL_SAFE};
 use clap::Parser;
@@ -44,8 +44,20 @@ fn default_store_directory() -> PathBuf {
 
 #[derive(Debug, Parser)]
 pub struct Opts {
-    #[clap(short, long, value_delimiter = ',')]
+    #[clap(
+        short,
+        long = "listen-address",
+        value_name = "LISTEN_ADDRESS",
+        conflicts_with("interfaces")
+    )]
     pub listen_addrs: Option<Vec<ifaddr::IfAddr>>,
+    #[clap(
+        short,
+        long = "interface",
+        value_name = "INTERFACE",
+        conflicts_with("listen_addrs")
+    )]
+    pub interfaces: Option<Vec<String>>,
     #[clap(short, long, default_value_os_t = default_store_directory())]
     pub store_directory: PathBuf,
     #[clap(short, long)]
@@ -194,12 +206,18 @@ fn diy_hints() -> DiyHinter {
         "SCRIPT STOP ALL|id",
         CommandHint::new("SCRIPT STOP ALL|id", "SCRIPT STOP"),
     );
+    tree.insert("QUIT", CommandHint::new("QUIT", "QUIT"));
     DiyHinter { tree }
 }
 
 #[cfg(not(feature = "batman"))]
-fn fallback_listen_addrs() -> Vec<Multiaddr> {
+fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
     use std::net::{Ipv4Addr, Ipv6Addr};
+
+    if interfaces.is_some() {
+        println!("Ignoring interfaces argument, batman feature is not enabled");
+    }
+
     [
         Multiaddr::empty().with(Protocol::Ip6(Ipv6Addr::UNSPECIFIED)),
         Multiaddr::empty().with(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)),
@@ -209,16 +227,28 @@ fn fallback_listen_addrs() -> Vec<Multiaddr> {
 }
 
 #[cfg(feature = "batman")]
-fn fallback_listen_addrs() -> Vec<Multiaddr> {
+fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
     use ifaddr::IfAddr;
+
+    let interfaces = interfaces.map(HashSet::<_>::from_iter);
 
     netdev::get_interfaces()
         .into_iter()
         .flat_map(|iface| {
-            iface.ipv6.into_iter().map(move |net| IfAddr {
-                if_index: iface.index,
-                addr: net.addr,
-            })
+            if let Some(interfaces) = &interfaces {
+                if !interfaces.contains(&iface.name) {
+                    return Vec::new();
+                }
+            }
+
+            iface
+                .ipv6
+                .into_iter()
+                .map(move |net| IfAddr {
+                    if_index: iface.index,
+                    addr: net.addr,
+                })
+                .collect()
         })
         .map(Multiaddr::from)
         .collect()
@@ -229,6 +259,7 @@ fn fallback_listen_addrs() -> Vec<Multiaddr> {
 async fn main() -> anyhow::Result<()> {
     let Opts {
         listen_addrs,
+        interfaces,
         store_directory,
         random_directory,
         clean,
@@ -300,9 +331,10 @@ async fn main() -> anyhow::Result<()> {
         std::fs::create_dir_all(&store_directory)?;
     }
 
-    let listen_addrs: Vec<_> = listen_addrs.map_or_else(fallback_listen_addrs, |e| {
-        e.into_iter().map(Multiaddr::from).collect()
-    });
+    let listen_addrs: Vec<_> = listen_addrs.map_or_else(
+        || fallback_listen_addrs(interfaces),
+        |e| e.into_iter().map(Multiaddr::from).collect(),
+    );
     println!("Listen addresses: {listen_addrs:?}");
     let listen_addrs = listen_addrs
         .into_iter()
@@ -907,6 +939,8 @@ async fn main() -> anyhow::Result<()> {
                             println!("Invalid command");
                         }
                     }
+                } else if line.to_uppercase().trim() == "QUIT" {
+                    break;
                 } else {
                     println!("Invalid command");
                 }
