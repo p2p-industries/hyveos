@@ -4,11 +4,13 @@ on:
     paths:
       - "sdks/python/*"
       - "**.proto"
+      - '.github/workflows/docker.yml'
   pull_request:
     branches: [ 'main' ]
     paths:
       - "sdks/python/*"
       - "**.proto"
+      - '.github/workflows/docker.yml'
 
 env:
   REGISTRY: ghcr.io
