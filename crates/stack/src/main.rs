@@ -186,6 +186,14 @@ fn diy_hints() -> DiyHinter {
             "SCRIPT LOCAL DEPLOY",
         ),
     );
+    tree.insert(
+        "SCRIPT LIST",
+        CommandHint::new("SCRIPT LIST", "SCRIPT LIST"),
+    );
+    tree.insert(
+        "SCRIPT STOP ALL|id",
+        CommandHint::new("SCRIPT STOP ALL|id", "SCRIPT STOP"),
+    );
     DiyHinter { tree }
 }
 
@@ -653,6 +661,14 @@ async fn main() -> anyhow::Result<()> {
                                     "SCRIPT LOCAL DEPLOY SELF|peer_id image ports...",
                                     "Deploy a local docker image to a peer, exposing the specified ports",
                                 ),
+                                (
+                                    "SCRIPT LIST",
+                                    "List all running scripts",
+                                ),
+                                (
+                                    "SCRIPT STOP ALL|id",
+                                    "Stop all running scripts or a specific script by ID",
+                                ),
                             ]);
                         }
                         ["SCRIPT", "DEPLOY", self_, image, ports @ ..]
@@ -724,9 +740,21 @@ async fn main() -> anyhow::Result<()> {
                                 }
                             }
                         }
-                        ["SCRIPT", "LOCAL", stop, all]
-                            if stop.to_uppercase() == "STOP" && all.to_uppercase() == "ALL" =>
-                        {
+                        ["SCRIPT", "LIST"] => {
+                            if let Ok(scripts) = scripting_client.list_containers().await {
+                                if scripts.is_empty() {
+                                    println!("No running scripts");
+                                } else {
+                                    println!("Running scripts:");
+                                    for (id, image) in scripts {
+                                        println!("  {id}: {image}");
+                                    }
+                                }
+                            } else {
+                                println!("Failed to list scripts");
+                            }
+                        }
+                        ["SCRIPT", "STOP", all] if all.to_uppercase() == "ALL" => {
                             match scripting_client.stop_all_containers(false).await {
                                 Ok(()) => {
                                     println!("Stopped all containers");
@@ -736,7 +764,7 @@ async fn main() -> anyhow::Result<()> {
                                 }
                             }
                         }
-                        ["SCRIPT", "LOCAL", stop, id] if stop.to_uppercase() == "STOP" => {
+                        ["SCRIPT", "STOP", id] => {
                             if let Ok(id) = id.parse() {
                                 match scripting_client.stop_container(id).await {
                                     Ok(()) => {

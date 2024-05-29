@@ -4,6 +4,7 @@ use std::{
     future::Future,
     net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6},
     path::PathBuf,
+    sync::Arc,
 };
 
 #[cfg(feature = "batman")]
@@ -38,6 +39,9 @@ enum SelfCommand {
         image: PulledImage<'static>,
         ports: Vec<u16>,
         sender: oneshot::Sender<Result<Ulid, ExecutionError>>,
+    },
+    ListContainers {
+        sender: oneshot::Sender<Vec<(Ulid, Arc<str>)>>,
     },
     StopContainer {
         container_id: Ulid,
@@ -176,6 +180,12 @@ impl ScriptingManager {
                                 let _ = sender.send(id);
                             }).await;
                         }
+                        SelfCommand::ListContainers { sender } => {
+                            let containers = self.container_handles.iter().map(|(id, handle)| {
+                                (*id, handle.image_name.clone())
+                            }).collect();
+                            let _ = sender.send(containers);
+                        }
                         SelfCommand::StopContainer {
                             container_id,
                             sender,
@@ -250,12 +260,15 @@ pub enum ExecutionError {
     RemoteDeployError(String),
     #[error("Self deploy error: `{0}`")]
     SelfDeployError(String),
+    #[error("Container list error: `{0}`")]
+    ListContainersError(String),
     #[error("Container stop error: `{0}`")]
     StopContainerError(String),
 }
 
 struct ContainerHandle {
     id: Ulid,
+    image_name: Arc<str>,
     stop_sender: oneshot::Sender<bool>,
     handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
 }
@@ -328,6 +341,8 @@ impl<'a> ExecutionManager<'a> {
         )
         .await?;
 
+        let image_name = Arc::from(&*image.image);
+
         let volumes = [
             (
                 shared_dir_path
@@ -345,6 +360,8 @@ impl<'a> ExecutionManager<'a> {
                     .to_string(),
                 CONTAINER_BRIDGE_SOCKET.to_string(),
             ),
+            ("/dev/gpiochip0".to_string(), "/dev/gpiochip0".to_string()),
+            ("/dev/gpiochip1".to_string(), "/dev/gpiochip1".to_string()),
         ];
 
         tokio::spawn(client.run());
@@ -391,6 +408,7 @@ impl<'a> ExecutionManager<'a> {
 
         Ok(ContainerHandle {
             id: ulid,
+            image_name,
             stop_sender,
             handle,
         })
@@ -477,6 +495,20 @@ impl ScriptingClient {
                 .await
                 .map_err(Into::into)
         }
+    }
+
+    pub async fn list_containers(&self) -> Result<Vec<(Ulid, Arc<str>)>, ExecutionError> {
+        let (sender, receiver) = oneshot::channel();
+        let command = SelfCommand::ListContainers { sender };
+
+        self.self_command_sender
+            .send(command)
+            .await
+            .map_err(|e| ExecutionError::ListContainersError(e.to_string()))?;
+
+        receiver
+            .await
+            .map_err(|e| ExecutionError::ListContainersError(e.to_string()))
     }
 
     pub async fn stop_container(&self, container_id: Ulid) -> Result<(), ExecutionError> {

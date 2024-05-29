@@ -377,7 +377,7 @@ where
     pub fn setup(&mut self, listen_addrs: impl Iterator<Item = Multiaddr>) {
         self.swarm.behaviour_mut().kad.set_mode(Some(Mode::Server));
         for addr in listen_addrs {
-            println!("Listening on: {addr:?}");
+            tracing::info!("Listening on: {addr:?}");
             self.swarm
                 .listen_on(addr)
                 .expect("Failed to listen on address");
@@ -390,13 +390,13 @@ where
                 biased;
                 swarm_event = self.swarm.select_next_some() => {
                     if let Err(e) = self.handle_swarm_event(swarm_event) {
-                        eprintln!("Error handling swarm event: {e:?}");
+                        tracing::error!("Error handling swarm event: {e:?}");
                     }
                 },
                 command_opt = self.receiver.recv() => match command_opt {
                     Some(command) => {
                         if let Err(e) = self.handle_command(command) {
-                            eprintln!("Error handling command: {e:?}");
+                            tracing::error!("Error handling command: {e:?}");
                         }
                     },
                     None => break,
