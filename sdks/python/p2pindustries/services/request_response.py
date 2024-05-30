@@ -47,7 +47,7 @@ class RequestResponseService:
 
         optional_topic = OptionalTopic()
         if topic is not None:
-            optional_topic.topic = Topic(topic=topic)
+            optional_topic = OptionalTopic(topic=Topic(topic=topic))
 
         send_data = enc(data)
 
@@ -86,7 +86,7 @@ class RequestResponseService:
                 optional_topic_query = OptionalTopicQuery(query=TopicQuery(regex=query))
             else:
                 optional_topic_query = OptionalTopicQuery(
-                    query=TopicQuery(topic=Topic(query))
+                    query=TopicQuery(topic=Topic(topic=query))
                 )
 
         stream = self.stub.Recv(optional_topic_query)
