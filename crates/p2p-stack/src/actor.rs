@@ -99,11 +99,11 @@ pub struct Actor<
 #[cfg(feature = "batman")]
 pub trait DebugActor:
     SubActor<
-        SubCommand = debug::Command,
-        Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
-        CommandError = void::Void,
-        EventError = void::Void,
-    >
+    SubCommand = debug::Command,
+    Event = <debug::Behaviour as NetworkBehaviour>::ToSwarm,
+    CommandError = void::Void,
+    EventError = void::Void,
+>
 {
 }
 
@@ -121,11 +121,11 @@ impl<T> DebugActor for T where
 #[cfg(not(feature = "batman"))]
 pub trait DebugActor:
     SubActor<
-        CommandError = void::Void,
-        EventError = void::Void,
-        Event = void::Void,
-        SubCommand = void::Void,
-    >
+    CommandError = void::Void,
+    EventError = void::Void,
+    Event = void::Void,
+    SubCommand = void::Void,
+>
 {
 }
 
@@ -143,11 +143,11 @@ impl<T> DebugActor for T where
 #[cfg(feature = "batman")]
 pub trait NeighbourActor:
     SubActor<
-        CommandError = void::Void,
-        EventError = void::Void,
-        Event = libp2p_batman_adv::Event,
-        SubCommand = neighbours::Command,
-    >
+    CommandError = void::Void,
+    EventError = void::Void,
+    Event = libp2p_batman_adv::Event,
+    SubCommand = neighbours::Command,
+>
 {
 }
 
@@ -165,11 +165,11 @@ impl<T> NeighbourActor for T where
 #[cfg(not(feature = "batman"))]
 pub trait NeighbourActor:
     SubActor<
-        CommandError = void::Void,
-        EventError = void::Void,
-        Event = void::Void,
-        SubCommand = void::Void,
-    >
+    CommandError = void::Void,
+    EventError = void::Void,
+    Event = void::Void,
+    SubCommand = void::Void,
+>
 {
 }
 
@@ -187,11 +187,11 @@ impl<T> NeighbourActor for T where
 #[cfg(feature = "location")]
 pub trait LocationActor:
     SubActor<
-        CommandError = location::CommandError,
-        EventError = location::EventError,
-        Event = location::Event,
-        SubCommand = location::Command,
-    >
+    CommandError = location::CommandError,
+    EventError = location::EventError,
+    Event = location::Event,
+    SubCommand = location::Command,
+>
 {
 }
 
@@ -209,11 +209,11 @@ impl<T> LocationActor for T where
 #[cfg(not(feature = "location"))]
 pub trait LocationActor:
     SubActor<
-        CommandError = void::Void,
-        EventError = void::Void,
-        Event = void::Void,
-        SubCommand = void::Void,
-    >
+    CommandError = void::Void,
+    EventError = void::Void,
+    Event = void::Void,
+    SubCommand = void::Void,
+>
 {
 }
 
@@ -231,11 +231,11 @@ impl<T> LocationActor for T where
 #[cfg(feature = "mdns")]
 pub trait MdnsActor:
     SubActor<
-        SubCommand = (),
-        Event = libp2p::mdns::Event,
-        CommandError = void::Void,
-        EventError = void::Void,
-    >
+    SubCommand = (),
+    Event = libp2p::mdns::Event,
+    CommandError = void::Void,
+    EventError = void::Void,
+>
 {
 }
 
@@ -291,46 +291,45 @@ impl<
 where
     Kad: SubActor<SubCommand = kad::Command, Event = libp2p::kad::Event>,
     Mdns: MdnsActor,
-    Gossipsub:
-        SubActor<SubCommand = gossipsub::Command, Event = libp2p::gossipsub::Event>,
+    Gossipsub: SubActor<SubCommand = gossipsub::Command, Event = libp2p::gossipsub::Event>,
     RoundTrip: SubActor<
-            SubCommand = round_trip::Command,
-            Event = <round_trip::Behaviour as NetworkBehaviour>::ToSwarm,
-            EventError = void::Void,
-            CommandError = void::Void,
-        >,
+        SubCommand = round_trip::Command,
+        Event = <round_trip::Behaviour as NetworkBehaviour>::ToSwarm,
+        EventError = void::Void,
+        CommandError = void::Void,
+    >,
     Location: LocationActor,
     Ping: SubActor<
-            SubCommand = ping::Command,
-            Event = ping::Event,
-            CommandError = void::Void,
-            EventError = void::Void,
-        >,
+        SubCommand = ping::Command,
+        Event = ping::Event,
+        CommandError = void::Void,
+        EventError = void::Void,
+    >,
     Identify: SubActor<
-            CommandError = void::Void,
-            EventError = void::Void,
-            Event = libp2p::identify::Event,
-            SubCommand = (),
-        >,
+        CommandError = void::Void,
+        EventError = void::Void,
+        Event = libp2p::identify::Event,
+        SubCommand = (),
+    >,
     Neighbours: NeighbourActor,
     ReqResp: SubActor<
-            SubCommand = req_resp::Command,
-            Event = <req_resp::Behaviour as NetworkBehaviour>::ToSwarm,
-            EventError = void::Void,
-            CommandError = void::Void,
-        >,
+        SubCommand = req_resp::Command,
+        Event = <req_resp::Behaviour as NetworkBehaviour>::ToSwarm,
+        EventError = void::Void,
+        CommandError = void::Void,
+    >,
     Scripting: SubActor<
-            SubCommand = scripting::Command,
-            Event = scripting::Event,
-            CommandError = void::Void,
-            EventError = void::Void,
-        >,
+        SubCommand = scripting::Command,
+        Event = scripting::Event,
+        CommandError = void::Void,
+        EventError = void::Void,
+    >,
     FileTransfer: SubActor<
-            SubCommand = file_transfer::Command,
-            Event = (),
-            CommandError = void::Void,
-            EventError = void::Void,
-        >,
+        SubCommand = file_transfer::Command,
+        Event = (),
+        CommandError = void::Void,
+        EventError = void::Void,
+    >,
     Debug: DebugActor,
     EventError: Error
         + From<<Kad as SubActor>::EventError>
