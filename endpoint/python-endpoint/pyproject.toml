@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "python-endpoint"
+version = "0.1.0"
+description = ""
+authors = [ "Linus Meierhoefer <linusmeierhoefer@protonmail.com>" ]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+p2pindustries = {path = "../../sdks/python"}
+grpcio = "^1.64.0"
+protobuf = "^5.27.0"
+fastapi = "^0.111.0"
+uvicorn = "^0.30.0"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

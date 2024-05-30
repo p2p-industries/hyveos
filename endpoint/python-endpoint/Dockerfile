@@ -1,17 +1,17 @@
-FROM python:3.10
+FROM ghcr.io/p2p-industries/mvp-base-python:pr-73
 
-WORKDIR /p2p/script
+WORKDIR /app
 
-COPY ./sdks/python/p2pindustries ./packages/p2pindustries
-COPY ./endpoint/python-endpoint/requirements.txt .
+COPY . /app/python-endpoint/
 
-RUN pip install --no-cache-dir -r requirements.txt
+WORKDIR /app/python-endpoint/
 
-COPY ./endpoint/python-endpoint/server.py .
+RUN poetry remove p2pindustries
+RUN poetry add /app/python/sdks/dist/*.whl
+RUN poetry install --only main
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/p2p/script/packages
+ENV PYTHON_ENDPOINT_PORT=8000
 
-EXPOSE 8000
+EXPOSE 8000/tcp
 
-CMD [ "python", "./server.py" ]
+CMD ["poetry", "run", "python", "server.py"]

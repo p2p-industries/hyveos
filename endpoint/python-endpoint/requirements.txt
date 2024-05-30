@@ -1,4 +1,0 @@
-grpcio
-protobuf
-fastapi
-uvicorn
