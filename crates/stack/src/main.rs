@@ -142,30 +142,24 @@ fn diy_hints() -> DiyHinter {
         CommandHint::new("SCRIPT HELP", "SCRIPT HELP"),
     );
     tree.insert("KAD HELP", CommandHint::new("KAD HELP", "KAD HELP"));
-    tree.insert(
-        "KAD PUT key value",
-        CommandHint::new("KAD PUT key value", "KAD PUT"),
-    );
-    tree.insert("KAD GET key", CommandHint::new("KAD GET key", "KAD GET"));
+    tree.insert("KAD PUT", CommandHint::new("KAD PUT key value", "KAD PUT"));
+    tree.insert("KAD GET", CommandHint::new("KAD GET key", "KAD GET"));
     tree.insert("KAD BOOT", CommandHint::new("KAD BOOT", "KAD BOOT"));
     tree.insert(
-        "KAD PROVIDE key",
+        "KAD PROVIDE",
         CommandHint::new("KAD PROVIDE key", "KAD PROVIDE"),
     );
     tree.insert(
-        "KAD PROVIDERS key",
+        "KAD PROVIDERS",
         CommandHint::new("KAD PROVIDERS key", "KAD PROVIDERS"),
     );
     tree.insert("GOS HELP", CommandHint::new("GOS HELP", "GOS HELP"));
     tree.insert("GOS PING", CommandHint::new("GOS PING", "GOS PING"));
     tree.insert(
-        "GOS PUB topic message",
+        "GOS PUB",
         CommandHint::new("GOS PUB topic message", "GOS PUB"),
     );
-    tree.insert(
-        "GOS SUB topic",
-        CommandHint::new("GOS SUB topic", "GOS SUB"),
-    );
+    tree.insert("GOS SUB", CommandHint::new("GOS SUB topic", "GOS SUB"));
     tree.insert("PING", CommandHint::new("PING", "PING"));
     #[cfg(feature = "batman")]
     {
@@ -180,19 +174,19 @@ fn diy_hints() -> DiyHinter {
     tree.insert("FILE HELP", CommandHint::new("FILE HELP", "FILE HELP"));
     tree.insert("FILE LIST", CommandHint::new("FILE LIST", "FILE LIST"));
     tree.insert(
-        "FILE IMPORT path",
+        "FILE IMPORT",
         CommandHint::new("FILE IMPORT path", "FILE IMPORT"),
     );
     tree.insert(
-        "FILE GET ulid hash path",
+        "FILE GET",
         CommandHint::new("FILE GET ulid hash path", "FILE GET"),
     );
     tree.insert(
-        "SCRIPT DEPLOY SELF|peer_id image",
+        "SCRIPT DEPLOY",
         CommandHint::new("SCRIPT DEPLOY SELF|peer_id image", "SCRIPT DEPLOY"),
     );
     tree.insert(
-        "SCRIPT LOCAL DEPLOY SELF|peer_id image",
+        "SCRIPT LOCAL DEPLOY",
         CommandHint::new(
             "SCRIPT LOCAL DEPLOY SELF|peer_id image",
             "SCRIPT LOCAL DEPLOY",
@@ -203,7 +197,7 @@ fn diy_hints() -> DiyHinter {
         CommandHint::new("SCRIPT LIST", "SCRIPT LIST"),
     );
     tree.insert(
-        "SCRIPT STOP ALL|id",
+        "SCRIPT STOP",
         CommandHint::new("SCRIPT STOP ALL|id", "SCRIPT STOP"),
     );
     tree.insert("QUIT", CommandHint::new("QUIT", "QUIT"));
@@ -286,11 +280,12 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "console-subscriber")]
     console_subscriber::init();
 
-    let store_directory = if random_directory {
-        store_directory.join(ulid::Ulid::new().to_string())
+    let history_file = store_directory.join("history.txt");
+    if history_file.exists() {
+        rl.load_history(&history_file)?;
     } else {
-        store_directory
-    };
+        tokio::fs::File::create(&history_file).await?;
+    }
 
     if clean {
         let number_of_cleans: usize = store_directory
@@ -324,6 +319,12 @@ async fn main() -> anyhow::Result<()> {
             .sum();
         println!("Cleaned up {number_of_cleans} directories and files");
     }
+
+    let store_directory = if random_directory {
+        store_directory.join(ulid::Ulid::new().to_string())
+    } else {
+        store_directory
+    };
 
     println!("Store directory: {store_directory:?}");
 
@@ -420,6 +421,10 @@ async fn main() -> anyhow::Result<()> {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
+                if line.is_empty() {
+                    continue;
+                }
+
                 rl.add_history_entry(line.as_str())?;
                 if line.to_uppercase().starts_with("KAD") {
                     let kad = client.kad();
@@ -961,6 +966,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     scripting_client.stop_all_containers(true).await?;
+
+    rl.save_history(&history_file)?;
 
     Ok(())
 }

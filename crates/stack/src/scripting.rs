@@ -275,9 +275,7 @@ struct ContainerHandle {
 
 impl ContainerHandle {
     async fn stop(self, kill: bool) -> Result<Ulid, ExecutionError> {
-        self.stop_sender
-            .send(kill)
-            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+        let _ = self.stop_sender.send(kill);
         self.handle.await??;
         Ok(self.id)
     }
