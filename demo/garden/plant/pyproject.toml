@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "plant"
+version = "0.1.0"
+description = ""
+authors = [ "Linus Meierhoefer <linusmeierhoefer@protonmail.com>" ]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+p2pindustries = {path = "../../../sdks/python"}
+gpiozero = "^2.0.1"
+grpcio = "^1.64.0"
+protobuf = "^5.27.0"
+adafruit-blinka = "^8.39.2"
+adafruit-circuitpython-ahtx0 = "^1.0.21"
+adafruit-circuitpython-bh1750 = "^1.1.10"
+rpi-gpio = "^0.7.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

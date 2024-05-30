@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "pump"
+version = "0.1.0"
+description = ""
+authors = ["umgefahren <55623006+umgefahren@users.noreply.github.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+p2pindustries = {path = "../../../sdks/python"}
+gpiozero = "^2.0.1"
+grpcio = "^1.64.0"
+protobuf = "^5.27.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
