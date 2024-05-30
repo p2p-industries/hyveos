@@ -4,8 +4,18 @@ on:
   workflow_dispatch:
   push:
     branches: ["main"]
+    paths:
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**.proto"
   pull_request:
     branches: ["main"]
+    paths:
+      - "**.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**.proto"
 
 jobs:
   test:

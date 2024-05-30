@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     io,
-    net::SocketAddr,
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr},
     ops::Not,
     pin::Pin,
     task::{Context, Poll},
@@ -13,14 +13,19 @@ use bollard::{
         AttachContainerOptions, AttachContainerResults, Config, CreateContainerOptions, LogOutput,
         StopContainerOptions,
     },
+    errors::Error as BollardError,
     image::{CreateImageOptions, ImportImageOptions},
     secret::{BuildInfo, HostConfig, Mount, MountTypeEnum, PortBinding},
     service::{CreateImageInfo, ProgressDetail},
 };
 use bytes::Bytes;
-use futures::{TryFutureExt, TryStreamExt};
+use futures::{
+    future::{FusedFuture as _, FutureExt, OptionFuture},
+    TryStreamExt as _,
+};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use lazy_regex::regex;
+use pin_project::pin_project;
 use serde::{Deserialize, Serialize};
 use tokio::{
     io::{
@@ -32,7 +37,7 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 
-pub type Error = bollard::errors::Error;
+pub type Error = BollardError;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Compression {
@@ -75,7 +80,7 @@ fn new_progress_bar(total: u64) -> ProgressBar {
 
 impl ContainerManager {
     /// Create a new container manager
-    pub fn new() -> Result<Self, bollard::errors::Error> {
+    pub fn new() -> Result<Self, BollardError> {
         let docker = bollard::Docker::connect_with_local_defaults()?;
         Ok(Self { inner: docker })
     }
@@ -84,7 +89,7 @@ impl ContainerManager {
         &self,
         root_fs: Bytes,
         compression: Compression,
-    ) -> Result<PulledImage<'_>, bollard::errors::Error> {
+    ) -> Result<PulledImage<'_>, BollardError> {
         let mut archive = Vec::new();
         match compression {
             Compression::None => FlexDecompressor::None(BufReader::new(&root_fs[..])),
@@ -143,7 +148,7 @@ impl ContainerManager {
         &'a self,
         image: &'a str,
         verbose: bool,
-    ) -> Result<PulledImage<'a>, bollard::errors::Error> {
+    ) -> Result<PulledImage<'a>, BollardError> {
         let mut fetching_stream = self.inner.create_image(
             Some(CreateImageOptions {
                 from_image: image,
@@ -198,7 +203,7 @@ impl ContainerManager {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PulledImage<'a> {
     pub image: Cow<'a, str>,
     docker: Cow<'a, bollard::Docker>,
@@ -221,17 +226,18 @@ impl PulledImage<'_> {
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let _ = image.remove().await;
     /// # }
-    pub async fn remove(self) -> Result<(), bollard::errors::Error> {
+    pub async fn remove(self) -> Result<(), BollardError> {
         self.docker
             .remove_image(&self.image, None, None)
             .await
             .map(|_| ())
     }
 
-    pub async fn export(&self, compression: Compression) -> Result<Bytes, bollard::errors::Error> {
-        let mut exporter = self.docker.export_image(&self.image).map(|e| {
-            e.map_err(|e| bollard::errors::Error::from(io::Error::new(io::ErrorKind::Other, e)))
-        });
+    pub async fn export(&self, compression: Compression) -> Result<Bytes, BollardError> {
+        let mut exporter = self
+            .docker
+            .export_image(&self.image)
+            .map(|e| e.map_err(|e| BollardError::from(io::Error::new(io::ErrorKind::Other, e))));
         let mut archive = Vec::new();
         let mut compressor = match compression {
             Compression::None => FlexCompressor::None(&mut archive),
@@ -272,7 +278,8 @@ impl PulledImage<'_> {
             volumes: HashMap::new(),
             name: None,
             network_mode: None,
-            exposed_ports: Vec::new(),
+            privileged: None,
+            exposed_ports: None,
             env: HashMap::new(),
         }
     }
@@ -296,7 +303,8 @@ impl PulledImage<'_> {
             volumes: HashMap::new(),
             name: None,
             network_mode: None,
-            exposed_ports: Vec::new(),
+            privileged: None,
+            exposed_ports: None,
             env: HashMap::new(),
         }
     }
@@ -314,7 +322,8 @@ pub struct ContainerBuilder<'a, In = Empty, Out = Sink, Err = Sink> {
     volumes: HashMap<String, String>,
     name: Option<String>,
     network_mode: Option<NetworkMode>,
-    exposed_ports: Vec<(u16, SocketAddr)>,
+    privileged: Option<bool>,
+    exposed_ports: Option<Vec<(u16, SocketAddr)>>,
     env: HashMap<String, String>,
 }
 
@@ -376,6 +385,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             volumes: self.volumes,
             name: self.name,
             network_mode: self.network_mode,
+            privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
         }
@@ -396,6 +406,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             volumes: self.volumes,
             name: self.name,
             network_mode: self.network_mode,
+            privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
         }
@@ -416,6 +427,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             volumes: self.volumes,
             name: self.name,
             network_mode: self.network_mode,
+            privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
         }
@@ -427,12 +439,19 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
     }
 
     pub fn expose_port(mut self, container_port: u16, host: SocketAddr) -> Self {
-        self.exposed_ports.push((container_port, host));
+        self.exposed_ports
+            .get_or_insert_with(Vec::new)
+            .push((container_port, host));
         self
     }
 
     pub fn network_mode(mut self, mode: NetworkMode) -> Self {
         self.network_mode = Some(mode);
+        self
+    }
+
+    pub fn privileged(mut self, privileged: bool) -> Self {
+        self.privileged = Some(privileged);
         self
     }
 
@@ -449,7 +468,7 @@ where
     Err: AsyncWrite + Unpin + Send + 'static,
 {
     /// Run the container
-    pub async fn run(self) -> Result<RunningContainer<'a>, bollard::errors::Error> {
+    pub async fn run(self) -> Result<RunningContainer<'a>, BollardError> {
         let ContainerBuilder {
             docker,
             image,
@@ -461,26 +480,80 @@ where
             volumes,
             name,
             network_mode,
+            privileged,
             exposed_ports,
             env,
         } = self;
 
-        let exposed_ports = match &exposed_ports[..] {
-            [] => None,
-            ports => {
+        let (port_bindings, exposed_ports) = match exposed_ports.as_deref() {
+            Some([]) => (None, None),
+            Some(ports) => {
                 let mut port_bindings = HashMap::new();
+                let mut exposed_ports = HashMap::new();
                 for (container, host) in ports {
-                    let bindings = port_bindings
-                        .entry(container.to_string())
+                    let tcp_bindings = port_bindings
+                        .entry(format!("{container}/tcp"))
                         .or_insert(Some(Vec::new()))
                         .as_mut()
                         .unwrap();
-                    bindings.push(PortBinding {
+                    tcp_bindings.push(PortBinding {
                         host_ip: Some(host.ip().to_string()),
                         host_port: Some(host.port().to_string()),
                     });
+
+                    let udp_bindings = port_bindings
+                        .entry(format!("{container}/udp"))
+                        .or_insert(Some(Vec::new()))
+                        .as_mut()
+                        .unwrap();
+                    udp_bindings.push(PortBinding {
+                        host_ip: Some(host.ip().to_string()),
+                        host_port: Some(host.port().to_string()),
+                    });
+
+                    exposed_ports.insert(format!("{}/tcp", host.port()), Default::default());
+                    exposed_ports.insert(format!("{}/udp", host.port()), Default::default());
                 }
-                Some(port_bindings)
+                (Some(port_bindings), Some(exposed_ports))
+            }
+            None => {
+                let exposed_ports = docker
+                    .inspect_image(&image)
+                    .await?
+                    .config
+                    .and_then(|c| c.exposed_ports);
+
+                if let Some(exposed_ports) = &exposed_ports {
+                    println!("Found exposed ports in image: {exposed_ports:?}");
+                }
+
+                let port_bindings = exposed_ports.as_ref().map(|ports| {
+                    let mut port_bindings = HashMap::new();
+
+                    for port_name in ports.keys() {
+                        if let Some(port) = port_name
+                            .strip_suffix("/tcp")
+                            .or_else(|| port_name.strip_suffix("/udp"))
+                        {
+                            let bindings = vec![
+                                PortBinding {
+                                    host_ip: Some(Ipv4Addr::UNSPECIFIED.to_string()),
+                                    host_port: Some(port.to_string()),
+                                },
+                                PortBinding {
+                                    host_ip: Some(Ipv6Addr::UNSPECIFIED.to_string()),
+                                    host_port: Some(port.to_string()),
+                                },
+                            ];
+
+                            port_bindings.insert(port_name.clone(), Some(bindings));
+                        }
+                    }
+
+                    port_bindings
+                });
+
+                (port_bindings, exposed_ports)
             }
         };
 
@@ -497,7 +570,8 @@ where
                     .collect()
             }),
             network_mode: network_mode.map(|m| m.as_str().to_string()),
-            port_bindings: exposed_ports,
+            port_bindings,
+            privileged,
             ..Default::default()
         };
 
@@ -521,6 +595,7 @@ where
             attach_stdout: stdout.as_ref().map(|_| true),
             attach_stderr: stderr.as_ref().map(|_| true),
             host_config: Some(host_config),
+            exposed_ports,
             env,
             ..Default::default()
         };
@@ -561,7 +636,7 @@ where
                 }
                 _ = tokio::io::copy(&mut s, &mut input) => {}
             }
-            Ok::<_, bollard::errors::Error>(())
+            Ok::<_, BollardError>(())
         });
 
         let (output_abort, abort_rx) = oneshot::channel();
@@ -579,6 +654,7 @@ where
                             }
                             if let Some(out) = stdout.as_mut() {
                                 out.write_all(&message[..]).await?;
+                                out.flush().await?;
                             }
                         }
                         LogOutput::StdErr { message } => {
@@ -587,6 +663,7 @@ where
                             }
                             if let Some(out) = stderr.as_mut() {
                                 out.write_all(&message[..]).await?;
+                                out.flush().await?;
                             }
                         }
                         _ => {}
@@ -608,7 +685,7 @@ where
             docker,
             id: Cow::Owned(id),
             image,
-            output_handle,
+            output_handle: Some(output_handle),
             input_abort,
             output_abort,
             input_handle: input_handle.map(tokio::spawn),
@@ -622,8 +699,8 @@ pub struct RunningContainer<'a> {
     pub id: Cow<'a, str>,
     pub image: Cow<'a, str>,
     output_abort: oneshot::Sender<()>,
-    output_handle: JoinHandle<Result<(), bollard::errors::Error>>,
-    input_handle: Option<JoinHandle<Result<(), bollard::errors::Error>>>,
+    output_handle: Option<JoinHandle<Result<(), BollardError>>>,
+    input_handle: Option<JoinHandle<Result<(), BollardError>>>,
     input_abort: oneshot::Sender<()>,
 }
 
@@ -640,31 +717,28 @@ impl<'a> RunningContainer<'a> {
         }
     }
 
-    async fn inner_stop(
-        mut self,
-        t: Option<i64>,
-    ) -> Result<StoppedContainer<'a>, bollard::errors::Error> {
+    async fn inner_stop(mut self, t: Option<i64>) -> Result<StoppedContainer<'a>, BollardError> {
         self.docker
             .stop_container(&self.id, t.map(|t| StopContainerOptions { t }))
             .await?;
-        let _ = self.output_abort.send(());
-        if let Ok(inner) =
-            tokio::time::timeout(std::time::Duration::from_secs(1), &mut self.output_handle).await
-        {
-            inner.map_err(|e| {
-                bollard::errors::Error::from(io::Error::new(io::ErrorKind::Other, e))
-            })??;
-        } else {
-            self.output_handle.abort();
+        if let Some(mut handle) = self.output_handle.take() {
+            let _ = self.output_abort.send(());
+            if let Ok(inner) =
+                tokio::time::timeout(std::time::Duration::from_secs(1), &mut handle).await
+            {
+                inner
+                    .map_err(|e| BollardError::from(io::Error::new(io::ErrorKind::Other, e)))??;
+            } else {
+                handle.abort();
+            }
         }
         if let Some(mut handle) = self.input_handle.take() {
             let _ = self.input_abort.send(());
             if let Ok(inner) =
                 tokio::time::timeout(std::time::Duration::from_secs(1), &mut handle).await
             {
-                inner.map_err(|e| {
-                    bollard::errors::Error::from(io::Error::new(io::ErrorKind::Other, e))
-                })??;
+                inner
+                    .map_err(|e| BollardError::from(io::Error::new(io::ErrorKind::Other, e)))??;
             } else {
                 handle.abort();
             }
@@ -687,7 +761,7 @@ impl<'a> RunningContainer<'a> {
     /// # let image = stopped.remove().await.unwrap();
     /// # let _ = image.remove().await;
     /// # }
-    pub async fn stop(self) -> Result<StoppedContainer<'a>, bollard::errors::Error> {
+    pub async fn stop(self) -> Result<StoppedContainer<'a>, BollardError> {
         self.inner_stop(None).await
     }
 
@@ -702,43 +776,75 @@ impl<'a> RunningContainer<'a> {
     /// # let image = stopped.remove().await.unwrap();
     /// # let _ = image.remove().await;
     /// # }
-    pub async fn kill(self) -> Result<StoppedContainer<'a>, bollard::errors::Error> {
+    pub async fn kill(self) -> Result<StoppedContainer<'a>, BollardError> {
         self.inner_stop(Some(0)).await
     }
 
     /// Run the container to completion
-    pub async fn run_to_completion(self) -> Result<StoppedContainer<'a>, bollard::errors::Error> {
-        let wait_output = async {
-            let result = self
-                .docker
+    pub async fn run_to_completion(
+        mut self,
+        stop: Option<oneshot::Receiver<bool>>,
+    ) -> Result<StoppedContainer<'a>, BollardError> {
+        let mut wait_future = OptionFuture::from(Some(
+            self.docker
                 .wait_container::<&str>(&self.id, None)
-                .try_collect::<Vec<_>>()
-                .await?;
-            Ok::<_, bollard::errors::Error>(result)
-        };
-        if let Some(input_handle) = self.input_handle {
-            let _ = tokio::try_join!(
-                wait_output,
-                input_handle.map_err(|e| {
-                    bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
-                }),
-                self.output_handle.map_err(|e| {
-                    bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
-                })
-            )?;
-        } else {
-            let _ = tokio::try_join!(
-                wait_output,
-                self.output_handle.map_err(|e| {
-                    bollard::errors::Error::from(std::io::Error::new(std::io::ErrorKind::Other, e))
-                })
-            )?;
+                .try_collect::<Vec<_>>(),
+        ));
+
+        let mut output_future =
+            OptionFuture::from(self.output_handle.as_mut().map(FutureExt::fuse));
+        let mut input_future = OptionFuture::from(self.input_handle.as_mut().map(FutureExt::fuse));
+        let mut stop_future = OptionFuture::from(stop);
+
+        loop {
+            tokio::select! {
+                Some(res) = &mut wait_future => {
+                    match res {
+                        Ok(_) => {
+                            wait_future = None.into();
+                        }
+                        Err(e) => return Err(e),
+                    }
+                }
+                Some(res) = &mut output_future => {
+                    match res {
+                        Ok(Ok(())) => {
+                            output_future = None.into();
+                        }
+                        Ok(Err(e)) => return Err(e),
+                        Err(e) => return Err(BollardError::from(io::Error::from(e))),
+                    }
+                }
+                Some(res) = &mut input_future => {
+                    match res {
+                        Ok(Ok(())) => {
+                            input_future = None.into();
+                        }
+                        Ok(Err(e)) => return Err(e),
+                        Err(e) => return Err(BollardError::from(io::Error::from(e))),
+                    }
+                }
+                Some(res) = &mut stop_future => {
+                    if output_future.is_terminated() {
+                        self.output_handle = None;
+                    }
+                    if input_future.is_terminated() {
+                        self.input_handle = None;
+                    }
+
+                    if res.unwrap_or(true) {
+                        return self.kill().await;
+                    } else {
+                        return self.stop().await;
+                    }
+                }
+                else => {
+                    let image = PulledImage { image: self.image, docker: self.docker };
+
+                    return Ok(StoppedContainer { id: self.id, image });
+                }
+            }
         }
-        let image = PulledImage {
-            image: self.image,
-            docker: self.docker,
-        };
-        Ok(StoppedContainer { id: self.id, image })
     }
 }
 
@@ -749,13 +855,13 @@ pub struct StoppedContainer<'a> {
 
 impl<'a> StoppedContainer<'a> {
     /// Remove the container from the docker daemon
-    pub async fn remove(self) -> Result<PulledImage<'a>, bollard::errors::Error> {
+    pub async fn remove(self) -> Result<PulledImage<'a>, BollardError> {
         self.image.docker.remove_container(&self.id, None).await?;
         Ok(self.image)
     }
 }
 
-#[pin_project::pin_project(project = FlexCompressorProj)]
+#[pin_project(project = FlexCompressorProj)]
 enum FlexCompressor<W> {
     None(#[pin] W),
     #[cfg(feature = "zstd")]
@@ -828,13 +934,14 @@ mod tests {
     use std::{
         fs::File,
         io::{Read, Write as _},
+        time::Duration,
     };
 
     use once_cell::sync::Lazy;
     use tempfile::{tempdir, NamedTempFile};
     use tokio::{
         io::{AsyncBufReadExt, BufReader},
-        sync::Barrier,
+        sync::{oneshot, Barrier},
     };
 
     use crate::Compression;
@@ -845,7 +952,7 @@ mod tests {
     #[cfg(not(feature = "zstd"))]
     const ZSTD_NUM: usize = 0;
 
-    const TEST_NUM: usize = 9 + ZSTD_NUM;
+    const TEST_NUM: usize = 10 + ZSTD_NUM;
 
     static BARRIER: Lazy<Barrier> = Lazy::new(|| Barrier::new(TEST_NUM));
 
@@ -914,7 +1021,7 @@ mod tests {
             .run()
             .await
             .unwrap();
-        let stopped = container.run_to_completion().await.unwrap();
+        let stopped = container.run_to_completion(None).await.unwrap();
         let image = stopped.remove().await.unwrap();
         wait_before_remove!(image);
     }
@@ -957,6 +1064,33 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.kill().await.unwrap();
+        let image = stopped.remove().await.unwrap();
+        wait_before_remove!(image);
+    }
+
+    #[tokio::test]
+    async fn test_cancel_run_to_completion() {
+        const IMAGE: &str = "alpine:latest";
+        let manager = super::ContainerManager::new().unwrap();
+        let image = manager.pull_image(IMAGE, false).await.unwrap();
+        let container = image
+            .create_container()
+            .enable_stream()
+            .cmd(vec!["sh", "-c", "sleep 1000"])
+            .run()
+            .await
+            .unwrap()
+            .into_owned();
+
+        let (stop_sender, stop_receiver) = oneshot::channel();
+
+        let handle = tokio::spawn(container.run_to_completion(Some(stop_receiver)));
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        stop_sender.send(false).unwrap();
+
+        let stopped = handle.await.unwrap().unwrap();
         let image = stopped.remove().await.unwrap();
         wait_before_remove!(image);
     }
@@ -1035,7 +1169,7 @@ mod tests {
             .await
             .unwrap();
 
-        let stopped = container.run_to_completion().await.unwrap();
+        let stopped = container.run_to_completion(None).await.unwrap();
         let image = stopped.remove().await.unwrap();
         wait_before_remove!(image);
 

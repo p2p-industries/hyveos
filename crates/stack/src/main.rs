@@ -3,7 +3,7 @@
 
 #[cfg(feature = "batman")]
 use std::sync::Arc;
-use std::{env::temp_dir, fmt::Write as _, io, path::PathBuf};
+use std::{collections::HashSet, env::temp_dir, fmt::Write as _, io, path::PathBuf};
 
 use base64_simd::{Out, URL_SAFE};
 use clap::Parser;
@@ -44,8 +44,20 @@ fn default_store_directory() -> PathBuf {
 
 #[derive(Debug, Parser)]
 pub struct Opts {
-    #[clap(short, long, value_delimiter = ',')]
+    #[clap(
+        short,
+        long = "listen-address",
+        value_name = "LISTEN_ADDRESS",
+        conflicts_with("interfaces")
+    )]
     pub listen_addrs: Option<Vec<ifaddr::IfAddr>>,
+    #[clap(
+        short,
+        long = "interface",
+        value_name = "INTERFACE",
+        conflicts_with("listen_addrs")
+    )]
+    pub interfaces: Option<Vec<String>>,
     #[clap(short, long, default_value_os_t = default_store_directory())]
     pub store_directory: PathBuf,
     #[clap(short, long)]
@@ -130,30 +142,24 @@ fn diy_hints() -> DiyHinter {
         CommandHint::new("SCRIPT HELP", "SCRIPT HELP"),
     );
     tree.insert("KAD HELP", CommandHint::new("KAD HELP", "KAD HELP"));
-    tree.insert(
-        "KAD PUT key value",
-        CommandHint::new("KAD PUT key value", "KAD PUT"),
-    );
-    tree.insert("KAD GET key", CommandHint::new("KAD GET key", "KAD GET"));
+    tree.insert("KAD PUT", CommandHint::new("KAD PUT key value", "KAD PUT"));
+    tree.insert("KAD GET", CommandHint::new("KAD GET key", "KAD GET"));
     tree.insert("KAD BOOT", CommandHint::new("KAD BOOT", "KAD BOOT"));
     tree.insert(
-        "KAD PROVIDE key",
+        "KAD PROVIDE",
         CommandHint::new("KAD PROVIDE key", "KAD PROVIDE"),
     );
     tree.insert(
-        "KAD PROVIDERS key",
+        "KAD PROVIDERS",
         CommandHint::new("KAD PROVIDERS key", "KAD PROVIDERS"),
     );
     tree.insert("GOS HELP", CommandHint::new("GOS HELP", "GOS HELP"));
     tree.insert("GOS PING", CommandHint::new("GOS PING", "GOS PING"));
     tree.insert(
-        "GOS PUB topic message",
+        "GOS PUB",
         CommandHint::new("GOS PUB topic message", "GOS PUB"),
     );
-    tree.insert(
-        "GOS SUB topic",
-        CommandHint::new("GOS SUB topic", "GOS SUB"),
-    );
+    tree.insert("GOS SUB", CommandHint::new("GOS SUB topic", "GOS SUB"));
     tree.insert("PING", CommandHint::new("PING", "PING"));
     #[cfg(feature = "batman")]
     {
@@ -168,30 +174,44 @@ fn diy_hints() -> DiyHinter {
     tree.insert("FILE HELP", CommandHint::new("FILE HELP", "FILE HELP"));
     tree.insert("FILE LIST", CommandHint::new("FILE LIST", "FILE LIST"));
     tree.insert(
-        "FILE IMPORT path",
+        "FILE IMPORT",
         CommandHint::new("FILE IMPORT path", "FILE IMPORT"),
     );
     tree.insert(
-        "FILE GET ulid hash path",
+        "FILE GET",
         CommandHint::new("FILE GET ulid hash path", "FILE GET"),
     );
     tree.insert(
-        "SCRIPT DEPLOY SELF|peer_id image",
+        "SCRIPT DEPLOY",
         CommandHint::new("SCRIPT DEPLOY SELF|peer_id image", "SCRIPT DEPLOY"),
     );
     tree.insert(
-        "SCRIPT LOCAL DEPLOY SELF|peer_id image",
+        "SCRIPT LOCAL DEPLOY",
         CommandHint::new(
             "SCRIPT LOCAL DEPLOY SELF|peer_id image",
             "SCRIPT LOCAL DEPLOY",
         ),
     );
+    tree.insert(
+        "SCRIPT LIST",
+        CommandHint::new("SCRIPT LIST", "SCRIPT LIST"),
+    );
+    tree.insert(
+        "SCRIPT STOP",
+        CommandHint::new("SCRIPT STOP ALL|id", "SCRIPT STOP"),
+    );
+    tree.insert("QUIT", CommandHint::new("QUIT", "QUIT"));
     DiyHinter { tree }
 }
 
 #[cfg(not(feature = "batman"))]
-fn fallback_listen_addrs() -> Vec<Multiaddr> {
+fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
     use std::net::{Ipv4Addr, Ipv6Addr};
+
+    if interfaces.is_some() {
+        println!("Ignoring interfaces argument, batman feature is not enabled");
+    }
+
     [
         Multiaddr::empty().with(Protocol::Ip6(Ipv6Addr::UNSPECIFIED)),
         Multiaddr::empty().with(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)),
@@ -201,16 +221,28 @@ fn fallback_listen_addrs() -> Vec<Multiaddr> {
 }
 
 #[cfg(feature = "batman")]
-fn fallback_listen_addrs() -> Vec<Multiaddr> {
+fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
     use ifaddr::IfAddr;
+
+    let interfaces = interfaces.map(HashSet::<_>::from_iter);
 
     netdev::get_interfaces()
         .into_iter()
         .flat_map(|iface| {
-            iface.ipv6.into_iter().map(move |net| IfAddr {
-                if_index: iface.index,
-                addr: net.addr,
-            })
+            if let Some(interfaces) = &interfaces {
+                if !interfaces.contains(&iface.name) {
+                    return Vec::new();
+                }
+            }
+
+            iface
+                .ipv6
+                .into_iter()
+                .map(move |net| IfAddr {
+                    if_index: iface.index,
+                    addr: net.addr,
+                })
+                .collect()
         })
         .map(Multiaddr::from)
         .collect()
@@ -221,6 +253,7 @@ fn fallback_listen_addrs() -> Vec<Multiaddr> {
 async fn main() -> anyhow::Result<()> {
     let Opts {
         listen_addrs,
+        interfaces,
         store_directory,
         random_directory,
         clean,
@@ -247,11 +280,12 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "console-subscriber")]
     console_subscriber::init();
 
-    let store_directory = if random_directory {
-        store_directory.join(ulid::Ulid::new().to_string())
+    let history_file = store_directory.join("history.txt");
+    if history_file.exists() {
+        rl.load_history(&history_file)?;
     } else {
-        store_directory
-    };
+        tokio::fs::File::create(&history_file).await?;
+    }
 
     if clean {
         let number_of_cleans: usize = store_directory
@@ -286,15 +320,22 @@ async fn main() -> anyhow::Result<()> {
         println!("Cleaned up {number_of_cleans} directories and files");
     }
 
+    let store_directory = if random_directory {
+        store_directory.join(ulid::Ulid::new().to_string())
+    } else {
+        store_directory
+    };
+
     println!("Store directory: {store_directory:?}");
 
     if !store_directory.exists() {
         std::fs::create_dir_all(&store_directory)?;
     }
 
-    let listen_addrs: Vec<_> = listen_addrs.map_or_else(fallback_listen_addrs, |e| {
-        e.into_iter().map(Multiaddr::from).collect()
-    });
+    let listen_addrs: Vec<_> = listen_addrs.map_or_else(
+        || fallback_listen_addrs(interfaces),
+        |e| e.into_iter().map(Multiaddr::from).collect(),
+    );
     println!("Listen addresses: {listen_addrs:?}");
     let listen_addrs = listen_addrs
         .into_iter()
@@ -380,6 +421,10 @@ async fn main() -> anyhow::Result<()> {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
+                if line.is_empty() {
+                    continue;
+                }
+
                 rl.add_history_entry(line.as_str())?;
                 if line.to_uppercase().starts_with("KAD") {
                     let kad = client.kad();
@@ -653,6 +698,14 @@ async fn main() -> anyhow::Result<()> {
                                     "SCRIPT LOCAL DEPLOY SELF|peer_id image ports...",
                                     "Deploy a local docker image to a peer, exposing the specified ports",
                                 ),
+                                (
+                                    "SCRIPT LIST",
+                                    "List all running scripts",
+                                ),
+                                (
+                                    "SCRIPT STOP ALL|id",
+                                    "Stop all running scripts or a specific script by ID",
+                                ),
                             ]);
                         }
                         ["SCRIPT", "DEPLOY", self_, image, ports @ ..]
@@ -722,6 +775,44 @@ async fn main() -> anyhow::Result<()> {
                                 Err(e) => {
                                     println!("Failed to deploy image: {e:?}");
                                 }
+                            }
+                        }
+                        ["SCRIPT", "LIST"] => {
+                            if let Ok(scripts) = scripting_client.list_containers().await {
+                                if scripts.is_empty() {
+                                    println!("No running scripts");
+                                } else {
+                                    println!("Running scripts:");
+                                    for (id, image) in scripts {
+                                        println!("  {id}: {image}");
+                                    }
+                                }
+                            } else {
+                                println!("Failed to list scripts");
+                            }
+                        }
+                        ["SCRIPT", "STOP", all] if all.to_uppercase() == "ALL" => {
+                            match scripting_client.stop_all_containers(false).await {
+                                Ok(()) => {
+                                    println!("Stopped all containers");
+                                }
+                                Err(e) => {
+                                    println!("Failed to stop all containers: {e}");
+                                }
+                            }
+                        }
+                        ["SCRIPT", "STOP", id] => {
+                            if let Ok(id) = id.parse() {
+                                match scripting_client.stop_container(id).await {
+                                    Ok(()) => {
+                                        println!("Stopped container with id {id}");
+                                    }
+                                    Err(e) => {
+                                        println!("Failed to stop container: {e}");
+                                    }
+                                }
+                            } else {
+                                println!("Invalid ULID");
                             }
                         }
                         _ => {
@@ -853,6 +944,8 @@ async fn main() -> anyhow::Result<()> {
                             println!("Invalid command");
                         }
                     }
+                } else if line.to_uppercase().trim() == "QUIT" {
+                    break;
                 } else {
                     println!("Invalid command");
                 }
@@ -871,6 +964,10 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
+
+    scripting_client.stop_all_containers(true).await?;
+
+    rl.save_history(&history_file)?;
 
     Ok(())
 }
