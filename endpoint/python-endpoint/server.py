@@ -54,6 +54,7 @@ class TopologyRelayManager:
     async def listen(self):
         async with self.debug_service.get_mesh_topology() as mesh_events:
             async for data in mesh_events:
+                print(f"Detected change in Topology: {json.dumps(Event.parse_from_mesh_event(data))}")
                 self.graph.add(Event.parse_from_mesh_event(data))
                 await self.queue.put(Event.parse_from_mesh_event(data))
 
