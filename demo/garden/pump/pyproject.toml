@@ -12,7 +12,7 @@ p2pindustries = {path = "../../../sdks/python"}
 gpiozero = "^2.0.1"
 grpcio = "^1.64.0"
 protobuf = "^5.27.0"
-rpi-gpio = "^0.7.1"
+lgpio = "^0.2.2.0"
 
 
 [build-system]

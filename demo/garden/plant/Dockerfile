@@ -13,6 +13,6 @@ RUN poetry remove p2pindustries
 RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --only main
 
-ENV VALVE_PIN=17
+ENV VALVE_PIN=13
 
 CMD ["poetry", "run", "python", "plant.py"]

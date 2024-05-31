@@ -14,6 +14,15 @@ VALVE_PIN = 8
 pending_watering_request = False
 lock = asyncio.Lock()
 
+class MoistureSensor:
+    sensor: MCP3008
+
+    def __init__(self, sensor):
+        self.sensor = sensor
+
+    def get(self):
+        return (self.sensor.value - 0.733) / (0.285 - 0.733)
+
 
 class ValveController:
     valve: LED
@@ -21,23 +30,27 @@ class ValveController:
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
 
     def __init__(self, valve, moisture_sensor):
-        self.vale = valve
+        self.valve = valve
         self.sensor = moisture_sensor
 
     async def open_until_satisfied(self):
-        if self.sensor.value < MOISTURE_THRESHOLD:
+        print(f"[ML: {self.sensor.get()}] Opening valve.")
+        if self.sensor.get() < MOISTURE_THRESHOLD:
             self.valve.on()
 
-            while self.sensor.value < MOISTURE_THRESHOLD:
+            while self.sensor.get() < MOISTURE_THRESHOLD:
+                print(f"[ML: {self.sensor.get()}] Valve remains open.")
                 await asyncio.sleep(0.10)
+
+            print(f"[ML: {self.sensor.get()}] Closing valve.")
 
             self.valve.off()
 
-    def __aenter__(self):
-        self.semaphore.acquire()
+    async def __aenter__(self):
+        await self.semaphore.acquire()
         return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.semaphore.release()
 
 
@@ -52,15 +65,18 @@ async def manage_watering_request(gossip, peer_id, moisture_sensor):
 
     while True:
         async with lock:
-            if (not pending_watering_request) and (moisture_sensor.value < MOISTURE_THRESHOLD):
+            if (not pending_watering_request) and (moisture_sensor.get() < MOISTURE_THRESHOLD):
+                print(f"Moisture level {moisture_sensor.get()} below threshold")
+                print(f"Sending watering request")
                 await gossip.publish(json.dumps({
                     "peer_id": peer_id,
-                    "watering_request": True
+                    "watering_request": True,
+                    "claim": 0,
                 }), "watering_request")
 
                 pending_watering_request = True
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(1)
 
 
 async def manage_valve(reqres, valve_controller, peer_id):
@@ -73,7 +89,7 @@ async def manage_valve(reqres, valve_controller, peer_id):
                     if pending_watering_request:
                         async with valve_controller:
                             await valve_controller.open_until_satisfied()
-                            await reqres.send_response(request.seq, json.dumps({'peer_id': peer_id, 'done': True}))
+                            await reqres.respond(request.seq, json.dumps({'peer_id': peer_id, 'done': True}))
                             pending_watering_request = False
                     else:
                         await reqres.send_response(request.seq, '', f'Peer {peer_id} did not request water')
@@ -83,8 +99,8 @@ async def control_soil_moisture(gossip, reqres, soil_sensor, peer_id):
     valve_controller = ValveController(LED(int(os.environ["VALVE_PIN"])), soil_sensor)
 
     await asyncio.gather(
-        manage_valve(reqres, valve_controller, peer_id),
-        manage_watering_request(gossip, peer_id, soil_sensor),
+        asyncio.create_task(manage_valve(reqres, valve_controller, peer_id)),
+        asyncio.create_task(manage_watering_request(gossip, peer_id, soil_sensor)),
     )
 
 
@@ -112,19 +128,19 @@ async def main():
         i2c = board.I2C()
         light_sensor = adafruit_bh1750.BH1750(i2c)
         climate_sensor = adafruit_ahtx0.AHTx0(i2c)
-        moisture = MCP3008(channel=0)
+        moisture_sensor = MoistureSensor(MCP3008(channel=0))
 
         await asyncio.gather(
-            write_to_prometheus(reqres, prometheus_peer, 'temperature',
-                                lambda: json.dumps({'peer_id': my_peer_id, 'temperature': climate_sensor.temperature})),
-            write_to_prometheus(reqres, prometheus_peer, 'humidity',
+            asyncio.create_task(write_to_prometheus(reqres, prometheus_peer, 'temperature',
+                                lambda: json.dumps({'peer_id': my_peer_id, 'temperature': climate_sensor.temperature}))),
+            asyncio.create_task(write_to_prometheus(reqres, prometheus_peer, 'humidity',
                                 lambda: json.dumps(
-                                    {'peer_id': my_peer_id, 'humidity': climate_sensor.relative_humidity})),
-            write_to_prometheus(reqres, prometheus_peer, 'lux',
-                                lambda: json.dumps({'peer_id': my_peer_id, 'lux': light_sensor.lux})),
-            write_to_prometheus(reqres, prometheus_peer, 'soil_moisture',
-                                lambda: json.dumps({'peer_id': my_peer_id, 'soil_moisture': moisture.value})),
-            control_soil_moisture(gsub, reqres, moisture, my_peer_id))
+                                    {'peer_id': my_peer_id, 'humidity': climate_sensor.relative_humidity}))),
+            asyncio.create_task(write_to_prometheus(reqres, prometheus_peer, 'lux',
+                                lambda: json.dumps({'peer_id': my_peer_id, 'lux': light_sensor.lux}))),
+            asyncio.create_task(write_to_prometheus(reqres, prometheus_peer, 'soil_moisture',
+                                lambda: json.dumps({'peer_id': my_peer_id, 'soil_moisture': moisture_sensor.get()}))),
+            asyncio.create_task(control_soil_moisture(gsub, reqres, moisture_sensor, my_peer_id)))
 
 
 if __name__ == '__main__':
