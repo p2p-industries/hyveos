@@ -4,13 +4,13 @@ on:
   push:
     branches: [ 'main' ]
     paths:
-      - "sdks/python/*"
+      - "sdks/python/**/*"
       - "**.proto"
       - '.github/workflows/docker.yml'
   pull_request:
     branches: [ 'main' ]
     paths:
-      - "sdks/python/*"
+      - "sdks/python/**/*"
       - "**.proto"
       - '.github/workflows/docker.yml'
 
