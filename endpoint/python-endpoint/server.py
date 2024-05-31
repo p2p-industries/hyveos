@@ -24,9 +24,10 @@ class Event:
 
     @staticmethod
     def parse_from_mesh_event(mesh_event):
+        event = mesh_event.event.WhichOneof('event')
         return Event(source=mesh_event.peer,
-                     targets=getattr(mesh_event, mesh_event.WhichOneof('event')).value,
-                     event_type=mesh_event.WhichOneof('event'))
+                     targets=getattr(mesh_event.event, event).value,
+                     event_type=event)
 
 
 class TopologyRelayManager:
