@@ -3,7 +3,13 @@
 
 #[cfg(feature = "batman")]
 use std::sync::Arc;
-use std::{collections::HashSet, env::temp_dir, fmt::Write as _, io, path::PathBuf};
+use std::{
+    collections::HashSet,
+    env::temp_dir,
+    fmt::Write as _,
+    io::{self, IsTerminal as _},
+    path::PathBuf,
+};
 
 use base64_simd::{Out, URL_SAFE};
 use clap::Parser;
@@ -23,6 +29,7 @@ use p2p_stack::{file_transfer::Cid, gossipsub::ReceivedMessage, FullActor};
 #[cfg(feature = "batman")]
 use p2p_stack::{DebugClient, NeighbourEvent};
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
+use serde::Deserialize;
 #[cfg(feature = "batman")]
 use tokio::sync::broadcast::Receiver;
 use tokio::{
@@ -36,14 +43,26 @@ use crate::{printer::SharedPrinter, scripting::ScriptingManagerBuilder};
 mod printer;
 mod scripting;
 
-const APP_NAME: &str = "p2p-industries-engine";
+const APP_NAME: &str = "p2p-industries-stack";
 
 fn default_store_directory() -> PathBuf {
     data_local_dir().unwrap_or_else(temp_dir).join(APP_NAME)
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct Config {
+    #[serde(default)]
+    interfaces: Option<Vec<String>>,
+    #[serde(default)]
+    store_directory: Option<PathBuf>,
+    #[serde(default)]
+    random_directory: bool,
+}
+
 #[derive(Debug, Parser)]
 pub struct Opts {
+    #[clap(long, default_value = "/etc/p2p-industries-stack/config.toml")]
+    pub config_file: PathBuf,
     #[clap(
         short,
         long = "listen-address",
@@ -58,8 +77,8 @@ pub struct Opts {
         conflicts_with("listen_addrs")
     )]
     pub interfaces: Option<Vec<String>>,
-    #[clap(short, long, default_value_os_t = default_store_directory())]
-    pub store_directory: PathBuf,
+    #[clap(short, long)]
+    pub store_directory: Option<PathBuf>,
     #[clap(short, long)]
     pub random_directory: bool,
     #[clap(short, long)]
@@ -248,10 +267,11 @@ fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
         .collect()
 }
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::large_futures)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let Opts {
+        config_file,
         listen_addrs,
         interfaces,
         store_directory,
@@ -260,6 +280,47 @@ async fn main() -> anyhow::Result<()> {
         vim,
     } = Opts::parse();
 
+    let Config {
+        interfaces: config_interfaces,
+        store_directory: config_store_directory,
+        random_directory: config_random_directory,
+    } = tokio::fs::read_to_string(config_file)
+        .await
+        .ok()
+        .map(|s| toml::from_str(&s))
+        .transpose()?
+        .unwrap_or_default();
+
+    let listen_addrs: Vec<_> = listen_addrs.map_or_else(
+        || fallback_listen_addrs(interfaces.or(config_interfaces)),
+        |e| e.into_iter().map(Multiaddr::from).collect(),
+    );
+    println!("Listen addresses: {listen_addrs:?}");
+    let listen_addrs = listen_addrs
+        .into_iter()
+        .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
+
+    let store_directory = store_directory
+        .or(config_store_directory)
+        .unwrap_or(default_store_directory());
+
+    let random_directory = random_directory || config_random_directory;
+
+    if io::stdin().is_terminal() && io::stdout().is_terminal() {
+        main_tty(listen_addrs, store_directory, random_directory, clean, vim).await
+    } else {
+        main_alt(listen_addrs, store_directory, random_directory, clean).await
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn main_tty(
+    listen_addrs: impl Iterator<Item = Multiaddr>,
+    store_directory: PathBuf,
+    random_directory: bool,
+    clean: bool,
+    vim: bool,
+) -> anyhow::Result<()> {
     let mut builder = rustyline::Config::builder();
     if vim {
         builder = builder.edit_mode(rustyline::EditMode::Vi);
@@ -281,9 +342,14 @@ async fn main() -> anyhow::Result<()> {
     console_subscriber::init();
 
     let history_file = store_directory.join("history.txt");
+
     if history_file.exists() {
         rl.load_history(&history_file)?;
     } else {
+        if !store_directory.exists() {
+            std::fs::create_dir_all(&store_directory)?;
+        }
+
         tokio::fs::File::create(&history_file).await?;
     }
 
@@ -332,15 +398,6 @@ async fn main() -> anyhow::Result<()> {
         std::fs::create_dir_all(&store_directory)?;
     }
 
-    let listen_addrs: Vec<_> = listen_addrs.map_or_else(
-        || fallback_listen_addrs(interfaces),
-        |e| e.into_iter().map(Multiaddr::from).collect(),
-    );
-    println!("Listen addresses: {listen_addrs:?}");
-    let listen_addrs = listen_addrs
-        .into_iter()
-        .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
-
     let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
 
     actor.setup(listen_addrs);
@@ -380,7 +437,7 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "batman")]
         debug_command_sender,
     )
-    .with_printer(rl_printer.clone())
+    //.with_printer(rl_printer.clone())
     .build();
     tokio::spawn(scripting_manager.run());
 
@@ -1008,4 +1065,159 @@ fn help_message(explains: &[(&str, &str)]) {
     for (cmd, explain) in explains {
         println!("{cmd:<cmd_width_max$}: {explain:>explains_width_max$}");
     }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn main_alt(
+    listen_addrs: impl Iterator<Item = Multiaddr>,
+    store_directory: PathBuf,
+    random_directory: bool,
+    clean: bool,
+) -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
+    #[cfg(feature = "console-subscriber")]
+    console_subscriber::init();
+
+    if clean {
+        let number_of_cleans: usize = store_directory
+            .read_dir()
+            .expect("Failed to read directory")
+            .map(|e| {
+                let entry = e?;
+                if entry.file_type()?.is_dir() {
+                    let m = entry
+                        .path()
+                        .file_name()
+                        .map(|e| e.to_string_lossy().to_string())
+                        .unwrap();
+                    let m = ulid::Ulid::from_string(&m)
+                        .map(|_| {
+                            std::fs::remove_dir_all(entry.path())?;
+                            Ok::<_, std::io::Error>(1)
+                        })
+                        .unwrap_or(Ok(0usize))?;
+                    return Ok(m);
+                } else if entry.file_type()?.is_file() {
+                    std::fs::remove_file(entry.path())?;
+                    return Ok(1);
+                }
+
+                Ok::<usize, io::Error>(0)
+            })
+            .collect::<std::io::Result<Vec<usize>>>()
+            .expect("Failed to clean up")
+            .into_iter()
+            .sum();
+        println!("Cleaned up {number_of_cleans} directories and files");
+    }
+
+    let store_directory = if random_directory {
+        store_directory.join(ulid::Ulid::new().to_string())
+    } else {
+        store_directory
+    };
+
+    println!("Store directory: {store_directory:?}");
+
+    if !store_directory.exists() {
+        std::fs::create_dir_all(&store_directory)?;
+    }
+
+    let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
+
+    actor.setup(listen_addrs);
+
+    let actor_task = tokio::spawn(async move {
+        Box::pin(actor.drive()).await;
+    });
+
+    let file_provider = client
+        .file_transfer()
+        .create_provider(store_directory.clone())
+        .await
+        .expect("Failed to create file provider");
+
+    let file_provider_task = tokio::spawn(file_provider.run());
+
+    #[cfg(feature = "batman")]
+    let (debug_client, debug_command_sender) = DebugClient::build(client.clone());
+
+    #[cfg(feature = "batman")]
+    let debug_client_task = tokio::spawn(debug_client.run());
+
+    let scripting_command_broker = client
+        .scripting()
+        .subscribe()
+        .await
+        .expect("Failed to get command broker")
+        .expect("Failed to get command broker");
+
+    let runtime_base_path =
+        runtime_dir().unwrap_or_else(|| PathBuf::from("/tmp").join(APP_NAME).join("runtime"));
+
+    let (scripting_manager, scripting_client) = ScriptingManagerBuilder::new(
+        scripting_command_broker,
+        client.clone(),
+        runtime_base_path,
+        #[cfg(feature = "batman")]
+        debug_command_sender,
+    )
+    .build();
+    let scripting_manager_task = tokio::spawn(scripting_manager.run());
+
+    let gos = client.gossipsub();
+
+    let topic_handle = gos.get_topic(IdentTopic::new("PING"));
+
+    let mut res = topic_handle.subscribe().await.expect("Failed to subscribe");
+    let round_trip = client.round_trip();
+    let ping_task = tokio::spawn(async move {
+        loop {
+            match res.recv().await {
+                Ok(ReceivedMessage {
+                    propagation_source,
+                    message_id,
+                    message,
+                }) => {
+                    if let Some(source) = message.source {
+                        if let Ok(nonce_data) = message.data.try_into() {
+                            let nonce = u64::from_le_bytes(nonce_data);
+                            tracing::debug!("Received pong message from {source} via {propagation_source} and message id: {message_id}");
+                            round_trip.report_round_trip(source, nonce).await;
+                        }
+                    } else {
+                        println!("Received pong message from unkonwn source");
+                        continue;
+                    }
+                }
+                Err(err) => {
+                    println!("Error: {err:?}");
+                    break;
+                }
+            }
+        }
+    });
+
+    actor_task.await?;
+
+    scripting_client.stop_all_containers(true).await?;
+
+    file_provider_task.abort();
+    #[cfg(feature = "batman")]
+    debug_client_task.abort();
+    scripting_manager_task.abort();
+    ping_task.abort();
+
+    tokio::try_join!(
+        file_provider_task,
+        #[cfg(feature = "batman")]
+        debug_client_task,
+        scripting_manager_task,
+        ping_task,
+    )?;
+
+    Ok(())
 }

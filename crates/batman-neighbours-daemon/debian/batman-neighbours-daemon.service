@@ -1,0 +1,11 @@
+[Unit]
+Description=Batman Neighbours Daemon
+
+[Service]
+ExecStart=/usr/bin/batman-neighbours-daemon
+Type=exec
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target

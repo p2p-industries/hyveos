@@ -1,0 +1,3 @@
+# interfaces = ["bat0", "wlan0"]
+# store-directory = "/tmp/p2p-industries-stack"
+# random-driectory = true

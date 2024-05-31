@@ -24,7 +24,7 @@ use p2p_stack::{
 };
 use tokio::{
     fs::{metadata, File},
-    io::{AsyncReadExt as _, AsyncWriteExt as _, BufReader},
+    io::{stderr, stdout, AsyncReadExt as _, AsyncWriteExt as _, BufReader},
     sync::{mpsc, oneshot},
     task::JoinHandle,
 };
@@ -384,6 +384,11 @@ impl<'a> ExecutionManager<'a> {
             container_builder = container_builder
                 .stdout(Box::new(shared_printer.clone()) as Box<_>)
                 .stderr(Box::new(shared_printer) as Box<_>)
+                .enable_stream();
+        } else {
+            container_builder = container_builder
+                .stdout(Box::new(stdout()) as Box<_>)
+                .stderr(Box::new(stderr()) as Box<_>)
                 .enable_stream();
         }
 

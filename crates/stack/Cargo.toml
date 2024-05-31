@@ -2,6 +2,10 @@
 name = "stack"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "Josef Zoller <josef@walterzollerpiano.com>",
+    "Hannes <55623006+umgefahren@users.noreply.github.com>",
+]
 rust-version = { workspace = true }
 publish = { workspace = true }
 
@@ -30,12 +34,14 @@ patricia_tree = "0.8.0"
 p2p-stack = { workspace = true }
 rand = { workspace = true }
 rustyline = { version = "14.0.0", features = ["derive"] }
+serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 ulid = { workspace = true }
+toml = "0.8.13"
 
 [features]
 batman = ["bridge/batman", "p2p-stack/batman", "dep:netdev"]
@@ -43,3 +49,33 @@ clipboard = ["dep:arboard"]
 console-subscriber = ["dep:console-subscriber"]
 location = ["p2p-stack/location"]
 mdns = ["p2p-stack/mdns"]
+
+[package.metadata.deb]
+name = "p2p-industries-stack"
+features = ["batman"]
+depends = "batman-neighbours-daemon, docker-ce, iproute2, net-tools, wpasupplicant"
+assets = [
+    [
+        "target/release/stack",
+        "usr/bin/p2p-industries-stack",
+        "755",
+    ],
+    [
+        "assets/config.toml",
+        "/etc/p2p-industries-stack/",
+        "644",
+    ],
+    [
+        "assets/wpa_supplicant-wlan0.conf",
+        "/etc/wpa_supplicant/",
+        "600",
+    ],
+]
+maintainer-scripts = "debian/"
+systemd-units = [{ unit-name = "p2p-industries-stack", enable = true }]
+
+[package.metadata.deb.variants.raspbian]
+systemd-units = [
+    { unit-name = "p2p-industries-stack", enable = true },
+    { unit-name = "setup-batman", enable = false },
+]
