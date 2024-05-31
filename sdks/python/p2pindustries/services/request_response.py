@@ -47,7 +47,7 @@ class RequestResponseService:
 
         optional_topic = OptionalTopic()
         if topic is not None:
-            optional_topic.topic = Topic(topic=topic)
+            optional_topic = OptionalTopic(topic=Topic(topic=topic))
 
         send_data = enc(data)
 

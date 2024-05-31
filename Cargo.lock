@@ -3270,6 +3270,7 @@ dependencies = [
  "libp2p-quic 0.10.2",
  "libp2p-stream",
  "pin-project",
+ "rand",
  "regex",
  "serde",
  "sha2",
