@@ -7,11 +7,17 @@ on:
     paths:
       - "**.py"
       - "**.proto"
+      - ".github/workflows/python.yml"
   pull_request:
     branches: ["main", "python-sdk"]
     paths:
       - "**.py"
       - "**.proto"
+      - ".github/workflows/python.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
