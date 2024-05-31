@@ -38,6 +38,8 @@ class TopologyRelayManager:
 
     async def add(self, conn: WebSocket):
         await conn.accept()
+        await conn.send_text(json.dumps(list(self.graph)))
+
         self.connections.append(conn)
 
     async def remove(self, conn: WebSocket):
@@ -52,6 +54,7 @@ class TopologyRelayManager:
     async def listen(self):
         async with self.debug_service.get_mesh_topology() as mesh_events:
             async for data in mesh_events:
+                self.graph.add(Event.parse_from_mesh_event(data))
                 await self.queue.put(Event.parse_from_mesh_event(data))
 
 

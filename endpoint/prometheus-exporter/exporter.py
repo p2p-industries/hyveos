@@ -9,7 +9,7 @@ from prometheus_client import Gauge, start_http_server
 def create_bridge(gauges, reqres, topic):
 
     async def bridge():
-        async with await reqres.receive(topic) as requests:
+        async with reqres.receive(topic) as requests:
             async for request in requests:
                 try:
                     msg = json.loads(request.msg.data)

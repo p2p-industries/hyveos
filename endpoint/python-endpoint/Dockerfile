@@ -1,4 +1,4 @@
-FROM ghcr.io/p2p-industries/mvp-base-python:pr-73
+FROM ghcr.io/p2p-industries/mvp-base-python:main
 
 WORKDIR /app
 

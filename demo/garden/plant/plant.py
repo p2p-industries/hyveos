@@ -1,9 +1,10 @@
+import os
 import board
 import json
 import asyncio
 import adafruit_bh1750
 import adafruit_ahtx0
-from gpiozero import MCP3008, OutputDevice
+from gpiozero import MCP3008, OutputDevice, LED
 from p2pindustries import P2PConnection
 
 MOISTURE_THRESHOLD = 0.7
@@ -15,7 +16,7 @@ lock = asyncio.Lock()
 
 
 class ValveController:
-    valve: OutputDevice
+    valve: LED
     sensor: MCP3008
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
 
@@ -79,8 +80,7 @@ async def manage_valve(reqres, valve_controller, peer_id):
 
 
 async def control_soil_moisture(gossip, reqres, soil_sensor, peer_id):
-    # TODO Fill in correct ValveControlling logic, i.e. OutputDevice correct?
-    valve_controller = ValveController(OutputDevice(17), soil_sensor)
+    valve_controller = ValveController(LED(int(os.environ["VALVE_PIN"])), soil_sensor)
 
     await asyncio.gather(
         manage_valve(reqres, valve_controller, peer_id),
