@@ -116,9 +116,10 @@ impl_from_special_command!(ReqResp);
 
 #[derive(Debug, Default)]
 pub struct Actor {
+    peer_id: Option<PeerId>,
     response_senders: HashMap<OutboundRequestId, oneshot::Sender<Response>>,
     request_subscriptions: HashMap<u64, (Option<TopicQuery>, mpsc::Sender<InboundRequest>)>,
-    response_channels: HashMap<u64, ResponseChannel<Response>>,
+    response_channels: HashMap<u64, Result<ResponseChannel<Response>, oneshot::Sender<Response>>>,
     next_subscription_id: u64,
 }
 
@@ -127,6 +128,13 @@ impl SubActor for Actor {
     type Event = <Behaviour as NetworkBehaviour>::ToSwarm;
     type EventError = void::Void;
     type CommandError = void::Void;
+
+    fn new(peer_id: PeerId) -> Self {
+        Self {
+            peer_id: Some(peer_id),
+            ..Default::default()
+        }
+    }
 
     fn handle_command(
         &mut self,
@@ -139,6 +147,39 @@ impl SubActor for Actor {
                 req,
                 sender,
             } => {
+                if let Some(own_id) = self.peer_id {
+                    if own_id == peer_id {
+                        tracing::debug!("Sending self request");
+                        let id = rand::random();
+                        let topic = req.topic.clone();
+
+                        let request = InboundRequest { id, peer_id, req };
+
+                        let mut sent_to_subscriber = false;
+                        for (query, sender) in self.request_subscriptions.values() {
+                            let is_match = match (query.as_ref(), topic.as_ref()) {
+                                (Some(query), Some(topic)) => query.is_match(topic),
+                                (None, None) => true,
+                                _ => false,
+                            };
+
+                            if is_match && sender.try_send(request.clone()).is_ok() {
+                                sent_to_subscriber = true;
+                            }
+                        }
+
+                        if sent_to_subscriber {
+                            self.response_channels.insert(id, Err(sender));
+                        } else {
+                            let response =
+                                Response::Error(ResponseError::TopicNotSubscribed(topic));
+                            let _ = sender.send(response);
+                        }
+
+                        return Ok(());
+                    }
+                }
+
                 tracing::debug!("Sending request to peer {peer_id}");
                 let id = behaviour.req_resp.send_request(&peer_id, req);
                 self.response_senders.insert(id, sender);
@@ -157,12 +198,19 @@ impl SubActor for Actor {
             Command::Unsubscribe(id) => {
                 self.request_subscriptions.remove(&id.0);
             }
-            Command::Respond { id, response } => {
-                if let Some(channel) = self.response_channels.remove(&id) {
+            Command::Respond { id, response } => match self.response_channels.remove(&id) {
+                Some(Ok(channel)) => {
                     tracing::debug!("Responding to request with id {id}");
                     let _ = behaviour.req_resp.send_response(channel, response);
                 }
-            }
+                Some(Err(sender)) => {
+                    tracing::debug!("Responding to self request with id {id}");
+                    let _ = sender.send(response);
+                }
+                None => {
+                    tracing::warn!("Response with id {id} not found");
+                }
+            },
         }
 
         Ok(())
@@ -206,7 +254,7 @@ impl SubActor for Actor {
                     }
 
                     if sent_to_subscriber {
-                        self.response_channels.insert(id, channel);
+                        self.response_channels.insert(id, Ok(channel));
                     } else {
                         let response = Response::Error(ResponseError::TopicNotSubscribed(topic));
                         let _ = behaviour.req_resp.send_response(channel, response);

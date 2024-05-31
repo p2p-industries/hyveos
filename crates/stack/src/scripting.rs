@@ -1,14 +1,21 @@
 use std::{
+    collections::HashMap,
     env::temp_dir,
+    future::Future,
     net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6},
     path::PathBuf,
+    sync::Arc,
 };
 
 #[cfg(feature = "batman")]
 use bridge::DebugCommandSender;
 use bridge::{Bridge, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
-use docker::{Compression, ContainerManager, NetworkMode, PulledImage};
+use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
+use futures::{
+    stream::{FuturesUnordered, TryStreamExt as _},
+    FutureExt,
+};
 use libp2p::PeerId;
 use p2p_stack::{
     file_transfer::{self, Cid},
@@ -19,6 +26,7 @@ use tokio::{
     fs::{metadata, File},
     io::{AsyncReadExt as _, AsyncWriteExt as _, BufReader},
     sync::{mpsc, oneshot},
+    task::JoinHandle,
 };
 use ulid::Ulid;
 
@@ -31,6 +39,17 @@ enum SelfCommand {
         image: PulledImage<'static>,
         ports: Vec<u16>,
         sender: oneshot::Sender<Result<Ulid, ExecutionError>>,
+    },
+    ListContainers {
+        sender: oneshot::Sender<Vec<(Ulid, Arc<str>)>>,
+    },
+    StopContainer {
+        container_id: Ulid,
+        sender: oneshot::Sender<Result<(), ExecutionError>>,
+    },
+    StopAllContainers {
+        kill: bool,
+        sender: oneshot::Sender<Result<(), ExecutionError>>,
     },
 }
 
@@ -87,6 +106,7 @@ impl ScriptingManagerBuilder {
                 #[cfg(feature = "batman")]
                 debug_command_sender,
                 shared_printer,
+                container_handles: HashMap::new(),
             },
             ScriptingClient::new(client, self_command_sender),
         )
@@ -102,6 +122,7 @@ pub struct ScriptingManager {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     shared_printer: Option<SharedPrinter>,
+    container_handles: HashMap<Ulid, ContainerHandle>,
 }
 
 impl ScriptingManager {
@@ -124,15 +145,22 @@ impl ScriptingManager {
                         ActorToClient::DeployImage {
                             root_fs,
                             compression,
-                            id,
+                            id: request_id,
                             ports,
                         } => {
-                            let result = self
+                            let handle = self
                                 .execution_manager()
                                 .exec_foreign(root_fs, compression, ports)
-                                .await
-                                .map_err(|e| e.to_string());
-                            let _ = self.client.scripting().deployed_image(id, result).await;
+                                .await;
+
+                            let scripting = self.client.scripting().clone();
+
+                            self.add_handle(handle, move |id| async move {
+                                scripting
+                                    .deployed_image(request_id, id.map_err(|e| e.to_string()))
+                                    .map(|_| ())
+                                    .await;
+                            }).await;
                         },
                     }
                 },
@@ -143,10 +171,47 @@ impl ScriptingManager {
                             ports,
                             sender,
                         } => {
-                            let result = self
+                            let handle = self
                                 .execution_manager()
                                 .exec(image, ports)
                                 .await;
+
+                            self.add_handle(handle, move |id| async move {
+                                let _ = sender.send(id);
+                            }).await;
+                        }
+                        SelfCommand::ListContainers { sender } => {
+                            let containers = self.container_handles.iter().map(|(id, handle)| {
+                                (*id, handle.image_name.clone())
+                            }).collect();
+                            let _ = sender.send(containers);
+                        }
+                        SelfCommand::StopContainer {
+                            container_id,
+                            sender,
+                        } => {
+                            if let Some(handle) = self.container_handles.remove(&container_id) {
+                                let _ = sender.send(handle.stop(false).await.and(Ok(())));
+                            } else {
+                                let _ = sender.send(Err(ExecutionError::ContainerNotFound(container_id)));
+                            }
+                        }
+                        SelfCommand::StopAllContainers { kill, sender } => {
+                            let containers = self.container_handles
+                                .drain()
+                                .map(|(_, handle)| handle.stop(kill))
+                                .collect::<FuturesUnordered<_>>()
+                                .try_collect::<Vec<_>>()
+                                .await;
+
+                            let result = match containers {
+                                Ok(containers) => {
+                                    tracing::info!("Stopped all containers: {containers:?}");
+                                    Ok(())
+                                },
+                                Err(e) => Err(e),
+                            };
+
                             let _ = sender.send(result);
                         }
                     }
@@ -154,6 +219,26 @@ impl ScriptingManager {
                 else => { break }
             }
         }
+    }
+
+    async fn add_handle<Fut: Future<Output = ()>>(
+        &mut self,
+        handle: Result<ContainerHandle, ExecutionError>,
+        send: impl FnOnce(Result<Ulid, ExecutionError>) -> Fut,
+    ) {
+        let id = match handle {
+            Ok(handle) => {
+                let id = handle.id;
+                self.container_handles.insert(id, handle);
+                Ok(id)
+            }
+            Err(e) => {
+                tracing::error!("Failed to deploy image: {e}");
+                Err(e)
+            }
+        };
+
+        send(id).await;
     }
 }
 
@@ -167,12 +252,33 @@ pub enum ExecutionError {
     Docker(#[from] docker::Error),
     #[error("Shared directory path is not a valid utf-8 string")]
     SharedDirPathInvalid(PathBuf),
+    #[error("Container not found: `{0}`")]
+    ContainerNotFound(Ulid),
     #[error("Join error: `{0}`")]
     Join(#[from] tokio::task::JoinError),
     #[error("Remote deploy error: `{0}`")]
     RemoteDeployError(String),
     #[error("Self deploy error: `{0}`")]
     SelfDeployError(String),
+    #[error("Container list error: `{0}`")]
+    ListContainersError(String),
+    #[error("Container stop error: `{0}`")]
+    StopContainerError(String),
+}
+
+struct ContainerHandle {
+    id: Ulid,
+    image_name: Arc<str>,
+    stop_sender: oneshot::Sender<bool>,
+    handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
+}
+
+impl ContainerHandle {
+    async fn stop(self, kill: bool) -> Result<Ulid, ExecutionError> {
+        let _ = self.stop_sender.send(kill);
+        self.handle.await??;
+        Ok(self.id)
+    }
 }
 
 struct ExecutionManager<'a> {
@@ -204,7 +310,7 @@ impl<'a> ExecutionManager<'a> {
         root_fs: Cid,
         compression: Compression,
         ports: Vec<u16>,
-    ) -> Result<Ulid, ExecutionError> {
+    ) -> Result<ContainerHandle, ExecutionError> {
         let root_fs = self.fetch_root_fs(root_fs).await?;
         let pulled_image = self
             .container_manger
@@ -214,7 +320,11 @@ impl<'a> ExecutionManager<'a> {
         self.exec(pulled_image, ports).await
     }
 
-    async fn exec(self, image: PulledImage<'_>, ports: Vec<u16>) -> Result<Ulid, ExecutionError> {
+    async fn exec(
+        self,
+        image: PulledImage<'_>,
+        ports: Vec<u16>,
+    ) -> Result<ContainerHandle, ExecutionError> {
         let Bridge {
             client,
             cancellation_token,
@@ -228,6 +338,8 @@ impl<'a> ExecutionManager<'a> {
             self.debug_command_sender,
         )
         .await?;
+
+        let image_name = Arc::from(&*image.image);
 
         let volumes = [
             (
@@ -246,6 +358,8 @@ impl<'a> ExecutionManager<'a> {
                     .to_string(),
                 CONTAINER_BRIDGE_SOCKET.to_string(),
             ),
+            ("/dev/gpiochip0".to_string(), "/dev/gpiochip0".to_string()),
+            ("/dev/gpiochip1".to_string(), "/dev/gpiochip1".to_string()),
         ];
 
         tokio::spawn(client.run());
@@ -253,15 +367,16 @@ impl<'a> ExecutionManager<'a> {
         let mut container_builder = image
             .create_dyn_container()
             .name(ulid.to_string())
-            .network_mode(NetworkMode::None)
+            .network_mode(NetworkMode::Bridge)
             .add_volumes(volumes)
+            .privileged(true) // Unfortunate hack for now
             .env("P2P_INDUSTRIES_SHARED_DIR", CONTAINER_SHARED_DIR)
             .env("P2P_INDUSTRIES_BRIDGE_SOCKET", CONTAINER_BRIDGE_SOCKET);
 
         for port in ports {
-            let ip4socket = SocketAddrV4::new(Ipv4Addr::LOCALHOST, port);
+            let ip4socket = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port);
             container_builder = container_builder.expose_port(port, ip4socket.into());
-            let ip6socket = SocketAddrV6::new(Ipv6Addr::LOCALHOST, port, 0, 0);
+            let ip6socket = SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, port, 0, 0);
             container_builder = container_builder.expose_port(port, ip6socket.into());
         }
 
@@ -274,17 +389,28 @@ impl<'a> ExecutionManager<'a> {
 
         let running_container = container_builder.run().await?.into_owned();
 
-        tokio::spawn(async move {
-            if let Err(e) = running_container.run_to_completion().await {
+        let (stop_sender, stop_receiver) = oneshot::channel();
+
+        let handle = tokio::spawn(async move {
+            let res = running_container
+                .run_to_completion(Some(stop_receiver))
+                .await;
+            if let Err(e) = &res {
                 tracing::error!(error = ?e, "Container exited with error");
             } else {
                 tracing::debug!("Container exited");
             }
 
             cancellation_token.cancel();
+            res.map_err(Into::into)
         });
 
-        Ok(ulid)
+        Ok(ContainerHandle {
+            id: ulid,
+            image_name,
+            stop_sender,
+            handle,
+        })
     }
 }
 
@@ -368,5 +494,50 @@ impl ScriptingClient {
                 .await
                 .map_err(Into::into)
         }
+    }
+
+    pub async fn list_containers(&self) -> Result<Vec<(Ulid, Arc<str>)>, ExecutionError> {
+        let (sender, receiver) = oneshot::channel();
+        let command = SelfCommand::ListContainers { sender };
+
+        self.self_command_sender
+            .send(command)
+            .await
+            .map_err(|e| ExecutionError::ListContainersError(e.to_string()))?;
+
+        receiver
+            .await
+            .map_err(|e| ExecutionError::ListContainersError(e.to_string()))
+    }
+
+    pub async fn stop_container(&self, container_id: Ulid) -> Result<(), ExecutionError> {
+        let (sender, receiver) = oneshot::channel();
+        let command = SelfCommand::StopContainer {
+            container_id,
+            sender,
+        };
+
+        self.self_command_sender
+            .send(command)
+            .await
+            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+
+        receiver
+            .await
+            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
+    }
+
+    pub async fn stop_all_containers(&self, kill: bool) -> Result<(), ExecutionError> {
+        let (sender, receiver) = oneshot::channel();
+        let command = SelfCommand::StopAllContainers { kill, sender };
+
+        self.self_command_sender
+            .send(command)
+            .await
+            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+
+        receiver
+            .await
+            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
     }
 }
