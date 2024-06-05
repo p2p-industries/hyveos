@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
+
 use std::{io, path::PathBuf, pin::Pin};
 
 use futures::stream::Stream;
@@ -103,6 +106,14 @@ impl Bridge {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+    #[error("Tonic error: {0}")]
+    Tonic(#[from] tonic::transport::Error),
+}
+
 pub struct BridgeClient {
     client: Client,
     cancellation_token: CancellationToken,
@@ -115,7 +126,7 @@ pub struct BridgeClient {
 }
 
 impl BridgeClient {
-    pub async fn run(self) {
+    pub async fn run(self) -> Result<(), Error> {
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());
         let file_transfer = FileTransferServer::new(self.client.clone(), self.shared_dir_path);
@@ -141,13 +152,12 @@ impl BridgeClient {
 
         router
             .serve_with_incoming_shutdown(self.socket_stream, self.cancellation_token.cancelled())
-            .await
-            .expect("GRPC server failed");
+            .await?;
 
-        tokio::fs::remove_dir_all(self.base_path)
-            .await
-            .expect("Failed to remove bridge directory");
+        tokio::fs::remove_dir_all(self.base_path).await?;
 
         tracing::debug!(id=%self.ulid, "Bridge stopped");
+
+        Ok(())
     }
 }

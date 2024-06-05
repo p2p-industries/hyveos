@@ -9,7 +9,7 @@ use std::{
 
 #[cfg(feature = "batman")]
 use bridge::DebugCommandSender;
-use bridge::{Bridge, CONTAINER_SHARED_DIR};
+use bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
 use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
@@ -165,58 +165,82 @@ impl ScriptingManager {
                     }
                 },
                 Some(command) = self.self_command_receiver.recv() => {
-                    match command {
-                        SelfCommand::DeployImage {
-                            image,
-                            ports,
-                            sender,
-                        } => {
-                            let handle = self
-                                .execution_manager()
-                                .exec(image, ports)
-                                .await;
-
-                            self.add_handle(handle, move |id| async move {
-                                let _ = sender.send(id);
-                            }).await;
-                        }
-                        SelfCommand::ListContainers { sender } => {
-                            let containers = self.container_handles.iter().map(|(id, handle)| {
-                                (*id, handle.image_name.clone())
-                            }).collect();
-                            let _ = sender.send(containers);
-                        }
-                        SelfCommand::StopContainer {
-                            container_id,
-                            sender,
-                        } => {
-                            if let Some(handle) = self.container_handles.remove(&container_id) {
-                                let _ = sender.send(handle.stop(false).await.and(Ok(())));
-                            } else {
-                                let _ = sender.send(Err(ExecutionError::ContainerNotFound(container_id)));
-                            }
-                        }
-                        SelfCommand::StopAllContainers { kill, sender } => {
-                            let containers = self.container_handles
-                                .drain()
-                                .map(|(_, handle)| handle.stop(kill))
-                                .collect::<FuturesUnordered<_>>()
-                                .try_collect::<Vec<_>>()
-                                .await;
-
-                            let result = match containers {
-                                Ok(containers) => {
-                                    tracing::info!("Stopped all containers: {containers:?}");
-                                    Ok(())
-                                },
-                                Err(e) => Err(e),
-                            };
-
-                            let _ = sender.send(result);
-                        }
-                    }
+                    self.handle_self_command(command).await;
                 },
                 else => { break }
+            }
+        }
+    }
+
+    async fn handle_self_command(&mut self, command: SelfCommand) {
+        match command {
+            SelfCommand::DeployImage {
+                image,
+                ports,
+                sender,
+            } => {
+                let handle = self.execution_manager().exec(image, ports).await;
+
+                self.add_handle(handle, move |id| async move {
+                    let _ = sender.send(id);
+                })
+                .await;
+            }
+            SelfCommand::ListContainers { sender } => {
+                let containers = self
+                    .container_handles
+                    .iter()
+                    .map(|(id, handle)| (*id, handle.image_name.clone()))
+                    .collect();
+                let _ = sender.send(containers);
+            }
+            SelfCommand::StopContainer {
+                container_id,
+                sender,
+            } => {
+                if let Some(handle) = self.container_handles.remove(&container_id) {
+                    match handle.stop(false).await {
+                        Ok((_, container)) => {
+                            tracing::info!(
+                                "Stopped container: {container_id} ({})",
+                                container.image.image
+                            );
+                            let _ = sender.send(Ok(()));
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to stop container: {}", e);
+                            let _ = sender.send(Err(e));
+                        }
+                    }
+                } else {
+                    let _ = sender.send(Err(ExecutionError::ContainerNotFound(container_id)));
+                }
+            }
+            SelfCommand::StopAllContainers { kill, sender } => {
+                let containers = self
+                    .container_handles
+                    .drain()
+                    .map(|(_, handle)| handle.stop(kill))
+                    .collect::<FuturesUnordered<_>>()
+                    .try_collect::<Vec<_>>()
+                    .await;
+
+                let result = match containers {
+                    Ok(containers) => {
+                        tracing::info!(
+                            "Stopped all containers: {}",
+                            containers
+                                .iter()
+                                .map(|(id, container)| format!("{id} ({})", container.image.image))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        );
+                        Ok(())
+                    }
+                    Err(e) => Err(e),
+                };
+
+                let _ = sender.send(result);
             }
         }
     }
@@ -250,6 +274,8 @@ pub enum ExecutionError {
     Io(#[from] std::io::Error),
     #[error("Docker error: `{0}`")]
     Docker(#[from] docker::Error),
+    #[error("Bridge error: `{0}`")]
+    Bridge(#[from] BridgeError),
     #[error("Shared directory path is not a valid utf-8 string")]
     SharedDirPathInvalid(PathBuf),
     #[error("Container not found: `{0}`")]
@@ -271,13 +297,17 @@ struct ContainerHandle {
     image_name: Arc<str>,
     stop_sender: oneshot::Sender<bool>,
     handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
+    bridge_handle: JoinHandle<Result<(), BridgeError>>,
 }
 
 impl ContainerHandle {
-    async fn stop(self, kill: bool) -> Result<Ulid, ExecutionError> {
+    async fn stop(self, kill: bool) -> Result<(Ulid, StoppedContainer<'static>), ExecutionError> {
         let _ = self.stop_sender.send(kill);
-        self.handle.await??;
-        Ok(self.id)
+        match tokio::try_join!(self.handle, self.bridge_handle)? {
+            (Ok(container), Ok(())) => Ok((self.id, container)),
+            (Err(e), _) => Err(e),
+            (_, Err(e)) => Err(e.into()),
+        }
     }
 }
 
@@ -358,11 +388,9 @@ impl<'a> ExecutionManager<'a> {
                     .to_string(),
                 CONTAINER_BRIDGE_SOCKET.to_string(),
             ),
-            ("/dev/gpiochip0".to_string(), "/dev/gpiochip0".to_string()),
-            ("/dev/gpiochip1".to_string(), "/dev/gpiochip1".to_string()),
         ];
 
-        tokio::spawn(client.run());
+        let bridge_handle = tokio::spawn(client.run());
 
         let mut container_builder = image
             .create_dyn_container()
@@ -415,6 +443,7 @@ impl<'a> ExecutionManager<'a> {
             image_name,
             stop_sender,
             handle,
+            bridge_handle,
         })
     }
 }

@@ -934,7 +934,6 @@ mod tests {
     use std::{
         fs::File,
         io::{Read, Write as _},
-        time::Duration,
     };
 
     use once_cell::sync::Lazy;

@@ -2,9 +2,8 @@
 #![allow(clippy::module_name_repetitions)]
 
 #[cfg(feature = "batman")]
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 use std::{
-    collections::HashSet,
     env::temp_dir,
     fmt::Write as _,
     io::{self, IsTerminal as _},
@@ -437,7 +436,7 @@ async fn main_tty(
         #[cfg(feature = "batman")]
         debug_command_sender,
     )
-    //.with_printer(rl_printer.clone())
+    .with_printer(rl_printer.clone())
     .build();
     tokio::spawn(scripting_manager.run());
 
@@ -1211,13 +1210,16 @@ async fn main_alt(
     scripting_manager_task.abort();
     ping_task.abort();
 
+    #[cfg(feature = "batman")]
     tokio::try_join!(
         file_provider_task,
-        #[cfg(feature = "batman")]
         debug_client_task,
         scripting_manager_task,
         ping_task,
     )?;
+
+    #[cfg(not(feature = "batman"))]
+    tokio::try_join!(file_provider_task, scripting_manager_task, ping_task)?;
 
     Ok(())
 }

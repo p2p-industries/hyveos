@@ -551,6 +551,7 @@ dependencies = [
  "p2p-stack",
  "prost",
  "regex",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "tokio-util",
