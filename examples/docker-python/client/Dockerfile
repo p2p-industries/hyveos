@@ -1,15 +1,15 @@
-FROM python:3.10-alpine
+FROM ghcr.io/p2p-industries/mvp-base-python:main
 
-WORKDIR /p2p/script
+COPY ./pyproject.toml /app/client/pyproject.toml
 
-COPY ./sdks/python/p2pindustries ./packages/p2pindustries
-COPY ./examples/docker-python/client/requirements.txt .
+WORKDIR /app/client
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN poetry remove p2pindustries
+RUN poetry add /app/python/sdks/dist/*.whl
+RUN poetry install --only main
 
-COPY ./examples/docker-python/client/script.py .
+COPY ./script.py /app/client/script.py
 
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/p2p/script/packages
 
-CMD [ "python", "./script.py" ]
+CMD ["poetry", "run", "python", "script.py"]

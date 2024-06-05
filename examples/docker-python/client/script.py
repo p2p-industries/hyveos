@@ -1,7 +1,14 @@
 import asyncio
 from asyncio.tasks import sleep
 import os
-from p2pindustries import P2PConnection
+from typing import Optional
+from p2pindustries import P2PConnection, DHTService
+
+
+async def get_listener(dht: DHTService) -> Optional[str]:
+    async with dht.get_providers('identification', 'simple-listener') as providers:
+        async for provider in providers:
+            return provider.peer_id
 
 
 def print_response(peer_id: str, response):
@@ -13,19 +20,26 @@ def print_response(peer_id: str, response):
 
 async def main():
     async with P2PConnection() as connection:
+        dht = connection.get_dht_service()
         discovery = connection.get_discovery_service()
         req_resp = connection.get_request_response_service()
 
         my_peer_id = await discovery.get_own_id()
 
-        peer_id = os.environ['LISTENER_PEER_ID']
+        peer_id = await get_listener(dht)
 
-        response = await req_resp.send_request(peer_id, f'Hello from {my_peer_id}!')
+        if peer_id is None:
+            print('No listener found')
+            return
+
+        print(f'Found listener: {peer_id}')
+
+        response = await req_resp.send_request(peer_id, f'Hello from {my_peer_id}!', 'foo')
         print_response(peer_id, response)
 
         await sleep(5)
 
-        response = await req_resp.send_request(peer_id, b'Hello again!')
+        response = await req_resp.send_request(peer_id, b'Hello again!', 'foo')
         print_response(peer_id, response)
 
 
