@@ -7,7 +7,7 @@ use std::{
     env::temp_dir,
     fmt::Write as _,
     io::{self, IsTerminal as _},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use base64_simd::{Out, URL_SAFE};
@@ -49,19 +49,51 @@ fn default_store_directory() -> PathBuf {
 }
 
 #[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
 struct Config {
     #[serde(default)]
     interfaces: Option<Vec<String>>,
     #[serde(default)]
     store_directory: Option<PathBuf>,
     #[serde(default)]
+    key_file: Option<PathBuf>,
+    #[serde(default)]
     random_directory: bool,
+}
+
+impl Config {
+    async fn load(path: Option<impl AsRef<Path>>) -> anyhow::Result<Self> {
+        if let Some(path) = path {
+            tokio::fs::read_to_string(path)
+                .await
+                .map(|s| toml::from_str(&s))?
+                .map_err(Into::into)
+        } else {
+            let base_paths = [Path::new("/etc"), Path::new("/usr/lib")];
+
+            for base_path in &base_paths {
+                let path = base_path.join(APP_NAME).join("config.toml");
+                match tokio::fs::read_to_string(&path).await {
+                    Ok(s) => {
+                        let config = toml::from_str(&s)?;
+                        tracing::debug!("Loaded config file from {}", path.display());
+                        return Ok(config);
+                    }
+                    Err(_) => {
+                        tracing::info!("Failed to load config file from {}", path.display());
+                    }
+                }
+            }
+
+            Ok(Self::default())
+        }
+    }
 }
 
 #[derive(Debug, Parser)]
 pub struct Opts {
-    #[clap(long, default_value = "/etc/p2p-industries-stack/config.toml")]
-    pub config_file: PathBuf,
+    #[clap(long)]
+    pub config_file: Option<PathBuf>,
     #[clap(
         short,
         long = "listen-address",
@@ -78,6 +110,8 @@ pub struct Opts {
     pub interfaces: Option<Vec<String>>,
     #[clap(short, long)]
     pub store_directory: Option<PathBuf>,
+    #[clap(short, long)]
+    pub key_file: Option<PathBuf>,
     #[clap(short, long)]
     pub random_directory: bool,
     #[clap(short, long)]
@@ -223,47 +257,69 @@ fn diy_hints() -> DiyHinter {
 }
 
 #[cfg(not(feature = "batman"))]
-fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
+#[allow(clippy::unused_async)]
+async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Result<Vec<Multiaddr>> {
     use std::net::{Ipv4Addr, Ipv6Addr};
 
     if interfaces.is_some() {
         println!("Ignoring interfaces argument, batman feature is not enabled");
     }
 
-    [
+    Ok([
         Multiaddr::empty().with(Protocol::Ip6(Ipv6Addr::UNSPECIFIED)),
         Multiaddr::empty().with(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)),
     ]
     .into_iter()
-    .collect()
+    .collect())
 }
 
 #[cfg(feature = "batman")]
-fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> Vec<Multiaddr> {
-    use ifaddr::IfAddr;
+async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Result<Vec<Multiaddr>> {
+    use std::time::Duration;
 
-    let interfaces = interfaces.map(HashSet::<_>::from_iter);
+    use ifaddr::{if_name_to_index, IfAddr};
+    use ifwatcher::{IfEvent, IfWatcher};
 
-    netdev::get_interfaces()
-        .into_iter()
-        .flat_map(|iface| {
-            if let Some(interfaces) = &interfaces {
-                if !interfaces.contains(&iface.name) {
-                    return Vec::new();
+    if let Some(mut interfaces) = interfaces
+        .map(|i| {
+            i.into_iter()
+                .map(if_name_to_index)
+                .collect::<Result<HashSet<_>, _>>()
+        })
+        .transpose()?
+    {
+        let get_interfaces = async move {
+            let mut if_watcher = IfWatcher::new()?;
+            let mut listen_addrs = Vec::new();
+
+            while !interfaces.is_empty() {
+                let Some(event) = if_watcher.try_next().await? else {
+                    break;
+                };
+
+                if let IfEvent::Up(if_addr) = event {
+                    if interfaces.remove(&if_addr.if_index) {
+                        listen_addrs.push(Multiaddr::from(if_addr));
+                    }
                 }
             }
 
-            iface
-                .ipv6
-                .into_iter()
-                .map(move |net| IfAddr {
+            Ok(listen_addrs)
+        };
+
+        tokio::time::timeout(Duration::from_secs(30), get_interfaces).await?
+    } else {
+        Ok(netdev::get_interfaces()
+            .into_iter()
+            .flat_map(|iface| {
+                iface.ipv6.into_iter().map(move |net| IfAddr {
                     if_index: iface.index,
                     addr: net.addr,
                 })
-                .collect()
-        })
-        .map(Multiaddr::from)
-        .collect()
+            })
+            .map(Multiaddr::from)
+            .collect())
+    }
 }
 
 #[allow(clippy::large_futures)]
@@ -274,6 +330,7 @@ async fn main() -> anyhow::Result<()> {
         listen_addrs,
         interfaces,
         store_directory,
+        key_file,
         random_directory,
         clean,
         vim,
@@ -282,18 +339,16 @@ async fn main() -> anyhow::Result<()> {
     let Config {
         interfaces: config_interfaces,
         store_directory: config_store_directory,
+        key_file: config_key_file,
         random_directory: config_random_directory,
-    } = tokio::fs::read_to_string(config_file)
-        .await
-        .ok()
-        .map(|s| toml::from_str(&s))
-        .transpose()?
-        .unwrap_or_default();
+    } = Config::load(config_file).await?;
 
-    let listen_addrs: Vec<_> = listen_addrs.map_or_else(
-        || fallback_listen_addrs(interfaces.or(config_interfaces)),
-        |e| e.into_iter().map(Multiaddr::from).collect(),
-    );
+    let listen_addrs =
+        if let Some(addrs) = listen_addrs.map(|e| e.into_iter().map(Multiaddr::from).collect()) {
+            addrs
+        } else {
+            fallback_listen_addrs(interfaces.or(config_interfaces)).await?
+        };
     println!("Listen addresses: {listen_addrs:?}");
     let listen_addrs = listen_addrs
         .into_iter()
@@ -301,14 +356,46 @@ async fn main() -> anyhow::Result<()> {
 
     let store_directory = store_directory
         .or(config_store_directory)
-        .unwrap_or(default_store_directory());
+        .unwrap_or_else(default_store_directory);
+
+    if !store_directory.exists() {
+        std::fs::create_dir_all(&store_directory)?;
+    }
+
+    let key_file = key_file
+        .or(config_key_file)
+        .unwrap_or_else(|| store_directory.join("keypair"));
+
+    let keypair = if key_file.exists() {
+        let protobuf_bytes = tokio::fs::read(key_file).await?;
+        Keypair::from_protobuf_encoding(&protobuf_bytes)?
+    } else {
+        let keypair = Keypair::generate_ed25519();
+        tokio::fs::write(&key_file, keypair.to_protobuf_encoding()?).await?;
+        keypair
+    };
 
     let random_directory = random_directory || config_random_directory;
 
     if io::stdin().is_terminal() && io::stdout().is_terminal() {
-        main_tty(listen_addrs, store_directory, random_directory, clean, vim).await
+        main_tty(
+            listen_addrs,
+            store_directory,
+            keypair,
+            random_directory,
+            clean,
+            vim,
+        )
+        .await
     } else {
-        main_alt(listen_addrs, store_directory, random_directory, clean).await
+        main_alt(
+            listen_addrs,
+            store_directory,
+            keypair,
+            random_directory,
+            clean,
+        )
+        .await
     }
 }
 
@@ -316,6 +403,7 @@ async fn main() -> anyhow::Result<()> {
 async fn main_tty(
     listen_addrs: impl Iterator<Item = Multiaddr>,
     store_directory: PathBuf,
+    keypair: Keypair,
     random_directory: bool,
     clean: bool,
     vim: bool,
@@ -345,10 +433,6 @@ async fn main_tty(
     if history_file.exists() {
         rl.load_history(&history_file)?;
     } else {
-        if !store_directory.exists() {
-            std::fs::create_dir_all(&store_directory)?;
-        }
-
         tokio::fs::File::create(&history_file).await?;
     }
 
@@ -397,7 +481,7 @@ async fn main_tty(
         std::fs::create_dir_all(&store_directory)?;
     }
 
-    let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
+    let (client, mut actor) = FullActor::build(keypair);
 
     actor.setup(listen_addrs);
 
@@ -1070,6 +1154,7 @@ fn help_message(explains: &[(&str, &str)]) {
 async fn main_alt(
     listen_addrs: impl Iterator<Item = Multiaddr>,
     store_directory: PathBuf,
+    keypair: Keypair,
     random_directory: bool,
     clean: bool,
 ) -> anyhow::Result<()> {
@@ -1125,7 +1210,7 @@ async fn main_alt(
         std::fs::create_dir_all(&store_directory)?;
     }
 
-    let (client, mut actor) = FullActor::build(Keypair::generate_ed25519());
+    let (client, mut actor) = FullActor::build(keypair);
 
     actor.setup(listen_addrs);
 

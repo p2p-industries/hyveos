@@ -10,6 +10,7 @@ use std::{
 use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServerClient, Error as BatmanError};
 use futures::{stream::StreamExt as _, Stream as _};
 use ifaddr::IfAddr;
+use ifwatcher::{IfEvent, IfWatcher};
 use itertools::Itertools as _;
 use libp2p::{
     core::Endpoint,
@@ -35,13 +36,11 @@ use tokio::{
 use tokio_stream::wrappers::WatchStream;
 
 use self::{
-    if_watcher::{IfEvent, IfWatcher},
     resolver::NeighbourResolver,
     store::{NeighbourStore, ReadOnlyNeighbourStore},
 };
 use crate::{behaviour::store::NeighbourStoreUpdate, Config, Error, ResolvedNeighbour};
 
-mod if_watcher;
 mod resolver;
 pub mod store;
 

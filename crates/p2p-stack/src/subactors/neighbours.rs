@@ -94,6 +94,7 @@ impl SubActor for Actor {
         match event {
             BatmanEvent::NeighbourUpdate(update) => {
                 for (_, neighbour) in update.resolved {
+                    println!("Resolved neighbour: {:?}", neighbour);
                     behaviour
                         .kad
                         .add_address(&neighbour.peer_id, neighbour.batman_addr.clone());

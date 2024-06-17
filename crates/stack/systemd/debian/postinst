@@ -1,0 +1,35 @@
+#!/bin/sh
+
+BATMAN_NEIGHBOURS_GROUP="batman-neighbours"
+DOCKER_GROUP="docker"
+P2P_INDUSTRIES_USER="p2p-industries"
+
+create_user() {
+    adduser --system --home /home/${P2P_INDUSTRIES_USER} --group ${P2P_INDUSTRIES_USER}
+    adduser ${P2P_INDUSTRIES_USER} ${BATMAN_NEIGHBOURS_GROUP}
+    adduser ${P2P_INDUSTRIES_USER} ${DOCKER_GROUP}
+}
+
+copy_config() {
+    if [ ! -f /etc/p2p-industries-stack/config.toml ]; then
+        mkdir -p /etc/p2p-industries-stack
+        chmod 755 /etc/p2p-industries-stack
+        cp /usr/lib/p2p-industries-stack/config.toml /etc/p2p-industries-stack/config.toml
+        chmod 644 /etc/p2p-industries-stack/config.toml
+    fi
+}
+
+reload_network_manager() {
+    type nmcli > /dev/null 2>&1 || return 0
+    nmcli general reload
+}
+
+case "$1" in
+configure)
+    create_user
+    copy_config
+    reload_network_manager
+    ;;
+esac
+
+#DEBHELPER#

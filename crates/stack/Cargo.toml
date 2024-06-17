@@ -21,6 +21,7 @@ dirs = "5.0.1"
 docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
 ifaddr = { workspace = true }
+ifwatcher = { workspace = true, optional = true }
 indicatif = { version = "0.17.8", features = ["tokio", "in_memory"] }
 libp2p = { workspace = true, features = [
     "tokio",
@@ -44,7 +45,7 @@ ulid = { workspace = true }
 toml = "0.8.13"
 
 [features]
-batman = ["bridge/batman", "p2p-stack/batman", "dep:netdev"]
+batman = ["bridge/batman", "p2p-stack/batman", "dep:ifwatcher", "dep:netdev"]
 clipboard = ["dep:arboard"]
 console-subscriber = ["dep:console-subscriber"]
 location = ["p2p-stack/location"]
@@ -61,21 +62,26 @@ assets = [
         "755",
     ],
     [
-        "assets/config.toml",
-        "/etc/p2p-industries-stack/",
+        "systemd/assets/config.toml",
+        "/usr/lib/p2p-industries-stack/",
         "644",
     ],
     [
-        "assets/wpa_supplicant-wlan0.conf",
+        "systemd/assets/network-manager-disable-batman-interfaces.conf",
+        "/etc/NetworkManager/conf.d/disable-batman-interfaces.conf",
+        "644",
+    ],
+    [
+        "systemd/assets/wpa_supplicant-wlan0.conf",
         "/etc/wpa_supplicant/",
         "600",
     ],
 ]
-maintainer-scripts = "debian/"
+maintainer-scripts = "systemd/debian/"
 systemd-units = [{ unit-name = "p2p-industries-stack", enable = true }]
 
 [package.metadata.deb.variants.raspbian]
 systemd-units = [
     { unit-name = "p2p-industries-stack", enable = true },
-    { unit-name = "setup-batman", enable = false },
+    { unit-name = "p2p-industries-batman", enable = false },
 ]
