@@ -9,7 +9,7 @@ from p2pindustries import P2PConnection
 
 MOISTURE_THRESHOLD = 0.7
 DATA_PUBLISH_INTERVAL = 2 * 60
-VALVE_PIN = 8
+VALVE_PIN = int(os.environ['VALVE_PIN'])
 
 pending_watering_request = False
 lock = asyncio.Lock()

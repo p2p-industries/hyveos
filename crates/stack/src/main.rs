@@ -246,11 +246,11 @@ fn diy_hints() -> DiyHinter {
     );
     tree.insert(
         "SCRIPT LIST",
-        CommandHint::new("SCRIPT LIST", "SCRIPT LIST"),
+        CommandHint::new("SCRIPT LIST SELF|peer_id", "SCRIPT LIST"),
     );
     tree.insert(
         "SCRIPT STOP",
-        CommandHint::new("SCRIPT STOP ALL|id", "SCRIPT STOP"),
+        CommandHint::new("SCRIPT STOP SELF|peer_id ALL|id", "SCRIPT STOP"),
     );
     tree.insert("QUIT", CommandHint::new("QUIT", "QUIT"));
     DiyHinter { tree }
@@ -839,11 +839,11 @@ async fn main_tty(
                                     "Deploy a local docker image to a peer, exposing the specified ports",
                                 ),
                                 (
-                                    "SCRIPT LIST",
+                                    "SCRIPT LIST SELF|peer_id",
                                     "List all running scripts",
                                 ),
                                 (
-                                    "SCRIPT STOP ALL|id",
+                                    "SCRIPT STOP SELF|peer_id ALL|id",
                                     "Stop all running scripts or a specific script by ID",
                                 ),
                             ]);
@@ -917,8 +917,14 @@ async fn main_tty(
                                 }
                             }
                         }
-                        ["SCRIPT", "LIST"] => {
-                            if let Ok(scripts) = scripting_client.list_containers().await {
+                        ["SCRIPT", "LIST", peer_id_or_self] => {
+                            let peer_id = if peer_id_or_self.to_uppercase() == "SELF" {
+                                None
+                            } else {
+                                Some(peer_id_or_self.parse().expect("Invalid peer ID"))
+                            };
+
+                            if let Ok(scripts) = scripting_client.list_containers(peer_id).await {
                                 if scripts.is_empty() {
                                     println!("No running scripts");
                                 } else {
@@ -931,8 +937,14 @@ async fn main_tty(
                                 println!("Failed to list scripts");
                             }
                         }
-                        ["SCRIPT", "STOP", all] if all.to_uppercase() == "ALL" => {
-                            match scripting_client.stop_all_containers(false).await {
+                        ["SCRIPT", "STOP", peer_id_or_self, all] if all.to_uppercase() == "ALL" => {
+                            let peer_id = if peer_id_or_self.to_uppercase() == "SELF" {
+                                None
+                            } else {
+                                Some(peer_id_or_self.parse().expect("Invalid peer ID"))
+                            };
+
+                            match scripting_client.stop_all_containers(false, peer_id).await {
                                 Ok(()) => {
                                     println!("Stopped all containers");
                                 }
@@ -941,9 +953,15 @@ async fn main_tty(
                                 }
                             }
                         }
-                        ["SCRIPT", "STOP", id] => {
+                        ["SCRIPT", "STOP", peer_id_or_self, id] => {
+                            let peer_id = if peer_id_or_self.to_uppercase() == "SELF" {
+                                None
+                            } else {
+                                Some(peer_id_or_self.parse().expect("Invalid peer ID"))
+                            };
+
                             if let Ok(id) = id.parse() {
-                                match scripting_client.stop_container(id).await {
+                                match scripting_client.stop_container(id, peer_id).await {
                                     Ok(()) => {
                                         println!("Stopped container with id {id}");
                                     }
@@ -1105,7 +1123,7 @@ async fn main_tty(
         }
     }
 
-    scripting_client.stop_all_containers(true).await?;
+    scripting_client.stop_all_containers(true, None).await?;
 
     rl.save_history(&history_file)?;
 
@@ -1287,7 +1305,7 @@ async fn main_alt(
 
     actor_task.await?;
 
-    scripting_client.stop_all_containers(true).await?;
+    scripting_client.stop_all_containers(true, None).await?;
 
     file_provider_task.abort();
     #[cfg(feature = "batman")]

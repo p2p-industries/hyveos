@@ -19,7 +19,7 @@ use crate::{
     impl_from_special_command,
 };
 
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {
@@ -88,7 +88,7 @@ pub type Behaviour = cbor::Behaviour<Request, Response>;
 pub fn new() -> Behaviour {
     cbor::Behaviour::new(
         [(StreamProtocol::new("/req_resp"), ProtocolSupport::Full)],
-        Config::default().with_request_timeout(Duration::from_secs(300)),
+        Config::default().with_request_timeout(REQUEST_TIMEOUT),
     )
 }
 

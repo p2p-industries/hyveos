@@ -54,9 +54,11 @@ impl Dht for DhtServer {
         &self,
         request: TonicRequest<script::DhtPutRecord>,
     ) -> TonicResult<script::Empty> {
-        tracing::debug!("Received put_record request");
+        let record = request.into_inner();
 
-        let script::DhtPutRecord { key, value } = request.into_inner();
+        tracing::debug!(request=?record, "Received put_record request");
+
+        let script::DhtPutRecord { key, value } = record;
 
         self.client
             .kad()
@@ -70,9 +72,9 @@ impl Dht for DhtServer {
         &self,
         request: TonicRequest<script::DhtKey>,
     ) -> TonicResult<script::DhtGetRecord> {
-        tracing::debug!("Received get_record request");
-
         let key = request.into_inner();
+
+        tracing::debug!(request=?key, "Received get_record request");
 
         let records = self
             .client
@@ -98,9 +100,9 @@ impl Dht for DhtServer {
     }
 
     async fn provide(&self, request: TonicRequest<script::DhtKey>) -> TonicResult<script::Empty> {
-        tracing::debug!("Received provide request");
-
         let key = request.into_inner();
+
+        tracing::debug!(request=?key, "Received provide request");
 
         self.client
             .kad()
@@ -114,9 +116,9 @@ impl Dht for DhtServer {
         &self,
         request: TonicRequest<script::DhtKey>,
     ) -> TonicResult<Self::GetProvidersStream> {
-        tracing::debug!("Received get_providers request");
-
         let key = request.into_inner();
+
+        tracing::debug!(request=?key, "Received get_providers request");
 
         let stream = self
             .client

@@ -65,12 +65,15 @@ class Pump:
 class WaterClaims:
     claims: dict[str, int] = {}
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
+    event: asyncio.Event = asyncio.Event()
 
     def add_claim(self, msg):
         if msg.peer_id in self.claims:
             self.claims[msg.peer_id] += loads(msg.msg.data)['claim']
         else:
             self.claims[msg.peer_id] = loads(msg.msg.data)['claim']
+
+        self.event.set()
 
     def clear(self):
         self.claims = {}
@@ -133,9 +136,12 @@ async def give_water(conn: P2PConnection, water_claims: WaterClaims, pump: Pump)
                     response_data = loads(response.data)
                     if not response_data['done']:
                         print(f'{peer} did not accept water')
+
+                water_claims.clear()
             await pump.stop()
 
-        await asyncio.sleep(OUR_TIME_DELTA)
+        await water_claims.event.wait()
+        water_claims.event.clear()
 
 
 async def monitor_water_claims(conn: P2PConnection, water_claims: WaterClaims):

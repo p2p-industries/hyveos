@@ -13,6 +13,7 @@ use bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
 use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
+    future::OptionFuture,
     stream::{FuturesUnordered, TryStreamExt as _},
     FutureExt,
 };
@@ -25,7 +26,7 @@ use p2p_stack::{
 use tokio::{
     fs::{metadata, File},
     io::{stderr, stdout, AsyncReadExt as _, AsyncWriteExt as _, BufReader},
-    sync::{mpsc, oneshot},
+    sync::{mpsc, oneshot, Mutex},
     task::JoinHandle,
 };
 use ulid::Ulid;
@@ -141,33 +142,65 @@ impl ScriptingManager {
         loop {
             tokio::select! {
                 Some(command) = self.command_broker.recv() => {
-                    match command {
-                        ActorToClient::DeployImage {
-                            root_fs,
-                            compression,
-                            id: request_id,
-                            ports,
-                        } => {
-                            let handle = self
-                                .execution_manager()
-                                .exec_foreign(root_fs, compression, ports)
-                                .await;
-
-                            let scripting = self.client.scripting().clone();
-
-                            self.add_handle(handle, move |id| async move {
-                                scripting
-                                    .deployed_image(request_id, id.map_err(|e| e.to_string()))
-                                    .map(|_| ())
-                                    .await;
-                            }).await;
-                        },
-                    }
+                    self.handle_command(command).await;
                 },
                 Some(command) = self.self_command_receiver.recv() => {
                     self.handle_self_command(command).await;
                 },
                 else => { break }
+            }
+        }
+    }
+
+    async fn handle_command(&mut self, command: ActorToClient) {
+        match command {
+            ActorToClient::DeployImage {
+                root_fs,
+                compression,
+                request_id,
+                ports,
+            } => {
+                let handle = self
+                    .execution_manager()
+                    .exec_foreign(root_fs, compression, ports)
+                    .await;
+
+                let scripting = self.client.scripting().clone();
+
+                self.add_handle(handle, move |id| async move {
+                    scripting
+                        .deployed_image(request_id, id.map_err(|e| e.to_string()))
+                        .map(|_| ())
+                        .await;
+                })
+                .await;
+            }
+            ActorToClient::ListContainers { request_id } => {
+                let result = Ok(self.list_containers());
+                let _ = self
+                    .client
+                    .scripting()
+                    .send_list_containers_response(request_id, result)
+                    .await;
+            }
+            ActorToClient::StopContainer { request_id, id } => {
+                let result = self.stop_container(id).await.map_err(|e| e.to_string());
+                let _ = self
+                    .client
+                    .scripting()
+                    .send_stop_container_response(request_id, result)
+                    .await;
+            }
+            ActorToClient::StopAllContainers { request_id, kill } => {
+                let result = self
+                    .stop_all_containers(kill)
+                    .await
+                    .map_err(|e| e.to_string());
+                let _ = self
+                    .client
+                    .scripting()
+                    .send_stop_container_response(request_id, result)
+                    .await;
             }
         }
     }
@@ -187,60 +220,16 @@ impl ScriptingManager {
                 .await;
             }
             SelfCommand::ListContainers { sender } => {
-                let containers = self
-                    .container_handles
-                    .iter()
-                    .map(|(id, handle)| (*id, handle.image_name.clone()))
-                    .collect();
-                let _ = sender.send(containers);
+                let _ = sender.send(self.list_containers());
             }
             SelfCommand::StopContainer {
                 container_id,
                 sender,
             } => {
-                if let Some(handle) = self.container_handles.remove(&container_id) {
-                    match handle.stop(false).await {
-                        Ok((_, container)) => {
-                            tracing::info!(
-                                "Stopped container: {container_id} ({})",
-                                container.image.image
-                            );
-                            let _ = sender.send(Ok(()));
-                        }
-                        Err(e) => {
-                            tracing::error!("Failed to stop container: {}", e);
-                            let _ = sender.send(Err(e));
-                        }
-                    }
-                } else {
-                    let _ = sender.send(Err(ExecutionError::ContainerNotFound(container_id)));
-                }
+                let _ = sender.send(self.stop_container(container_id).await);
             }
             SelfCommand::StopAllContainers { kill, sender } => {
-                let containers = self
-                    .container_handles
-                    .drain()
-                    .map(|(_, handle)| handle.stop(kill))
-                    .collect::<FuturesUnordered<_>>()
-                    .try_collect::<Vec<_>>()
-                    .await;
-
-                let result = match containers {
-                    Ok(containers) => {
-                        tracing::info!(
-                            "Stopped all containers: {}",
-                            containers
-                                .iter()
-                                .map(|(id, container)| format!("{id} ({})", container.image.image))
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        );
-                        Ok(())
-                    }
-                    Err(e) => Err(e),
-                };
-
-                let _ = sender.send(result);
+                let _ = sender.send(self.stop_all_containers(kill).await);
             }
         }
     }
@@ -263,6 +252,58 @@ impl ScriptingManager {
         };
 
         send(id).await;
+    }
+
+    fn list_containers(&self) -> Vec<(Ulid, Arc<str>)> {
+        self.container_handles
+            .iter()
+            .map(|(id, handle)| (*id, handle.image_name.clone()))
+            .collect()
+    }
+
+    async fn stop_container(&mut self, container_id: Ulid) -> Result<(), ExecutionError> {
+        if let Some(handle) = self.container_handles.remove(&container_id) {
+            match handle.stop(false).await {
+                Ok((_, container)) => {
+                    tracing::info!(
+                        "Stopped container: {container_id} ({})",
+                        container.image.image
+                    );
+                    Ok(())
+                }
+                Err(e) => {
+                    tracing::error!("Failed to stop container: {}", e);
+                    Err(e)
+                }
+            }
+        } else {
+            Err(ExecutionError::ContainerNotFound(container_id))
+        }
+    }
+
+    async fn stop_all_containers(&mut self, kill: bool) -> Result<(), ExecutionError> {
+        let containers = self
+            .container_handles
+            .drain()
+            .map(|(_, handle)| handle.stop(kill))
+            .collect::<FuturesUnordered<_>>()
+            .try_collect::<Vec<_>>()
+            .await;
+
+        match containers {
+            Ok(containers) => {
+                tracing::info!(
+                    "Stopped all containers: {}",
+                    containers
+                        .iter()
+                        .map(|(id, container)| format!("{id} ({})", container.image.image))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -453,6 +494,7 @@ pub struct ScriptingClient {
     client: P2PClient,
     container_manager: ContainerManager,
     self_command_sender: mpsc::Sender<SelfCommand>,
+    exported_images: Arc<Mutex<HashMap<String, Cid>>>,
 }
 
 impl ScriptingClient {
@@ -461,6 +503,7 @@ impl ScriptingClient {
             client,
             container_manager: ContainerManager::new().expect("Failed to create container manager"),
             self_command_sender,
+            exported_images: Arc::default(),
         }
     }
 
@@ -473,13 +516,32 @@ impl ScriptingClient {
         ports: impl IntoIterator<Item = u16>,
     ) -> Result<Ulid, ExecutionError> {
         let pulled_image = self.get_image(image, local, verbose).await?;
-        let image_archive = pulled_image.export(Compression::Zstd).await?;
-        let tmp = temp_dir().join(image);
-        let mut file = File::create(&tmp).await?;
-        file.write_all(&image_archive).await?;
-        file.flush().await?;
-        file.sync_data().await?;
-        let cid = self.client.file_transfer().import_new_file(&tmp).await?;
+        let image_id = pulled_image.get_id().await?;
+
+        let cid = if let Some(cid) = OptionFuture::from(
+            image_id
+                .as_ref()
+                .map(|id| async { self.exported_images.lock().await.get(id).copied() }),
+        )
+        .await
+        .flatten()
+        {
+            cid
+        } else {
+            let image_archive = pulled_image.export(Compression::Zstd).await?;
+            let tmp = temp_dir().join(image);
+            let mut file = File::create(&tmp).await?;
+            file.write_all(&image_archive).await?;
+            file.flush().await?;
+            file.sync_data().await?;
+            let cid = self.client.file_transfer().import_new_file(&tmp).await?;
+            if let Some(id) = image_id {
+                self.exported_images.lock().await.insert(id, cid);
+            }
+
+            cid
+        };
+
         let remote_ulid = self
             .client
             .scripting()
@@ -530,48 +592,83 @@ impl ScriptingClient {
         }
     }
 
-    pub async fn list_containers(&self) -> Result<Vec<(Ulid, Arc<str>)>, ExecutionError> {
-        let (sender, receiver) = oneshot::channel();
-        let command = SelfCommand::ListContainers { sender };
+    pub async fn list_containers(
+        &self,
+        peer_id: Option<PeerId>,
+    ) -> Result<Vec<(Ulid, Arc<str>)>, ExecutionError> {
+        if let Some(peer_id) = peer_id {
+            self.client
+                .scripting()
+                .list_containers(peer_id)
+                .await
+                .map_err(ExecutionError::ListContainersError)
+        } else {
+            let (sender, receiver) = oneshot::channel();
+            let command = SelfCommand::ListContainers { sender };
 
-        self.self_command_sender
-            .send(command)
-            .await
-            .map_err(|e| ExecutionError::ListContainersError(e.to_string()))?;
+            self.self_command_sender
+                .send(command)
+                .await
+                .map_err(|e| ExecutionError::ListContainersError(e.to_string()))?;
 
-        receiver
-            .await
-            .map_err(|e| ExecutionError::ListContainersError(e.to_string()))
+            receiver
+                .await
+                .map_err(|e| ExecutionError::ListContainersError(e.to_string()))
+        }
     }
 
-    pub async fn stop_container(&self, container_id: Ulid) -> Result<(), ExecutionError> {
-        let (sender, receiver) = oneshot::channel();
-        let command = SelfCommand::StopContainer {
-            container_id,
-            sender,
-        };
+    pub async fn stop_container(
+        &self,
+        container_id: Ulid,
+        peer_id: Option<PeerId>,
+    ) -> Result<(), ExecutionError> {
+        if let Some(peer_id) = peer_id {
+            self.client
+                .scripting()
+                .stop_container(peer_id, container_id)
+                .await
+                .map_err(ExecutionError::StopContainerError)
+        } else {
+            let (sender, receiver) = oneshot::channel();
+            let command = SelfCommand::StopContainer {
+                container_id,
+                sender,
+            };
 
-        self.self_command_sender
-            .send(command)
-            .await
-            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+            self.self_command_sender
+                .send(command)
+                .await
+                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
 
-        receiver
-            .await
-            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
+            receiver
+                .await
+                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
+        }
     }
 
-    pub async fn stop_all_containers(&self, kill: bool) -> Result<(), ExecutionError> {
-        let (sender, receiver) = oneshot::channel();
-        let command = SelfCommand::StopAllContainers { kill, sender };
+    pub async fn stop_all_containers(
+        &self,
+        kill: bool,
+        peer_id: Option<PeerId>,
+    ) -> Result<(), ExecutionError> {
+        if let Some(peer_id) = peer_id {
+            self.client
+                .scripting()
+                .stop_all_containers(peer_id, kill)
+                .await
+                .map_err(ExecutionError::StopContainerError)
+        } else {
+            let (sender, receiver) = oneshot::channel();
+            let command = SelfCommand::StopAllContainers { kill, sender };
 
-        self.self_command_sender
-            .send(command)
-            .await
-            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+            self.self_command_sender
+                .send(command)
+                .await
+                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
 
-        receiver
-            .await
-            .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
+            receiver
+                .await
+                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
+        }
     }
 }

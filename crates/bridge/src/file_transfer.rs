@@ -89,9 +89,11 @@ impl FileTransfer for FileTransferServer {
         &self,
         request: TonicRequest<script::FilePath>,
     ) -> TonicResult<script::Cid> {
-        tracing::debug!("Received publish_file request");
+        let file_path = request.into_inner();
 
-        let container_file_path = PathBuf::from(request.into_inner());
+        tracing::debug!(request=?file_path, "Received publish_file request");
+
+        let container_file_path = PathBuf::from(file_path);
 
         let file_path = self.shared_dir_path.join(
             container_file_path
@@ -115,9 +117,9 @@ impl FileTransfer for FileTransferServer {
     }
 
     async fn get_file(&self, request: TonicRequest<script::Cid>) -> TonicResult<script::FilePath> {
-        tracing::debug!("Received get_file request");
-
         let cid = request.into_inner();
+
+        tracing::debug!(request=?cid, "Received get_file request");
 
         let ulid_string = cid.id.ulid.clone();
 

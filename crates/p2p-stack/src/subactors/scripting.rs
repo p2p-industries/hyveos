@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use docker::Compression;
 use libp2p::{
@@ -21,6 +21,8 @@ use crate::{
     impl_from_special_command,
 };
 
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Request {
     DeployImage {
@@ -28,11 +30,29 @@ pub enum Request {
         compression: Compression,
         ports: Vec<u16>,
     },
+    ListContainers,
+    StopContainer {
+        id: Ulid,
+    },
+    StopAllContainers {
+        kill: bool,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Response {
-    DeployedImage { result: Result<Ulid, String> },
+    DeployedImage {
+        result: Result<Ulid, String>,
+    },
+    ListContainers {
+        result: Result<Vec<(Ulid, Arc<str>)>, String>,
+    },
+    StopContainer {
+        result: Result<(), String>,
+    },
+    StopAllContainers {
+        result: Result<(), String>,
+    },
 }
 
 pub type Behaviour = cbor::Behaviour<Request, Response>;
@@ -44,7 +64,7 @@ pub fn new() -> Behaviour {
             StreamProtocol::new("/scripting/0.1.0"),
             ProtocolSupport::Full,
         )],
-        Config::default(),
+        Config::default().with_request_timeout(REQUEST_TIMEOUT),
     )
 }
 
@@ -54,9 +74,22 @@ pub enum ActorToClient {
         root_fs: Cid,
         compression: Compression,
         ports: Vec<u16>,
-        id: InboundRequestId,
+        request_id: InboundRequestId,
+    },
+    ListContainers {
+        request_id: InboundRequestId,
+    },
+    StopContainer {
+        request_id: InboundRequestId,
+        id: Ulid,
+    },
+    StopAllContainers {
+        request_id: InboundRequestId,
+        kill: bool,
     },
 }
+
+pub type ListContainersResult = Result<Vec<(Ulid, Arc<str>)>, String>;
 
 #[derive(Debug)]
 pub enum Command {
@@ -72,12 +105,36 @@ pub enum Command {
         id: InboundRequestId,
         result: Result<Ulid, String>,
     },
+    ListContainers {
+        peer_id: PeerId,
+        sender: oneshot::Sender<ListContainersResult>,
+    },
+    ListContainersResponse {
+        id: InboundRequestId,
+        result: ListContainersResult,
+    },
+    StopContainer {
+        peer_id: PeerId,
+        id: Ulid,
+        sender: oneshot::Sender<Result<(), String>>,
+    },
+    StopAllContainers {
+        peer_id: PeerId,
+        kill: bool,
+        sender: oneshot::Sender<Result<(), String>>,
+    },
+    StopContainerResponse {
+        id: InboundRequestId,
+        result: Result<(), String>,
+    },
 }
 
 impl_from_special_command!(Scripting);
 
 pub struct Actor {
-    inflight: HashMap<OutboundRequestId, oneshot::Sender<Result<Ulid, String>>>,
+    inflight_deploy: HashMap<OutboundRequestId, oneshot::Sender<Result<Ulid, String>>>,
+    inflight_list: HashMap<OutboundRequestId, oneshot::Sender<ListContainersResult>>,
+    inflight_stop: HashMap<OutboundRequestId, oneshot::Sender<Result<(), String>>>,
     client_inflight: HashMap<InboundRequestId, ResponseChannel<Response>>,
     to_client_sender: mpsc::Sender<ActorToClient>,
     to_client_receiver: Option<mpsc::Receiver<ActorToClient>>,
@@ -87,7 +144,9 @@ impl Default for Actor {
     fn default() -> Self {
         let (actor_to_client_sender, actor_to_client_receiver) = mpsc::channel(10);
         Self {
-            inflight: HashMap::new(),
+            inflight_deploy: HashMap::new(),
+            inflight_list: HashMap::new(),
+            inflight_stop: HashMap::new(),
             client_inflight: HashMap::new(),
             to_client_sender: actor_to_client_sender,
             to_client_receiver: Some(actor_to_client_receiver),
@@ -127,13 +186,59 @@ impl SubActor for Actor {
                         ports,
                     },
                 );
-                self.inflight.insert(req_id, sender);
+                self.inflight_deploy.insert(req_id, sender);
             }
             Command::DeployedImage { id, result } => {
                 if let Some(channel) = self.client_inflight.remove(&id) {
                     if let Err(e) = behaviour
                         .scripting
                         .send_response(channel, Response::DeployedImage { result })
+                    {
+                        tracing::error!(error = ?e, "Failed to send response");
+                    }
+                }
+            }
+            Command::ListContainers { peer_id, sender } => {
+                let req_id = behaviour
+                    .scripting
+                    .send_request(&peer_id, Request::ListContainers);
+                self.inflight_list.insert(req_id, sender);
+            }
+            Command::ListContainersResponse { id, result } => {
+                if let Some(channel) = self.client_inflight.remove(&id) {
+                    if let Err(e) = behaviour
+                        .scripting
+                        .send_response(channel, Response::ListContainers { result })
+                    {
+                        tracing::error!(error = ?e, "Failed to send response");
+                    }
+                }
+            }
+            Command::StopContainer {
+                peer_id,
+                id,
+                sender,
+            } => {
+                let req_id = behaviour
+                    .scripting
+                    .send_request(&peer_id, Request::StopContainer { id });
+                self.inflight_stop.insert(req_id, sender);
+            }
+            Command::StopAllContainers {
+                peer_id,
+                kill,
+                sender,
+            } => {
+                let req_id = behaviour
+                    .scripting
+                    .send_request(&peer_id, Request::StopAllContainers { kill });
+                self.inflight_stop.insert(req_id, sender);
+            }
+            Command::StopContainerResponse { id, result } => {
+                if let Some(channel) = self.client_inflight.remove(&id) {
+                    if let Err(e) = behaviour
+                        .scripting
+                        .send_response(channel, Response::StopContainer { result })
                     {
                         tracing::error!(error = ?e, "Failed to send response");
                     }
@@ -166,10 +271,64 @@ impl SubActor for Actor {
                 if let Err(e) = self.to_client_sender.try_send(ActorToClient::DeployImage {
                     root_fs,
                     compression,
-                    id: request_id,
+                    request_id,
                     ports,
                 }) {
                     tracing::error!(peer = ?peer, error = ?e, "Failed to send local deployment command");
+                } else {
+                    self.client_inflight.insert(request_id, channel);
+                }
+            }
+            Event::Message {
+                message:
+                    Message::Request {
+                        request_id,
+                        request: Request::ListContainers,
+                        channel,
+                    },
+                peer,
+            } => {
+                if let Err(e) = self
+                    .to_client_sender
+                    .try_send(ActorToClient::ListContainers { request_id })
+                {
+                    tracing::error!(peer = ?peer, error = ?e, "Failed to send list containers command");
+                } else {
+                    self.client_inflight.insert(request_id, channel);
+                }
+            }
+            Event::Message {
+                message:
+                    Message::Request {
+                        request_id,
+                        request: Request::StopContainer { id },
+                        channel,
+                    },
+                peer,
+            } => {
+                if let Err(e) = self
+                    .to_client_sender
+                    .try_send(ActorToClient::StopContainer { request_id, id })
+                {
+                    tracing::error!(peer = ?peer, error = ?e, "Failed to send stop container command");
+                } else {
+                    self.client_inflight.insert(request_id, channel);
+                }
+            }
+            Event::Message {
+                message:
+                    Message::Request {
+                        request_id,
+                        request: Request::StopAllContainers { kill },
+                        channel,
+                    },
+                peer,
+            } => {
+                if let Err(e) = self
+                    .to_client_sender
+                    .try_send(ActorToClient::StopAllContainers { request_id, kill })
+                {
+                    tracing::error!(peer = ?peer, error = ?e, "Failed to send stop all containers command");
                 } else {
                     self.client_inflight.insert(request_id, channel);
                 }
@@ -182,7 +341,40 @@ impl SubActor for Actor {
                         response: Response::DeployedImage { result },
                     },
             } => {
-                if let Some(sender) = self.inflight.remove(&request_id) {
+                if let Some(sender) = self.inflight_deploy.remove(&request_id) {
+                    if let Err(e) = sender.send(result) {
+                        tracing::error!(error = ?e, "Failed to send result");
+                    }
+                } else {
+                    tracing::error!(peer = ?peer, "Received unexpected response");
+                }
+            }
+            Event::Message {
+                peer,
+                message:
+                    Message::Response {
+                        request_id,
+                        response: Response::ListContainers { result },
+                    },
+            } => {
+                if let Some(sender) = self.inflight_list.remove(&request_id) {
+                    if let Err(e) = sender.send(result) {
+                        tracing::error!(error = ?e, "Failed to send result");
+                    }
+                } else {
+                    tracing::error!(peer = ?peer, "Received unexpected response");
+                }
+            }
+            Event::Message {
+                peer,
+                message:
+                    Message::Response {
+                        request_id,
+                        response:
+                            Response::StopContainer { result } | Response::StopAllContainers { result },
+                    },
+            } => {
+                if let Some(sender) = self.inflight_stop.remove(&request_id) {
                     if let Err(e) = sender.send(result) {
                         tracing::error!(error = ?e, "Failed to send result");
                     }
@@ -193,7 +385,15 @@ impl SubActor for Actor {
             Event::OutboundFailure {
                 request_id, error, ..
             } => {
-                if let Some(sender) = self.inflight.remove(&request_id) {
+                if let Some(sender) = self.inflight_deploy.remove(&request_id) {
+                    if let Err(e) = sender.send(Err(error.to_string())) {
+                        tracing::error!(error = ?e, "Failed to send error");
+                    }
+                } else if let Some(sender) = self.inflight_list.remove(&request_id) {
+                    if let Err(e) = sender.send(Err(error.to_string())) {
+                        tracing::error!(error = ?e, "Failed to send error");
+                    }
+                } else if let Some(sender) = self.inflight_stop.remove(&request_id) {
                     if let Err(e) = sender.send(Err(error.to_string())) {
                         tracing::error!(error = ?e, "Failed to send error");
                     }
@@ -254,6 +454,63 @@ impl Client {
     ) -> Result<(), RequestError<Command>> {
         self.inner
             .send(Command::DeployedImage { id, result })
+            .await
+            .map_err(RequestError::Send)
+    }
+
+    pub async fn list_containers(&self, peer_id: PeerId) -> ListContainersResult {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .send(Command::ListContainers { peer_id, sender })
+            .await
+            .expect("Failed to send");
+        receiver.await.expect("Failed to receive")
+    }
+
+    pub async fn send_list_containers_response(
+        &self,
+        id: InboundRequestId,
+        result: ListContainersResult,
+    ) -> Result<(), RequestError<Command>> {
+        self.inner
+            .send(Command::ListContainersResponse { id, result })
+            .await
+            .map_err(RequestError::Send)
+    }
+
+    pub async fn stop_container(&self, peer_id: PeerId, id: Ulid) -> Result<(), String> {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .send(Command::StopContainer {
+                peer_id,
+                id,
+                sender,
+            })
+            .await
+            .expect("Failed to send");
+        receiver.await.expect("Failed to receive")
+    }
+
+    pub async fn stop_all_containers(&self, peer_id: PeerId, kill: bool) -> Result<(), String> {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .send(Command::StopAllContainers {
+                peer_id,
+                kill,
+                sender,
+            })
+            .await
+            .expect("Failed to send");
+        receiver.await.expect("Failed to receive")
+    }
+
+    pub async fn send_stop_container_response(
+        &self,
+        id: InboundRequestId,
+        result: Result<(), String>,
+    ) -> Result<(), RequestError<Command>> {
+        self.inner
+            .send(Command::StopContainerResponse { id, result })
             .await
             .map_err(RequestError::Send)
     }

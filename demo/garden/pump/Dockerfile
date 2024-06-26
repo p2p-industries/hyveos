@@ -1,8 +1,7 @@
 FROM ghcr.io/p2p-industries/mvp-base-python:main
 
-WORKDIR /app
-
-COPY . /app/demo/garden/pump/
+COPY poetry.lock /app/demo/garden/pump/poetry.lock
+COPY pyproject.toml /app/demo/garden/pump/pyproject.toml
 
 WORKDIR /app/demo/garden/pump
 
@@ -11,6 +10,10 @@ WORKDIR /app/demo/garden/pump
 RUN poetry remove p2pindustries
 RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --only main
+
+COPY main.py /app/demo/garden/pump/main.py
+
+ENV PYTHONUNBUFFERED=1
 
 ENV FLOW_METER_PIN=22
 ENV PUMP_PIN=13

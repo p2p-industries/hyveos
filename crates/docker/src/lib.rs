@@ -217,6 +217,10 @@ impl PulledImage<'_> {
         }
     }
 
+    pub async fn get_id(&self) -> Result<Option<String>, BollardError> {
+        self.docker.inspect_image(&self.image).await.map(|i| i.id)
+    }
+
     /// Remove the image from the docker daemon
     ///
     /// ```rust
