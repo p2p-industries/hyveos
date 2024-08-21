@@ -99,9 +99,10 @@ impl ReqResp for ReqRespServer {
         &self,
         request: TonicRequest<script::SendRequest>,
     ) -> TonicResult<script::Response> {
-        tracing::debug!("Received send request");
-
         let request = request.into_inner();
+
+        tracing::debug!(?request, "Received send request");
+
         let peer_id = request
             .peer_id
             .parse()
@@ -121,13 +122,11 @@ impl ReqResp for ReqRespServer {
         &self,
         request: TonicRequest<script::OptionalTopicQuery>,
     ) -> TonicResult<Self::RecvStream> {
-        tracing::debug!("Received recv request");
+        let request = request.into_inner();
 
-        let query = request
-            .into_inner()
-            .query
-            .map(TryInto::try_into)
-            .transpose()?;
+        tracing::debug!(?request, "Received recv request");
+
+        let query = request.query.map(TryInto::try_into).transpose()?;
 
         let client = self.client.clone();
 
@@ -158,9 +157,9 @@ impl ReqResp for ReqRespServer {
         &self,
         request: TonicRequest<script::SendResponse>,
     ) -> TonicResult<script::Empty> {
-        tracing::debug!("Received respond request");
-
         let response = request.into_inner();
+
+        tracing::debug!(request=?response, "Received respond request");
 
         self.client
             .req_resp()

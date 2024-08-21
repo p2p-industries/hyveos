@@ -19,7 +19,8 @@ use crate::{
     impl_from_special_command,
 };
 
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+// TODO: lower timeout (requires changes to file_transfer actor)
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {
@@ -88,8 +89,7 @@ pub type Behaviour = cbor::Behaviour<Request, Response>;
 pub fn new() -> Behaviour {
     cbor::Behaviour::new(
         [(StreamProtocol::new("/req_resp"), ProtocolSupport::Full)],
-        // TODO: lower timeout (requires changes to file_transfer actor)
-        Config::default().with_request_timeout(Duration::from_secs(300)),
+        Config::default().with_request_timeout(REQUEST_TIMEOUT),
     )
 }
 

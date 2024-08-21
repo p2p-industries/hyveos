@@ -27,9 +27,11 @@ impl GossipSub for GossipSubServer {
         &self,
         request: TonicRequest<script::Topic>,
     ) -> TonicResult<Self::SubscribeStream> {
-        tracing::debug!("Received subscribe request");
+        let request = request.into_inner();
 
-        let topic = request.into_inner().topic;
+        tracing::debug!(?request, "Received subscribe request");
+
+        let topic = request.topic;
 
         let receiver = self
             .client
@@ -61,12 +63,14 @@ impl GossipSub for GossipSubServer {
         &self,
         request: TonicRequest<script::GossipSubMessage>,
     ) -> TonicResult<script::GossipSubMessageId> {
-        tracing::debug!("Received publish request");
+        let request = request.into_inner();
+
+        tracing::debug!(?request, "Received publish request");
 
         let script::GossipSubMessage {
             data,
             topic: script::Topic { topic },
-        } = request.into_inner();
+        } = request;
 
         self.client
             .gossipsub()
