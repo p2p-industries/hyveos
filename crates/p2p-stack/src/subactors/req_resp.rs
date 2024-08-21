@@ -19,6 +19,7 @@ use crate::{
     impl_from_special_command,
 };
 
+// TODO: lower timeout (requires changes to file_transfer actor)
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -34,3 +34,5 @@ depends = "batctl"
 assets = [["target/release/batman-neighbours-daemon", "usr/bin/", "755"]]
 maintainer-scripts = "systemd/debian/"
 systemd-units = [{ unit-name = "batman-neighbours-daemon", enable = true }]
+
+[package.metadata.deb.variants.raspbian]
