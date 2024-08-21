@@ -1,0 +1,22 @@
+[Unit]
+Description=Setup B.A.T.M.A.N. advanced (%i)
+Wants=network.target
+Before=network.target
+Wants=batman-neighbours-daemon.service
+Before=batman-neighbours-daemon.service
+Requires=wpa_supplicant@%i.service
+After=wpa_supplicant@%i.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# perhaps rfkill is not needed for you
+ExecStart=/usr/sbin/batctl if add %i
+ExecStart=/usr/sbin/ifconfig bat0 mtu 1468
+ExecStart=/usr/sbin/ifconfig bat0 up
+
+ExecStop=/usr/sbin/ifconfig bat0 down
+
+[Install]
+WantedBy=multi-user.target

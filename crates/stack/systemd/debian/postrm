@@ -1,0 +1,14 @@
+#!/bin/sh
+
+reload_network_manager() {
+    type nmcli &> /dev/null || return 0
+    nmcli general reload
+}
+
+case "$1" in
+remove|purge)
+    reload_network_manager
+    ;;
+esac
+
+#DEBHELPER#

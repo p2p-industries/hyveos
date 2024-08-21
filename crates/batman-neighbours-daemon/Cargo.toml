@@ -28,3 +28,11 @@ netlink-packet-core = { workspace = true }
 netlink-packet-generic = "0.3.3"
 netlink-packet-utils = "0.5.2"
 uzers = "0.12.0"
+
+[package.metadata.deb]
+depends = "batctl"
+assets = [["target/release/batman-neighbours-daemon", "usr/bin/", "755"]]
+maintainer-scripts = "systemd/debian/"
+systemd-units = [{ unit-name = "batman-neighbours-daemon", enable = true }]
+
+[package.metadata.deb.variants.raspbian]

@@ -934,7 +934,6 @@ mod tests {
     use std::{
         fs::File,
         io::{Read, Write as _},
-        time::Duration,
     };
 
     use once_cell::sync::Lazy;
@@ -1073,10 +1072,13 @@ mod tests {
         const IMAGE: &str = "alpine:latest";
         let manager = super::ContainerManager::new().unwrap();
         let image = manager.pull_image(IMAGE, false).await.unwrap();
+
+        let (rx, stdout) = tokio::io::duplex(4096);
         let container = image
             .create_container()
             .enable_stream()
-            .cmd(vec!["sh", "-c", "sleep 1000"])
+            .cmd(vec!["sh", "-c", "while true; do echo hello; sleep 1; done"])
+            .stdout(stdout)
             .run()
             .await
             .unwrap()
@@ -1086,7 +1088,11 @@ mod tests {
 
         let handle = tokio::spawn(container.run_to_completion(Some(stop_receiver)));
 
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        let mut rx = BufReader::new(rx).lines();
+        for _ in 0..5 {
+            let line = rx.next_line().await.unwrap().unwrap();
+            assert_eq!(line, "hello");
+        }
 
         stop_sender.send(false).unwrap();
 

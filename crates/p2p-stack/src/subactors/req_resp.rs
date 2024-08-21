@@ -88,7 +88,8 @@ pub type Behaviour = cbor::Behaviour<Request, Response>;
 pub fn new() -> Behaviour {
     cbor::Behaviour::new(
         [(StreamProtocol::new("/req_resp"), ProtocolSupport::Full)],
-        Config::default(),
+        // TODO: lower timeout (requires changes to file_transfer actor)
+        Config::default().with_request_timeout(Duration::from_secs(300)),
     )
 }
 

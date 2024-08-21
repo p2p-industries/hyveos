@@ -13,6 +13,7 @@ libp2p = { workspace = true }
 p2p-stack = { workspace = true }
 prost = { workspace = true }
 regex = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs", "sync"] }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true }

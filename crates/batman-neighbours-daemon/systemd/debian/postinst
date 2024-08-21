@@ -1,0 +1,15 @@
+#!/bin/sh
+
+BATMAN_NEIGHBOURS_GROUP="batman-neighbours"
+
+create_group() {
+    addgroup --system ${BATMAN_NEIGHBOURS_GROUP}
+}
+
+case "$1" in
+configure)
+    create_group
+    ;;
+esac
+
+#DEBHELPER#
