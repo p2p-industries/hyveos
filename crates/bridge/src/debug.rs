@@ -1,49 +1,12 @@
 use drop_stream::DropStream;
 use futures::TryStreamExt as _;
-use libp2p::PeerId;
-use p2p_stack::{DebugClientCommand, DebugNeighbourEvent};
+use p2p_industries_core::grpc::{self, debug_server::Debug};
+use p2p_stack::DebugClientCommand;
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{
-    script::{self, debug_server::Debug},
-    ServerStream, TonicResult,
-};
-
-impl From<(PeerId, DebugNeighbourEvent)> for script::MeshTopologyEvent {
-    fn from((peer_id, event): (PeerId, DebugNeighbourEvent)) -> Self {
-        Self {
-            peer: script::Peer {
-                peer_id: peer_id.to_string(),
-            },
-            event: script::NeighbourEvent {
-                event: Some(match event {
-                    DebugNeighbourEvent::Init(peers) => {
-                        let peers = peers
-                            .into_iter()
-                            .map(|peer_id| script::Peer {
-                                peer_id: peer_id.to_string(),
-                            })
-                            .collect();
-
-                        script::neighbour_event::Event::Init(script::Peers { peers })
-                    }
-                    DebugNeighbourEvent::Discovered(peer_id) => {
-                        script::neighbour_event::Event::Discovered(script::Peer {
-                            peer_id: peer_id.to_string(),
-                        })
-                    }
-                    DebugNeighbourEvent::Lost(peer_id) => {
-                        script::neighbour_event::Event::Lost(script::Peer {
-                            peer_id: peer_id.to_string(),
-                        })
-                    }
-                }),
-            },
-        }
-    }
-}
+use crate::{ServerStream, TonicResult};
 
 pub struct DebugServer {
     command_sender: mpsc::Sender<DebugClientCommand>,
@@ -55,13 +18,13 @@ impl DebugServer {
     }
 }
 
-#[tonic::async_trait]
+#[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl Debug for DebugServer {
-    type SubscribeMeshTopologyStream = ServerStream<script::MeshTopologyEvent>;
+    type SubscribeMeshTopologyStream = ServerStream<grpc::MeshTopologyEvent>;
 
     async fn subscribe_mesh_topology(
         &self,
-        _request: TonicRequest<script::Empty>,
+        _request: TonicRequest<grpc::Empty>,
     ) -> TonicResult<Self::SubscribeMeshTopologyStream> {
         tracing::debug!("Received subscribe_mesh_topology request");
 

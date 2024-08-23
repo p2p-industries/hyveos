@@ -911,16 +911,32 @@ pub mod ping {
 pub mod neigh {
     use std::sync::Arc;
 
+    use futures::{Stream, StreamExt as _};
     use p2p_stack::NeighbourEvent;
-    use tokio::sync::broadcast::Receiver;
 
     use super::prelude::*;
 
     #[cfg(feature = "batman")]
-    async fn neighbours_task(mut sub: Receiver<Arc<NeighbourEvent>>, mut printer: SharedPrinter) {
-        while let Ok(event) = sub.recv().await {
+    async fn neighbours_task<E: Unpin>(
+        mut stream: impl Stream<Item = Result<Arc<NeighbourEvent>, E>> + Unpin,
+        mut printer: SharedPrinter,
+    ) {
+        while let Some(Ok(event)) = stream.next().await {
             match event.as_ref() {
-                NeighbourEvent::ResolvedNeighbour(neighbour) => {
+                NeighbourEvent::Init(neighbours) => {
+                    println!("Resolved neighbours:");
+                    for (peer_id, neighbours) in neighbours {
+                        if let [neighbour] = &neighbours[..] {
+                            println!("  Peer {peer_id}: {}", neighbour.direct_addr);
+                        } else {
+                            println!("  Peer {peer_id}:");
+                            for neighbour in neighbours {
+                                println!("    - {}", neighbour.direct_addr);
+                            }
+                        }
+                    }
+                }
+                NeighbourEvent::Discovered(neighbour) => {
                     writeln!(
                         printer,
                         "Resolved neighbour {}: {}",
@@ -928,7 +944,7 @@ pub mod neigh {
                     )
                     .expect("Failed to print");
                 }
-                NeighbourEvent::LostNeighbour(neighbour) => {
+                NeighbourEvent::Lost(neighbour) => {
                     writeln!(
                         printer,
                         "Lost neighbour {}: {}",
@@ -999,7 +1015,9 @@ pub mod neigh {
 mod script {
     use std::num::ParseIntError;
 
+    use bridge::ScriptingClient as _;
     use libp2p::PeerId;
+    use p2p_industries_core::scripting::RunningScript;
 
     use super::prelude::*;
 
@@ -1020,7 +1038,7 @@ mod script {
         [
             (
                 ScriptDeploySelfCommand,
-                "Deploy a docker image locally from the docker registry",
+                "Deploy a docker image from the docker registry to self",
                 |"DEPLOY", "SELF", image, ports| {
                     let ports = parse_ports(ports)?;
                     let ulid = scripting_client
@@ -1032,7 +1050,7 @@ mod script {
             ),
             (
                 ScriptDeployRemoteCommand,
-                "Deploy a docker image to a remote peer from the docker registry",
+                "Deploy a docker image from the docker registry to a remote peer",
                 |"DEPLOY", peer_id, image, ports| {
                     let peer: PeerId = peer_id.parse()?;
                     let ports = parse_ports(ports)?;
@@ -1045,7 +1063,7 @@ mod script {
             ),
             (
                 ScriptLocalDeploySelfCommand,
-                "Deploy a local docker image to a remote peer",
+                "Deploy a local docker image to self",
                 |"LOCAL", "DEPLOY", "SELF", image, ports| {
                     let ports = parse_ports(ports)?;
                     let ulid = scripting_client
@@ -1082,8 +1100,8 @@ mod script {
                         println!("No running scripts");
                     } else {
                         println!("Running scripts:");
-                        for (ulid, script) in scripts {
-                            println!("  {ulid}: {script}");
+                        for RunningScript { id, image } in scripts {
+                            println!("  {id}: {image}");
                         }
                     }
                     Ok(())
@@ -1147,7 +1165,7 @@ pub mod file {
     use std::path::PathBuf;
 
     use base64_simd::{Out, URL_SAFE};
-    use p2p_stack::file_transfer::Cid;
+    use p2p_industries_core::file_transfer::Cid;
 
     use super::prelude::*;
 

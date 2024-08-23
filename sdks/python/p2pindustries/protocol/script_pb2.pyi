@@ -15,6 +15,12 @@ class ID(_message.Message):
     ulid: str
     def __init__(self, ulid: _Optional[str] = ...) -> None: ...
 
+class Peer(_message.Message):
+    __slots__ = ("peer_id",)
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    peer_id: str
+    def __init__(self, peer_id: _Optional[str] = ...) -> None: ...
+
 class Topic(_message.Message):
     __slots__ = ("topic",)
     TOPIC_FIELD_NUMBER: _ClassVar[int]
@@ -50,22 +56,22 @@ class Message(_message.Message):
     def __init__(self, data: _Optional[bytes] = ..., topic: _Optional[_Union[OptionalTopic, _Mapping]] = ...) -> None: ...
 
 class SendRequest(_message.Message):
-    __slots__ = ("peer_id", "msg")
-    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("peer", "msg")
+    PEER_FIELD_NUMBER: _ClassVar[int]
     MSG_FIELD_NUMBER: _ClassVar[int]
-    peer_id: str
+    peer: Peer
     msg: Message
-    def __init__(self, peer_id: _Optional[str] = ..., msg: _Optional[_Union[Message, _Mapping]] = ...) -> None: ...
+    def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ..., msg: _Optional[_Union[Message, _Mapping]] = ...) -> None: ...
 
 class RecvRequest(_message.Message):
-    __slots__ = ("peer_id", "msg", "seq")
-    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("peer", "msg", "seq")
+    PEER_FIELD_NUMBER: _ClassVar[int]
     MSG_FIELD_NUMBER: _ClassVar[int]
     SEQ_FIELD_NUMBER: _ClassVar[int]
-    peer_id: str
+    peer: Peer
     msg: Message
     seq: int
-    def __init__(self, peer_id: _Optional[str] = ..., msg: _Optional[_Union[Message, _Mapping]] = ..., seq: _Optional[int] = ...) -> None: ...
+    def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ..., msg: _Optional[_Union[Message, _Mapping]] = ..., seq: _Optional[int] = ...) -> None: ...
 
 class Response(_message.Message):
     __slots__ = ("data", "error")
@@ -82,12 +88,6 @@ class SendResponse(_message.Message):
     seq: int
     response: Response
     def __init__(self, seq: _Optional[int] = ..., response: _Optional[_Union[Response, _Mapping]] = ...) -> None: ...
-
-class Peer(_message.Message):
-    __slots__ = ("peer_id",)
-    PEER_ID_FIELD_NUMBER: _ClassVar[int]
-    peer_id: str
-    def __init__(self, peer_id: _Optional[str] = ...) -> None: ...
 
 class Peers(_message.Message):
     __slots__ = ("peers",)
@@ -128,14 +128,16 @@ class GossipSubMessage(_message.Message):
     def __init__(self, data: _Optional[bytes] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ...) -> None: ...
 
 class GossipSubRecvMessage(_message.Message):
-    __slots__ = ("peer_id", "msg", "msg_id")
-    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("propagation_source", "source", "msg", "msg_id")
+    PROPAGATION_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
     MSG_FIELD_NUMBER: _ClassVar[int]
     MSG_ID_FIELD_NUMBER: _ClassVar[int]
-    peer_id: str
+    propagation_source: Peer
+    source: Peer
     msg: GossipSubMessage
     msg_id: GossipSubMessageID
-    def __init__(self, peer_id: _Optional[str] = ..., msg: _Optional[_Union[GossipSubMessage, _Mapping]] = ..., msg_id: _Optional[_Union[GossipSubMessageID, _Mapping]] = ...) -> None: ...
+    def __init__(self, propagation_source: _Optional[_Union[Peer, _Mapping]] = ..., source: _Optional[_Union[Peer, _Mapping]] = ..., msg: _Optional[_Union[GossipSubMessage, _Mapping]] = ..., msg_id: _Optional[_Union[GossipSubMessageID, _Mapping]] = ...) -> None: ...
 
 class DHTKey(_message.Message):
     __slots__ = ("topic", "key")
@@ -154,12 +156,10 @@ class DHTPutRecord(_message.Message):
     def __init__(self, key: _Optional[_Union[DHTKey, _Mapping]] = ..., value: _Optional[bytes] = ...) -> None: ...
 
 class DHTGetRecord(_message.Message):
-    __slots__ = ("key", "value")
-    KEY_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("value",)
     VALUE_FIELD_NUMBER: _ClassVar[int]
-    key: DHTKey
     value: bytes
-    def __init__(self, key: _Optional[_Union[DHTKey, _Mapping]] = ..., value: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, value: _Optional[bytes] = ...) -> None: ...
 
 class FilePath(_message.Message):
     __slots__ = ("path",)
@@ -174,3 +174,55 @@ class CID(_message.Message):
     hash: bytes
     id: ID
     def __init__(self, hash: _Optional[bytes] = ..., id: _Optional[_Union[ID, _Mapping]] = ...) -> None: ...
+
+class DockerImage(_message.Message):
+    __slots__ = ("name",)
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    def __init__(self, name: _Optional[str] = ...) -> None: ...
+
+class DockerScript(_message.Message):
+    __slots__ = ("image", "ports")
+    IMAGE_FIELD_NUMBER: _ClassVar[int]
+    PORTS_FIELD_NUMBER: _ClassVar[int]
+    image: DockerImage
+    ports: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, image: _Optional[_Union[DockerImage, _Mapping]] = ..., ports: _Optional[_Iterable[int]] = ...) -> None: ...
+
+class DeployScriptRequest(_message.Message):
+    __slots__ = ("script", "local", "peer")
+    SCRIPT_FIELD_NUMBER: _ClassVar[int]
+    LOCAL_FIELD_NUMBER: _ClassVar[int]
+    PEER_FIELD_NUMBER: _ClassVar[int]
+    script: DockerScript
+    local: bool
+    peer: Peer
+    def __init__(self, script: _Optional[_Union[DockerScript, _Mapping]] = ..., local: bool = ..., peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
+
+class ListRunningScriptsRequest(_message.Message):
+    __slots__ = ("peer",)
+    PEER_FIELD_NUMBER: _ClassVar[int]
+    peer: Peer
+    def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
+
+class RunningScript(_message.Message):
+    __slots__ = ("id", "image")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_FIELD_NUMBER: _ClassVar[int]
+    id: ID
+    image: DockerImage
+    def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., image: _Optional[_Union[DockerImage, _Mapping]] = ...) -> None: ...
+
+class RunningScripts(_message.Message):
+    __slots__ = ("scripts",)
+    SCRIPTS_FIELD_NUMBER: _ClassVar[int]
+    scripts: _containers.RepeatedCompositeFieldContainer[RunningScript]
+    def __init__(self, scripts: _Optional[_Iterable[_Union[RunningScript, _Mapping]]] = ...) -> None: ...
+
+class StopScriptRequest(_message.Message):
+    __slots__ = ("id", "peer")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PEER_FIELD_NUMBER: _ClassVar[int]
+    id: ID
+    peer: Peer
+    def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...

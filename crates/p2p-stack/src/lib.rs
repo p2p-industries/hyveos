@@ -2,9 +2,7 @@ pub use crate::{actor::Actor, client::Client};
 #[cfg(feature = "batman")]
 pub use crate::{
     debug_client::{Command as DebugClientCommand, DebugClient},
-    subactors::{
-        debug::NeighbourEvent as DebugNeighbourEvent, neighbours::Event as NeighbourEvent,
-    },
+    subactors::neighbours::Event as NeighbourEvent,
 };
 
 mod actor;
@@ -17,15 +15,7 @@ mod subactors;
 mod debug_client;
 
 pub mod file_transfer {
-    pub use crate::subactors::file_transfer::{Cid, ClientError};
-}
-
-pub mod gossipsub {
-    pub use crate::subactors::gossipsub::ReceivedMessage;
-}
-
-pub mod req_resp {
-    pub use crate::subactors::req_resp::{Request, Response, TopicQuery};
+    pub use crate::subactors::file_transfer::ClientError;
 }
 
 pub mod scripting {

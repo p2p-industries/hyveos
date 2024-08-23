@@ -1,10 +1,16 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, option::IntoIter, sync::Arc};
 
+use futures::{
+    stream::{self, Chain, Iter},
+    Stream, StreamExt as _,
+};
 use libp2p::PeerId;
 use libp2p_batman_adv::{
     Event as BatmanEvent, ReadOnlyNeighbourStore, ResolvedNeighbour, UnresolvedNeighbour,
 };
+use p2p_industries_core::discovery::NeighbourEvent;
 use tokio::sync::{broadcast, oneshot};
+use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
 use crate::{
     actor::SubActor,
@@ -12,6 +18,33 @@ use crate::{
     client::{RequestError, SpecialClient},
     impl_from_special_command,
 };
+
+#[derive(Debug)]
+pub enum Event {
+    Init(HashMap<PeerId, Vec<ResolvedNeighbour>>),
+    Discovered(ResolvedNeighbour),
+    Lost(ResolvedNeighbour),
+}
+
+impl From<Event> for NeighbourEvent {
+    fn from(event: Event) -> Self {
+        match event {
+            Event::Init(neighbours) => NeighbourEvent::Init(neighbours.keys().copied().collect()),
+            Event::Discovered(neighbour) => NeighbourEvent::Discovered(neighbour.peer_id),
+            Event::Lost(neighbour) => NeighbourEvent::Lost(neighbour.peer_id),
+        }
+    }
+}
+
+impl From<&Event> for NeighbourEvent {
+    fn from(event: &Event) -> Self {
+        match event {
+            Event::Init(neighbours) => NeighbourEvent::Init(neighbours.keys().copied().collect()),
+            Event::Discovered(neighbour) => NeighbourEvent::Discovered(neighbour.peer_id),
+            Event::Lost(neighbour) => NeighbourEvent::Lost(neighbour.peer_id),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Actor {
@@ -29,20 +62,19 @@ impl Default for Actor {
     }
 }
 
+pub type SubscribeStream = Chain<
+    Iter<IntoIter<Result<Arc<Event>, BroadcastStreamRecvError>>>,
+    BroadcastStream<Arc<Event>>,
+>;
+
 #[derive(Debug)]
 pub enum Command {
-    Subscribe(oneshot::Sender<broadcast::Receiver<Arc<Event>>>),
+    Subscribe(oneshot::Sender<SubscribeStream>),
     GetResolved(oneshot::Sender<HashMap<PeerId, Vec<ResolvedNeighbour>>>),
     GetUnresolved(oneshot::Sender<Vec<UnresolvedNeighbour>>),
 }
 
 impl_from_special_command!(Neighbours);
-
-#[derive(Debug)]
-pub enum Event {
-    ResolvedNeighbour(ResolvedNeighbour),
-    LostNeighbour(ResolvedNeighbour),
-}
 
 impl SubActor for Actor {
     type SubCommand = Command;
@@ -57,7 +89,25 @@ impl SubActor for Actor {
     ) -> Result<(), Self::CommandError> {
         match command {
             Command::Subscribe(sender) => {
-                let _ = sender.send(self.sender.subscribe());
+                let neighbours = self
+                    .get_neighbour_store(behaviour)
+                    .map(|store| {
+                        store
+                            .read()
+                            .resolved
+                            .iter()
+                            .map(|(id, v)| (*id, v.values().cloned().collect()))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                let init = Arc::new(Event::Init(neighbours));
+
+                let receiver = self.sender.subscribe();
+
+                let stream = stream::iter(Some(Ok(init))).chain(BroadcastStream::new(receiver));
+
+                let _ = sender.send(stream);
             }
             Command::GetResolved(sender) => {
                 let neighbours = self
@@ -100,13 +150,13 @@ impl SubActor for Actor {
                         .add_address(&neighbour.peer_id, neighbour.batman_addr.clone());
                     behaviour.gossipsub.add_explicit_peer(&neighbour.peer_id);
 
-                    let event = Event::ResolvedNeighbour(neighbour);
+                    let event = Event::Discovered(neighbour);
 
                     let _ = self.sender.send(Arc::new(event));
                 }
 
                 for (_, neighbour) in update.lost_resolved {
-                    let event = Event::LostNeighbour(neighbour);
+                    let event = Event::Lost(neighbour);
 
                     let _ = self.sender.send(Arc::new(event));
                 }
@@ -148,7 +198,10 @@ impl From<SpecialClient<Command>> for Client {
 }
 
 impl Client {
-    pub async fn subscribe(&self) -> Result<broadcast::Receiver<Arc<Event>>, RequestError> {
+    pub async fn subscribe(
+        &self,
+    ) -> Result<impl Stream<Item = Result<Arc<Event>, BroadcastStreamRecvError>>, RequestError>
+    {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .send(Command::Subscribe(sender))

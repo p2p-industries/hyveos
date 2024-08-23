@@ -14,6 +14,11 @@ message ID {
   required string ulid = 1;
 }
 
+// A peer in the network
+message Peer {
+  required string peer_id = 1;
+}
+
 // The topic of a message
 message Topic {
   required string topic = 1;
@@ -45,13 +50,13 @@ message Message {
 
 // A request to a peer with an optional topic
 message SendRequest {
-  required string peer_id = 1;
+  required Peer peer = 1;
   required Message msg = 2;
 }
 
 // A request from a peer with an optional topic
 message RecvRequest {
-  required string peer_id = 1;
+  required Peer peer = 1;
   required Message msg = 2;
   // Sequence number for request-response matching
   required uint64 seq = 3;
@@ -70,11 +75,6 @@ message SendResponse {
   // Sequence number for request-response matching
   required uint64 seq = 1;
   required Response response = 2;
-}
-
-// A peer in the network
-message Peer {
-  required string peer_id = 1;
 }
 
 // A list of peers
@@ -97,6 +97,7 @@ message MeshTopologyEvent {
   required NeighbourEvent event = 2;
 }
 
+// An ID of a message in gossipsub
 message GossipSubMessageID {
   required bytes id = 1;
 }
@@ -109,9 +110,10 @@ message GossipSubMessage {
 
 // A received message from a gossipsub topic
 message GossipSubRecvMessage {
-  required string peer_id = 1;
-  required GossipSubMessage msg = 2;
-  required GossipSubMessageID msg_id = 3;
+  required Peer propagation_source = 1;
+  optional Peer source = 2;
+  required GossipSubMessage msg = 3;
+  required GossipSubMessageID msg_id = 4;
 }
 
 // A DHT key with a topic
@@ -128,9 +130,8 @@ message DHTPutRecord {
 
 // A record for getting from the DHT
 message DHTGetRecord {
-  required DHTKey key = 1;
   // The value of the record will be empty if the key is not found
-  optional bytes value = 2;
+  optional bytes value = 1;
 }
 
 // A file path on the local filesystem
@@ -142,6 +143,49 @@ message FilePath {
 message CID {
   required bytes hash = 1;
   required ID id = 2;
+}
+
+// A docker image
+message DockerImage {
+  required string name = 1;
+}
+
+// A docker script
+message DockerScript {
+  required DockerImage image = 1;
+  repeated uint32 ports = 2;
+}
+
+// A request to deploy a script to a peer
+message DeployScriptRequest {
+  required DockerScript script = 1;
+  required bool local = 2;
+  // The peer can be empty if the script should be deployed to self
+  optional Peer peer = 3;
+}
+
+// A request to list running scripts on a peer
+message ListRunningScriptsRequest {
+  // The peer can be empty if the scripts running on self should be listed
+  optional Peer peer = 1;
+}
+
+// A script that is running on a peer
+message RunningScript {
+  required ID id = 1;
+  required DockerImage image = 2;
+}
+
+// A list of running scripts
+message RunningScripts {
+  repeated RunningScript scripts = 1;
+}
+
+// A request to stop a running script on a peer
+message StopScriptRequest {
+  required ID id = 1;
+  // The peer can be empty if the script should be stopped on self
+  optional Peer peer = 2;
 }
 
 
@@ -199,4 +243,18 @@ service FileTransfer {
 service Debug {
   // Subscribe to mesh topology events to get notified when the mesh topology changes
   rpc SubscribeMeshTopology(Empty) returns (stream MeshTopologyEvent) {}
+}
+
+service Scripting {
+  // Deploy a script to a peer and get the id of the deployed script
+  rpc DeployScript(DeployScriptRequest) returns (ID) {}
+
+  // List running scripts on a peer
+  rpc ListRunningScripts(ListRunningScriptsRequest) returns (RunningScripts) {}
+
+  // Stop a running script on a peer
+  rpc StopScript(StopScriptRequest) returns (Empty) {}
+
+  // Get the id of the current script
+  rpc GetOwnId(Empty) returns (ID) {}
 }

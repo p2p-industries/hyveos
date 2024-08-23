@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use libp2p::{
     request_response::{
@@ -8,8 +8,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
-use regex::Regex;
-use serde::{Deserialize, Serialize};
+use p2p_industries_core::req_resp::{InboundRequest, Request, Response, ResponseError, TopicQuery};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::{
@@ -21,68 +20,6 @@ use crate::{
 
 // TODO: lower timeout (requires changes to file_transfer actor)
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Request {
-    pub data: Vec<u8>,
-    pub topic: Option<Arc<str>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct InboundRequest {
-    pub id: u64,
-    pub peer_id: PeerId,
-    pub req: Request,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResponseError {
-    Timeout,
-    TopicNotSubscribed(Option<Arc<str>>),
-    Script(String),
-}
-
-impl From<String> for ResponseError {
-    fn from(e: String) -> Self {
-        ResponseError::Script(e)
-    }
-}
-
-impl Display for ResponseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ResponseError::Timeout => write!(f, "Request timed out"),
-            ResponseError::TopicNotSubscribed(Some(topic)) => {
-                write!(f, "Peer is not subscribed to topic '{topic}'")
-            }
-            ResponseError::TopicNotSubscribed(None) => {
-                write!(f, "Peer is not subscribed to the empty topic")
-            }
-            ResponseError::Script(e) => write!(f, "Script error: {e}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Response {
-    Data(Vec<u8>),
-    Error(ResponseError),
-}
-
-#[derive(Debug, Clone)]
-pub enum TopicQuery {
-    Regex(Regex),
-    String(Arc<str>),
-}
-
-impl TopicQuery {
-    pub fn is_match(&self, topic: impl AsRef<str>) -> bool {
-        match self {
-            TopicQuery::Regex(regex) => regex.is_match(topic.as_ref()),
-            TopicQuery::String(query) => query.as_ref() == topic.as_ref(),
-        }
-    }
-}
 
 pub type Behaviour = cbor::Behaviour<Request, Response>;
 
@@ -159,7 +96,7 @@ impl SubActor for Actor {
                         let mut sent_to_subscriber = false;
                         for (query, sender) in self.request_subscriptions.values() {
                             let is_match = match (query.as_ref(), topic.as_ref()) {
-                                (Some(query), Some(topic)) => query.is_match(topic),
+                                (Some(query), Some(topic)) => query.matches(topic),
                                 (None, None) => true,
                                 _ => false,
                             };
@@ -244,7 +181,7 @@ impl SubActor for Actor {
                     let mut sent_to_subscriber = false;
                     for (query, sender) in self.request_subscriptions.values() {
                         let is_match = match (query.as_ref(), topic.as_ref()) {
-                            (Some(query), Some(topic)) => query.is_match(topic),
+                            (Some(query), Some(topic)) => query.matches(topic),
                             (None, None) => true,
                             _ => false,
                         };

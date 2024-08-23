@@ -11,6 +11,7 @@ use std::{
 use bridge::DebugCommandSender;
 use bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
+use clap::ValueEnum;
 use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
     future::OptionFuture,
@@ -18,11 +19,9 @@ use futures::{
     FutureExt,
 };
 use libp2p::PeerId;
-use p2p_stack::{
-    file_transfer::{self, Cid},
-    scripting::ActorToClient,
-    Client as P2PClient,
-};
+use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
+use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
+use serde::Deserialize;
 use tokio::{
     fs::{metadata, File},
     io::{stderr, stdout, AsyncReadExt as _, AsyncWriteExt as _, BufReader},
@@ -35,6 +34,18 @@ use crate::printer::SharedPrinter;
 
 const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ValueEnum)]
+pub enum ScriptManagementConfig {
+    Allow,
+    Deny,
+}
+
+impl Default for ScriptManagementConfig {
+    fn default() -> Self {
+        Self::Deny
+    }
+}
+
 enum SelfCommand {
     DeployImage {
         image: PulledImage<'static>,
@@ -42,7 +53,7 @@ enum SelfCommand {
         sender: oneshot::Sender<Result<Ulid, ExecutionError>>,
     },
     ListContainers {
-        sender: oneshot::Sender<Vec<(Ulid, Arc<str>)>>,
+        sender: oneshot::Sender<Vec<RunningScript>>,
     },
     StopContainer {
         container_id: Ulid,
@@ -60,6 +71,7 @@ pub struct ScriptingManagerBuilder {
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
+    script_management: ScriptManagementConfig,
     shared_printer: Option<SharedPrinter>,
 }
 
@@ -69,6 +81,7 @@ impl ScriptingManagerBuilder {
         client: P2PClient,
         base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
+        script_management: ScriptManagementConfig,
     ) -> Self {
         Self {
             command_broker,
@@ -76,6 +89,7 @@ impl ScriptingManagerBuilder {
             base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
+            script_management,
             shared_printer: None,
         }
     }
@@ -92,25 +106,36 @@ impl ScriptingManagerBuilder {
             base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
+            script_management,
             shared_printer,
         } = self;
         let (self_command_sender, self_command_receiver) = mpsc::channel(1);
 
-        (
+        let scripting_client = ScriptingClient::new(client.clone(), self_command_sender);
+
+        let manager = {
+            let scripting_client = if let ScriptManagementConfig::Allow = script_management {
+                Some(scripting_client.clone())
+            } else {
+                None
+            };
+
             ScriptingManager {
                 command_broker,
                 self_command_receiver,
                 container_manager: ContainerManager::new()
                     .expect("Failed to create container manager"),
-                client: client.clone(),
+                client,
                 base_path,
                 #[cfg(feature = "batman")]
                 debug_command_sender,
+                scripting_client,
                 shared_printer,
                 container_handles: HashMap::new(),
-            },
-            ScriptingClient::new(client, self_command_sender),
-        )
+            }
+        };
+
+        (manager, scripting_client)
     }
 }
 
@@ -122,6 +147,7 @@ pub struct ScriptingManager {
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
+    scripting_client: Option<ScriptingClient>,
     shared_printer: Option<SharedPrinter>,
     container_handles: HashMap<Ulid, ContainerHandle>,
 }
@@ -134,6 +160,7 @@ impl ScriptingManager {
             base_path: self.base_path.clone(),
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
+            scripting_client: self.scripting_client.clone(),
             shared_printer: self.shared_printer.clone(),
         }
     }
@@ -254,10 +281,13 @@ impl ScriptingManager {
         send(id).await;
     }
 
-    fn list_containers(&self) -> Vec<(Ulid, Arc<str>)> {
+    fn list_containers(&self) -> Vec<RunningScript> {
         self.container_handles
             .iter()
-            .map(|(id, handle)| (*id, handle.image_name.clone()))
+            .map(|(id, handle)| RunningScript {
+                id: *id,
+                image: handle.image_name.clone(),
+            })
             .collect()
     }
 
@@ -358,6 +388,7 @@ struct ExecutionManager<'a> {
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
+    scripting_client: Option<ScriptingClient>,
     shared_printer: Option<SharedPrinter>,
 }
 
@@ -396,19 +427,44 @@ impl<'a> ExecutionManager<'a> {
         image: PulledImage<'_>,
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
+        if let Some(scripting_client) = self.scripting_client {
+            let bridge = Bridge::new(
+                self.client,
+                self.base_path,
+                #[cfg(feature = "batman")]
+                self.debug_command_sender,
+                scripting_client,
+            )
+            .await?;
+
+            Self::exec_with_bridge(bridge, image, ports, self.shared_printer).await
+        } else {
+            let bridge = Bridge::new(
+                self.client,
+                self.base_path,
+                #[cfg(feature = "batman")]
+                self.debug_command_sender,
+                ForbiddenScriptingClient,
+            )
+            .await?;
+
+            Self::exec_with_bridge(bridge, image, ports, self.shared_printer).await
+        }
+    }
+
+    async fn exec_with_bridge(
+        bridge: Bridge<impl bridge::ScriptingClient>,
+        image: PulledImage<'_>,
+        ports: Vec<u16>,
+        shared_printer: Option<SharedPrinter>,
+    ) -> Result<ContainerHandle, ExecutionError> {
         let Bridge {
             client,
             cancellation_token,
             ulid,
             socket_path,
             shared_dir_path,
-        } = Bridge::new(
-            self.client,
-            self.base_path,
-            #[cfg(feature = "batman")]
-            self.debug_command_sender,
-        )
-        .await?;
+        } = bridge;
 
         let image_name = Arc::from(&*image.image);
 
@@ -449,7 +505,7 @@ impl<'a> ExecutionManager<'a> {
             container_builder = container_builder.expose_port(port, ip6socket.into());
         }
 
-        if let Some(shared_printer) = self.shared_printer {
+        if let Some(shared_printer) = shared_printer {
             container_builder = container_builder
                 .stdout(Box::new(shared_printer.clone()) as Box<_>)
                 .stderr(Box::new(shared_printer) as Box<_>)
@@ -507,14 +563,64 @@ impl ScriptingClient {
         }
     }
 
-    pub async fn deploy_image(
+    async fn get_image<'a>(
+        &'a self,
+        image: &'a str,
+        local: bool,
+        verbose: bool,
+    ) -> Result<PulledImage<'a>, ExecutionError> {
+        if local {
+            Ok(self.container_manager.get_local_image(image))
+        } else {
+            self.container_manager
+                .pull_image(image, verbose)
+                .await
+                .map_err(Into::into)
+        }
+    }
+
+    pub async fn stop_all_containers(
+        &self,
+        kill: bool,
+        peer_id: Option<PeerId>,
+    ) -> Result<(), ExecutionError> {
+        if let Some(peer_id) = peer_id {
+            self.client
+                .scripting()
+                .stop_all_containers(peer_id, kill)
+                .await
+                .map_err(ExecutionError::StopContainerError)
+        } else {
+            let (sender, receiver) = oneshot::channel();
+            let command = SelfCommand::StopAllContainers { kill, sender };
+
+            self.self_command_sender
+                .send(command)
+                .await
+                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+
+            receiver
+                .await
+                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
+        }
+    }
+}
+
+impl bridge::ScriptingClient for ScriptingClient {
+    type Error = ExecutionError;
+
+    async fn deploy_image(
         &self,
         image: &str,
         local: bool,
-        peer: PeerId,
+        peer_id: PeerId,
         verbose: bool,
-        ports: impl IntoIterator<Item = u16>,
+        ports: impl IntoIterator<Item = u16> + Send,
     ) -> Result<Ulid, ExecutionError> {
+        if peer_id == self.client.peer_id() {
+            return self.self_deploy_image(image, local, verbose, ports).await;
+        }
+
         let pulled_image = self.get_image(image, local, verbose).await?;
         let image_id = pulled_image.get_id().await?;
 
@@ -545,18 +651,18 @@ impl ScriptingClient {
         let remote_ulid = self
             .client
             .scripting()
-            .deploy_image(peer, cid, Compression::Zstd, ports)
+            .deploy_image(peer_id, cid, Compression::Zstd, ports)
             .await
             .map_err(ExecutionError::RemoteDeployError)?;
         Ok(remote_ulid)
     }
 
-    pub async fn self_deploy_image(
+    async fn self_deploy_image(
         &self,
         image: &str,
         local: bool,
         verbose: bool,
-        ports: impl IntoIterator<Item = u16>,
+        ports: impl IntoIterator<Item = u16> + Send,
     ) -> Result<Ulid, ExecutionError> {
         let pulled_image = self.get_image(image, local, verbose).await?;
         let (sender, receiver) = oneshot::channel();
@@ -576,26 +682,10 @@ impl ScriptingClient {
             .map_err(|e| ExecutionError::SelfDeployError(e.to_string()))?
     }
 
-    async fn get_image<'a>(
-        &'a self,
-        image: &'a str,
-        local: bool,
-        verbose: bool,
-    ) -> Result<PulledImage<'a>, ExecutionError> {
-        if local {
-            Ok(self.container_manager.get_local_image(image))
-        } else {
-            self.container_manager
-                .pull_image(image, verbose)
-                .await
-                .map_err(Into::into)
-        }
-    }
-
-    pub async fn list_containers(
+    async fn list_containers(
         &self,
         peer_id: Option<PeerId>,
-    ) -> Result<Vec<(Ulid, Arc<str>)>, ExecutionError> {
+    ) -> Result<Vec<RunningScript>, ExecutionError> {
         if let Some(peer_id) = peer_id {
             self.client
                 .scripting()
@@ -617,7 +707,7 @@ impl ScriptingClient {
         }
     }
 
-    pub async fn stop_container(
+    async fn stop_container(
         &self,
         container_id: Ulid,
         peer_id: Option<PeerId>,
@@ -645,30 +735,46 @@ impl ScriptingClient {
                 .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
         }
     }
+}
 
-    pub async fn stop_all_containers(
+struct ForbiddenScriptingClient;
+
+impl bridge::ScriptingClient for ForbiddenScriptingClient {
+    type Error = String;
+
+    async fn deploy_image(
         &self,
-        kill: bool,
-        peer_id: Option<PeerId>,
-    ) -> Result<(), ExecutionError> {
-        if let Some(peer_id) = peer_id {
-            self.client
-                .scripting()
-                .stop_all_containers(peer_id, kill)
-                .await
-                .map_err(ExecutionError::StopContainerError)
-        } else {
-            let (sender, receiver) = oneshot::channel();
-            let command = SelfCommand::StopAllContainers { kill, sender };
+        _image: &str,
+        _local: bool,
+        _peer: PeerId,
+        _verbose: bool,
+        _ports: impl IntoIterator<Item = u16> + Send,
+    ) -> Result<Ulid, String> {
+        Err("Scripting is not allowed".to_string())
+    }
 
-            self.self_command_sender
-                .send(command)
-                .await
-                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?;
+    async fn self_deploy_image(
+        &self,
+        _image: &str,
+        _local: bool,
+        _verbose: bool,
+        _ports: impl IntoIterator<Item = u16> + Send,
+    ) -> Result<Ulid, String> {
+        Err("Scripting is not allowed".to_string())
+    }
 
-            receiver
-                .await
-                .map_err(|e| ExecutionError::StopContainerError(e.to_string()))?
-        }
+    async fn list_containers(
+        &self,
+        _peer_id: Option<PeerId>,
+    ) -> Result<Vec<RunningScript>, String> {
+        Err("Scripting is not allowed".to_string())
+    }
+
+    async fn stop_container(
+        &self,
+        _container_id: Ulid,
+        _peer_id: Option<PeerId>,
+    ) -> Result<(), String> {
+        Err("Scripting is not allowed".to_string())
     }
 }

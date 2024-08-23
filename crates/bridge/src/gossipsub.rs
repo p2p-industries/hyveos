@@ -1,13 +1,11 @@
 use futures::stream::TryStreamExt as _;
 use libp2p::gossipsub::IdentTopic;
+use p2p_industries_core::grpc::{self, gossip_sub_server::GossipSub};
 use p2p_stack::Client;
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{
-    script::{self, gossip_sub_server::GossipSub},
-    ServerStream, TonicResult,
-};
+use crate::{ServerStream, TonicResult};
 
 pub struct GossipSubServer {
     client: Client,
@@ -19,13 +17,13 @@ impl GossipSubServer {
     }
 }
 
-#[tonic::async_trait]
+#[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl GossipSub for GossipSubServer {
-    type SubscribeStream = ServerStream<script::GossipSubRecvMessage>;
+    type SubscribeStream = ServerStream<grpc::GossipSubRecvMessage>;
 
     async fn subscribe(
         &self,
-        request: TonicRequest<script::Topic>,
+        request: TonicRequest<grpc::Topic>,
     ) -> TonicResult<Self::SubscribeStream> {
         let request = request.into_inner();
 
@@ -42,18 +40,7 @@ impl GossipSub for GossipSubServer {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         let stream = BroadcastStream::new(receiver)
-            .map_ok(move |message| script::GossipSubRecvMessage {
-                peer_id: message.propagation_source.to_string(),
-                msg: script::GossipSubMessage {
-                    data: message.message.data,
-                    topic: script::Topic {
-                        topic: topic.clone(),
-                    },
-                },
-                msg_id: script::GossipSubMessageId {
-                    id: message.message_id.0,
-                },
-            })
+            .map_ok(Into::into)
             .map_err(|e| Status::internal(e.to_string()));
 
         Ok(TonicResponse::new(Box::pin(stream)))
@@ -61,15 +48,15 @@ impl GossipSub for GossipSubServer {
 
     async fn publish(
         &self,
-        request: TonicRequest<script::GossipSubMessage>,
-    ) -> TonicResult<script::GossipSubMessageId> {
+        request: TonicRequest<grpc::GossipSubMessage>,
+    ) -> TonicResult<grpc::GossipSubMessageId> {
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received publish request");
 
-        let script::GossipSubMessage {
+        let grpc::GossipSubMessage {
             data,
-            topic: script::Topic { topic },
+            topic: grpc::Topic { topic },
         } = request;
 
         self.client
@@ -77,7 +64,8 @@ impl GossipSub for GossipSubServer {
             .get_topic(IdentTopic::new(format!("script/{topic}")))
             .publish(data)
             .await
-            .map(|message_id| TonicResponse::new(script::GossipSubMessageId { id: message_id.0 }))
+            .map(Into::into)
+            .map(TonicResponse::new)
             .map_err(|e| Status::internal(e.to_string()))
     }
 }

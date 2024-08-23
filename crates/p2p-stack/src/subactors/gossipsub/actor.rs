@@ -1,25 +1,13 @@
 use std::collections::HashMap;
 
-use libp2p::{
-    gossipsub::{
-        Behaviour, Event, IdentTopic, Message, MessageId, PublishError, SubscriptionError,
-        TopicHash,
-    },
-    PeerId,
-};
+use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
+use p2p_industries_core::gossipsub::{Message, MessageId, ReceivedMessage};
 use tokio::sync::broadcast;
 
 use super::Command;
 use crate::{actor::SubActor, behaviour::MyBehaviour};
 
 const CHANNEL_CAP: usize = 10;
-
-#[derive(Debug, Clone)]
-pub struct ReceivedMessage {
-    pub propagation_source: PeerId,
-    pub message_id: MessageId,
-    pub message: Message,
-}
 
 #[derive(Debug, Default)]
 pub struct Actor {
@@ -66,7 +54,12 @@ impl SubActor for Actor {
                 data,
                 send_message_id,
             } => send_message_id
-                .send(behaviour.gossipsub.publish(topic, data))
+                .send(
+                    behaviour
+                        .gossipsub
+                        .publish(topic, data)
+                        .map(|id| MessageId(id.0)),
+                )
                 .map_err(CommandError::MessageIdFailed),
             Command::Subscribe {
                 topic,
@@ -92,8 +85,12 @@ impl SubActor for Actor {
                 let topic_hash = message.topic.clone();
                 let received_message = ReceivedMessage {
                     propagation_source,
-                    message_id,
-                    message,
+                    source: message.source,
+                    message_id: MessageId(message_id.0),
+                    message: Message {
+                        data: message.data,
+                        topic: message.topic.into_string(),
+                    },
                 };
                 self.topic_subscriptions.get(&topic_hash).map_or_else(
                     || Err(EventError::MessageWithoutTopic(topic_hash)),

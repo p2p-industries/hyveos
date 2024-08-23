@@ -4,6 +4,7 @@
 use std::{io, path::PathBuf, pin::Pin};
 
 use futures::stream::Stream;
+use p2p_industries_core::grpc;
 use p2p_stack::Client;
 #[cfg(feature = "batman")]
 use p2p_stack::DebugClientCommand;
@@ -16,10 +17,11 @@ use tonic::transport::Server as TonicServer;
 use ulid::Ulid;
 
 #[cfg(feature = "batman")]
-use self::debug::DebugServer;
-use self::{
+use crate::debug::DebugServer;
+pub use crate::scripting::ScriptingClient;
+use crate::{
     dht::DhtServer, discovery::DiscoveryServer, file_transfer::FileTransferServer,
-    gossipsub::GossipSubServer, req_resp::ReqRespServer,
+    gossipsub::GossipSubServer, req_resp::ReqRespServer, scripting::ScriptingServer,
 };
 
 mod dht;
@@ -27,14 +29,10 @@ mod discovery;
 mod file_transfer;
 mod gossipsub;
 mod req_resp;
+mod scripting;
 
 #[cfg(feature = "batman")]
 mod debug;
-
-#[allow(clippy::pedantic)]
-mod script {
-    tonic::include_proto!("script");
-}
 
 pub const CONTAINER_SHARED_DIR: &str = "/p2p/shared";
 
@@ -48,19 +46,20 @@ pub type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
 #[cfg(not(feature = "batman"))]
 pub type DebugCommandSender = ();
 
-pub struct Bridge {
-    pub client: BridgeClient,
+pub struct Bridge<C> {
+    pub client: BridgeClient<C>,
     pub cancellation_token: CancellationToken,
     pub ulid: Ulid,
     pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
 }
 
-impl Bridge {
+impl<C: ScriptingClient> Bridge<C> {
     pub async fn new(
         client: Client,
         mut base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
+        scripting_client: C,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
@@ -94,6 +93,7 @@ impl Bridge {
             socket_stream,
             #[cfg(feature = "batman")]
             debug_command_sender,
+            scripting_client,
         };
 
         Ok(Self {
@@ -114,7 +114,7 @@ pub enum Error {
     Tonic(#[from] tonic::transport::Error),
 }
 
-pub struct BridgeClient {
+pub struct BridgeClient<C> {
     client: Client,
     cancellation_token: CancellationToken,
     ulid: Ulid,
@@ -123,30 +123,33 @@ pub struct BridgeClient {
     socket_stream: UnixListenerStream,
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
+    scripting_client: C,
 }
 
-impl BridgeClient {
+impl<C: ScriptingClient> BridgeClient<C> {
     pub async fn run(self) -> Result<(), Error> {
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());
         let file_transfer = FileTransferServer::new(self.client.clone(), self.shared_dir_path);
         let gossipsub = GossipSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client.clone());
+        let req_resp = ReqRespServer::new(self.client);
+        let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
 
         let router = TonicServer::builder()
-            .add_service(script::dht_server::DhtServer::new(dht))
-            .add_service(script::discovery_server::DiscoveryServer::new(discovery))
-            .add_service(script::file_transfer_server::FileTransferServer::new(
+            .add_service(grpc::dht_server::DhtServer::new(dht))
+            .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
+            .add_service(grpc::file_transfer_server::FileTransferServer::new(
                 file_transfer,
             ))
-            .add_service(script::gossip_sub_server::GossipSubServer::new(gossipsub))
-            .add_service(script::req_resp_server::ReqRespServer::new(req_resp));
+            .add_service(grpc::gossip_sub_server::GossipSubServer::new(gossipsub))
+            .add_service(grpc::req_resp_server::ReqRespServer::new(req_resp))
+            .add_service(grpc::scripting_server::ScriptingServer::new(scripting));
 
         #[cfg(feature = "batman")]
         let debug = DebugServer::new(self.debug_command_sender);
 
         #[cfg(feature = "batman")]
-        let router = router.add_service(script::debug_server::DebugServer::new(debug));
+        let router = router.add_service(grpc::debug_server::DebugServer::new(debug));
 
         tracing::debug!(id=%self.ulid, "Starting bridge");
 

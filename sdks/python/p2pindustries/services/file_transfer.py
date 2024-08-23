@@ -30,7 +30,7 @@ class FileTransferService:
         :return: A CID token that can be used by other peers to download the file
         """
         cid = await self.stub.PublishFile(FilePath(path=file_path))
-        return FileToken(cid.hash, cid.id)
+        return FileToken(cid.hash, cid.id.ulid)
 
     async def get_file(self, file_token: FileToken) -> FilePath:
         """

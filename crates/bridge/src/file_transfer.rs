@@ -1,73 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use const_format::concatcp;
-use p2p_stack::{file_transfer::Cid, Client};
+use p2p_industries_core::grpc::{self, file_transfer_server::FileTransfer};
+use p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
-use ulid::Ulid;
 
-use crate::{
-    script::{self, file_transfer_server::FileTransfer},
-    TonicResult, CONTAINER_SHARED_DIR,
-};
-
-impl<T: AsRef<Path>> From<T> for script::FilePath {
-    fn from(path: T) -> Self {
-        Self {
-            path: path
-                .as_ref()
-                .to_str()
-                .expect("We can only handle unicode paths at the moment")
-                .to_string(),
-        }
-    }
-}
-
-impl From<script::FilePath> for PathBuf {
-    fn from(path: script::FilePath) -> Self {
-        path.path.into()
-    }
-}
-
-impl From<Ulid> for script::Id {
-    fn from(id: Ulid) -> Self {
-        Self {
-            ulid: id.to_string(),
-        }
-    }
-}
-
-impl TryFrom<script::Id> for Ulid {
-    type Error = Status;
-
-    fn try_from(id: script::Id) -> Result<Self, Status> {
-        id.ulid
-            .parse()
-            .map_err(|e| Status::invalid_argument(format!("Invalid ULID: {e}")))
-    }
-}
-
-impl From<Cid> for script::Cid {
-    fn from(cid: Cid) -> Self {
-        Self {
-            hash: cid.hash.into(),
-            id: cid.id.into(),
-        }
-    }
-}
-
-impl TryFrom<script::Cid> for Cid {
-    type Error = Status;
-
-    fn try_from(cid: script::Cid) -> Result<Self, Status> {
-        Ok(Self {
-            hash: cid
-                .hash
-                .try_into()
-                .map_err(|_| Status::invalid_argument("Invalid file hash: Should be 32 bytes"))?,
-            id: cid.id.try_into()?,
-        })
-    }
-}
+use crate::{TonicResult, CONTAINER_SHARED_DIR};
 
 pub struct FileTransferServer {
     client: Client,
@@ -83,12 +21,9 @@ impl FileTransferServer {
     }
 }
 
-#[tonic::async_trait]
+#[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl FileTransfer for FileTransferServer {
-    async fn publish_file(
-        &self,
-        request: TonicRequest<script::FilePath>,
-    ) -> TonicResult<script::Cid> {
+    async fn publish_file(&self, request: TonicRequest<grpc::FilePath>) -> TonicResult<grpc::Cid> {
         let file_path = request.into_inner();
 
         tracing::debug!(request=?file_path, "Received publish_file request");
@@ -116,7 +51,7 @@ impl FileTransfer for FileTransferServer {
             .map_err(|e| Status::internal(e.to_string()))
     }
 
-    async fn get_file(&self, request: TonicRequest<script::Cid>) -> TonicResult<script::FilePath> {
+    async fn get_file(&self, request: TonicRequest<grpc::Cid>) -> TonicResult<grpc::FilePath> {
         let cid = request.into_inner();
 
         tracing::debug!(request=?cid, "Received get_file request");
@@ -136,6 +71,6 @@ impl FileTransfer for FileTransferServer {
 
         let container_file_path = PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string);
 
-        Ok(TonicResponse::new(container_file_path.into()))
+        Ok(TonicResponse::new(container_file_path.try_into()?))
     }
 }

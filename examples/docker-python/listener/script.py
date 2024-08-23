@@ -9,7 +9,7 @@ async def handle_requests(
     print('Waiting for requests...')
     async with service.receive(topic, regex) as requests:
         async for request in requests:
-            print(f'Request from {request.peer_id}: {request.msg.data}')
+            print(f'Request from {request.peer.peer_id}: {request.msg.data}')
             await service.respond(request.seq, b'Hello from the other side!')
 
 

@@ -1,17 +1,12 @@
-use std::{collections::HashSet, sync::Arc};
+use std::collections::HashSet;
 
+use futures::stream::StreamExt as _;
 use libp2p::{gossipsub::IdentTopic, PeerId};
+use p2p_industries_core::{debug::MeshTopologyEvent, discovery, gossipsub::ReceivedMessage};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, mpsc, oneshot};
 
-use crate::{
-    subactors::{
-        debug::NeighbourEvent,
-        gossipsub::{ReceivedMessage, TopicHandle},
-        neighbours,
-    },
-    Client,
-};
+use crate::{subactors::gossipsub::TopicHandle, Client, NeighbourEvent};
 
 const GOSSIPSUB_TOPIC: &str = "debug/neighbour_events";
 
@@ -22,7 +17,7 @@ enum GossipsubMessage {
 }
 
 pub enum Command {
-    SubscribeNeighbourEvents(oneshot::Sender<broadcast::Receiver<(PeerId, NeighbourEvent)>>),
+    SubscribeNeighbourEvents(oneshot::Sender<broadcast::Receiver<MeshTopologyEvent>>),
     UnsubscribeNeighbourEvents,
 }
 
@@ -60,8 +55,8 @@ impl DebugClient {
                 Some(command) = self.receiver.recv() => {
                     self.handle_command(command).await;
                 }
-                Ok(neighbour_event) = neighbour_events.recv() => {
-                    self.handle_neighbour_event(neighbour_event).await;
+                Some(Ok(neighbour_event)) = neighbour_events.next() => {
+                    self.handle_neighbour_event(neighbour_event.as_ref()).await;
                 }
                 Ok(gossipsub_message) = gossipsub_messages.recv() => {
                     self.handle_gossipsub_message(&gossipsub_message).await;
@@ -93,21 +88,16 @@ impl DebugClient {
         self.topic.publish(message).await.unwrap();
     }
 
-    async fn handle_neighbour_event(&mut self, neighbour_event: Arc<neighbours::Event>) {
+    async fn handle_neighbour_event(&mut self, neighbour_event: &NeighbourEvent) {
         if !self.neighbour_event_subscribers.is_empty() {
-            let event = match neighbour_event.as_ref() {
-                neighbours::Event::ResolvedNeighbour(neighbour) => {
-                    NeighbourEvent::Discovered(neighbour.peer_id)
-                }
-                neighbours::Event::LostNeighbour(neighbour) => {
-                    NeighbourEvent::Lost(neighbour.peer_id)
-                }
-            };
+            if matches!(neighbour_event, NeighbourEvent::Init(_)) {
+                return;
+            }
 
             for subscriber in &self.neighbour_event_subscribers {
                 self.client
                     .debug()
-                    .send_neighbour_event(*subscriber, event.clone())
+                    .send_neighbour_event(*subscriber, neighbour_event.into())
                     .await
                     .unwrap();
             }
@@ -129,7 +119,10 @@ impl DebugClient {
                         .collect();
                     self.client
                         .debug()
-                        .send_neighbour_event(peer_id, NeighbourEvent::Init(current_neighbours))
+                        .send_neighbour_event(
+                            peer_id,
+                            discovery::NeighbourEvent::Init(current_neighbours),
+                        )
                         .await
                         .unwrap();
 

@@ -10,9 +10,11 @@ use std::{
 use clap::Parser;
 use dirs::{data_local_dir, runtime_dir};
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, multiaddr::Protocol, Multiaddr};
+use p2p_industries_core::gossipsub::ReceivedMessage;
 #[cfg(feature = "batman")]
 use p2p_stack::DebugClient;
-use p2p_stack::{gossipsub::ReceivedMessage, Client, FullActor};
+use p2p_stack::{Client, FullActor};
+use scripting::ScriptManagementConfig;
 use serde::Deserialize;
 use tokio::task::JoinHandle;
 use tracing_subscriber::EnvFilter;
@@ -44,6 +46,8 @@ struct Config {
     key_file: Option<PathBuf>,
     #[serde(default)]
     random_directory: bool,
+    #[serde(default)]
+    script_management: Option<ScriptManagementConfig>,
 }
 
 impl Config {
@@ -74,6 +78,7 @@ impl Config {
     }
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 pub struct Opts {
     #[clap(long)]
@@ -98,6 +103,8 @@ pub struct Opts {
     pub key_file: Option<PathBuf>,
     #[clap(short, long)]
     pub random_directory: bool,
+    #[clap(long, value_enum)]
+    pub script_management: Option<ScriptManagementConfig>,
     #[clap(short, long)]
     pub clean: bool,
     #[clap(short, long)]
@@ -180,6 +187,7 @@ async fn main() -> anyhow::Result<()> {
         store_directory,
         key_file,
         random_directory,
+        script_management,
         clean,
         vim,
     } = Opts::parse();
@@ -189,6 +197,7 @@ async fn main() -> anyhow::Result<()> {
         store_directory: config_store_directory,
         key_file: config_key_file,
         random_directory: config_random_directory,
+        script_management: config_script_management,
     } = Config::load(config_file)?;
 
     let listen_addrs =
@@ -224,6 +233,9 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let random_directory = random_directory || config_random_directory;
+    let script_management = script_management
+        .or(config_script_management)
+        .unwrap_or_default();
 
     if io::stdin().is_terminal() && io::stdout().is_terminal() {
         Box::pin(main_tty(
@@ -231,6 +243,7 @@ async fn main() -> anyhow::Result<()> {
             store_directory,
             keypair,
             random_directory,
+            script_management,
             clean,
             vim,
         ))
@@ -241,6 +254,7 @@ async fn main() -> anyhow::Result<()> {
             store_directory,
             keypair,
             random_directory,
+            script_management,
             clean,
         )
         .await
@@ -252,6 +266,7 @@ async fn main_tty(
     store_directory: PathBuf,
     keypair: Keypair,
     random_directory: bool,
+    script_management: ScriptManagementConfig,
     clean: bool,
     vim: bool,
 ) -> anyhow::Result<()> {
@@ -271,8 +286,9 @@ async fn main_tty(
         store_directory,
         keypair,
         random_directory,
+        script_management,
         clean,
-        None,
+        Some(rl_printer.clone()),
     )
     .await?;
 
@@ -312,6 +328,7 @@ async fn main_alt(
     store_directory: PathBuf,
     keypair: Keypair,
     random_directory: bool,
+    script_management: ScriptManagementConfig,
     clean: bool,
 ) -> anyhow::Result<()> {
     let Setup {
@@ -328,6 +345,7 @@ async fn main_alt(
         store_directory,
         keypair,
         random_directory,
+        script_management,
         clean,
         None,
     )
@@ -357,39 +375,6 @@ async fn main_alt(
     Ok(())
 }
 
-fn clean_store(store_directory: &Path) -> anyhow::Result<()> {
-    let number_of_cleans: usize = store_directory
-        .read_dir()
-        .expect("Failed to read directory")
-        .map(|e| {
-            let entry = e?;
-            if entry.file_type()?.is_dir() {
-                let m = entry
-                    .path()
-                    .file_name()
-                    .map(|e| e.to_string_lossy().to_string())
-                    .unwrap();
-                let m = ulid::Ulid::from_string(&m)
-                    .map(|_| {
-                        std::fs::remove_dir_all(entry.path())?;
-                        Ok::<_, std::io::Error>(1)
-                    })
-                    .unwrap_or(Ok(0usize))?;
-                return Ok(m);
-            } else if entry.file_type()?.is_file() {
-                std::fs::remove_file(entry.path())?;
-                return Ok(1);
-            }
-
-            Ok::<usize, io::Error>(0)
-        })
-        .collect::<std::io::Result<Vec<usize>>>()?
-        .into_iter()
-        .sum();
-    println!("Cleaned up {number_of_cleans} directories and files");
-    Ok(())
-}
-
 struct Setup {
     client: Client,
     scripting_client: ScriptingClient,
@@ -407,6 +392,7 @@ impl Setup {
         store_directory: PathBuf,
         keypair: Keypair,
         random_directory: bool,
+        script_management: ScriptManagementConfig,
         clean: bool,
         printer: Option<SharedPrinter>,
     ) -> anyhow::Result<Setup> {
@@ -422,7 +408,35 @@ impl Setup {
         console_subscriber::init();
 
         if clean {
-            clean_store(&store_directory)?;
+            let number_of_cleans: usize = store_directory
+                .read_dir()
+                .expect("Failed to read directory")
+                .map(|e| {
+                    let entry = e?;
+                    if entry.file_type()?.is_dir() {
+                        let m = entry
+                            .path()
+                            .file_name()
+                            .map(|e| e.to_string_lossy().to_string())
+                            .unwrap();
+                        let m = ulid::Ulid::from_string(&m)
+                            .map(|_| {
+                                std::fs::remove_dir_all(entry.path())?;
+                                Ok::<_, std::io::Error>(1)
+                            })
+                            .unwrap_or(Ok(0usize))?;
+                        return Ok(m);
+                    } else if entry.file_type()?.is_file() {
+                        std::fs::remove_file(entry.path())?;
+                        return Ok(1);
+                    }
+
+                    Ok::<usize, io::Error>(0)
+                })
+                .collect::<std::io::Result<Vec<usize>>>()?
+                .into_iter()
+                .sum();
+            println!("Cleaned up {number_of_cleans} directories and files");
         }
 
         let store_directory = if random_directory {
@@ -472,6 +486,7 @@ impl Setup {
             runtime_base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
+            script_management,
         );
 
         if let Some(printer) = printer {
@@ -508,17 +523,21 @@ async fn ping_task(client: Client) {
         match receiver.recv().await {
             Ok(ReceivedMessage {
                 propagation_source,
+                source,
                 message_id,
                 message,
             }) => {
-                if let Some(source) = message.source {
+                if let Some(source) = source {
                     if let Ok(nonce_data) = message.data.try_into() {
                         let nonce = u64::from_le_bytes(nonce_data);
-                        tracing::debug!("Received pong message from {source} via {propagation_source} and message id: {message_id}");
+                        tracing::debug!(
+                            "Received pong message from {source} via \
+                            {propagation_source} and message id: {message_id}"
+                        );
                         round_trip.report_round_trip(source, nonce).await;
                     }
                 } else {
-                    println!("Received pong message from unkonwn source");
+                    println!("Received pong message from unknown source");
                     continue;
                 }
             }

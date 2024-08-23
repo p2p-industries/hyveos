@@ -1,7 +1,8 @@
-use libp2p::gossipsub::{IdentTopic, MessageId, PublishError, SubscriptionError};
+use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
+use p2p_industries_core::gossipsub::{MessageId, ReceivedMessage};
 use tokio::sync::{broadcast, oneshot};
 
-use super::{actor::ReceivedMessage, Command};
+use super::Command;
 use crate::client::{RequestError, SpecialClient};
 
 pub struct Client {

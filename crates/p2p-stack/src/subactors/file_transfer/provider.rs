@@ -8,13 +8,14 @@ use asynchronous_codec::{CborCodec, Framed};
 use futures::{sink::SinkExt as _, stream::StreamExt as _};
 use libp2p::Stream;
 use libp2p_stream::Control;
+use p2p_industries_core::file_transfer::Cid;
 use tokio::{
     fs::{try_exists, File},
     io::{split, AsyncReadExt as _},
 };
 use tokio_util::compat::FuturesAsyncReadCompatExt as _;
 
-use super::{ack::ack_writer, bar_style, Cid, ExistenceInfo, STREAM_PROTOCOL};
+use super::{ack::ack_writer, bar_style, CidExt as _, ExistenceInfo, STREAM_PROTOCOL};
 use crate::subactors::file_transfer::{Request, Response};
 
 pub struct FileTransferProvider {
@@ -72,7 +73,7 @@ impl FileTransferProvider {
 }
 
 async fn get_file(directory: &Path, cid: Cid) -> io::Result<Option<File>> {
-    let path = directory.join::<PathBuf>(cid.into());
+    let path = directory.join(cid.to_path());
     if try_exists(&path).await? {
         Ok(Some(File::open(path).await?))
     } else {

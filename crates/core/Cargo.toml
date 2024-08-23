@@ -1,0 +1,24 @@
+[package]
+name = "p2p-industries-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = { workspace = true }
+publish = { workspace = true }
+
+[dependencies]
+hex_fmt = "0.3.0"
+libp2p-identity = { workspace = true, features = ["peerid"] }
+prost = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
+tonic = { workspace = true }
+ulid = { workspace = true }
+
+[build-dependencies]
+tonic-build = { version = "0.11.0", features = ["prost"] }
+
+[features]
+default = ["serde"]
+serde = ["libp2p-identity/serde", "dep:serde"]
+scripting = []

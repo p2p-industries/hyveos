@@ -1,7 +1,7 @@
-use libp2p::gossipsub::{IdentTopic, MessageId, PublishError, SubscriptionError};
+use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
+use p2p_industries_core::gossipsub::{MessageId, ReceivedMessage};
 use tokio::sync::{broadcast, oneshot};
 
-use super::actor::ReceivedMessage;
 use crate::impl_from_special_command;
 
 pub enum Command {

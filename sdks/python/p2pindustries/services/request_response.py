@@ -1,5 +1,6 @@
 from ..protocol.script_pb2_grpc import ReqRespStub
 from ..protocol.script_pb2 import (
+    Peer,
     Response,
     OptionalTopic,
     OptionalTopicQuery,
@@ -52,7 +53,7 @@ class RequestResponseService:
         send_data = enc(data)
 
         message = Message(data=send_data, topic=optional_topic)
-        send_request = SendRequest(peer_id=peer_id, msg=message)
+        send_request = SendRequest(peer=Peer(peer_id=peer_id), msg=message)
 
         response = await self.stub.Send(send_request)
 

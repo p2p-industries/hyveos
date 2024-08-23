@@ -2,3 +2,4 @@
 # store-directory = "/tmp/p2p-industries-stack"
 # key-file = "/tmp/p2p-industries-stack/keypair"
 # random-directory = true
+# script-management = "deny"

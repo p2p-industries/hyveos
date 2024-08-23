@@ -27,7 +27,7 @@ class GossipSubService:
 
         Returns
         -------
-        straem : ManagedStream[GossipSubRecvMessage]
+        stream : ManagedStream[GossipSubRecvMessage]
             Stream of received messages from a GossipSub topic
         """
 

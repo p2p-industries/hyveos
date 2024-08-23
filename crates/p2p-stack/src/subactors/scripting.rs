@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use docker::Compression;
 use libp2p::{
@@ -9,6 +9,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
+use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot};
 use ulid::Ulid;
@@ -17,7 +18,6 @@ use crate::{
     actor::SubActor,
     behaviour::MyBehaviour,
     client::{RequestError, SpecialClient},
-    file_transfer::Cid,
     impl_from_special_command,
 };
 
@@ -39,20 +39,14 @@ pub enum Request {
     },
 }
 
+pub type ListContainersResult = Result<Vec<RunningScript>, String>;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Response {
-    DeployedImage {
-        result: Result<Ulid, String>,
-    },
-    ListContainers {
-        result: Result<Vec<(Ulid, Arc<str>)>, String>,
-    },
-    StopContainer {
-        result: Result<(), String>,
-    },
-    StopAllContainers {
-        result: Result<(), String>,
-    },
+    DeployedImage { result: Result<Ulid, String> },
+    ListContainers { result: ListContainersResult },
+    StopContainer { result: Result<(), String> },
+    StopAllContainers { result: Result<(), String> },
 }
 
 pub type Behaviour = cbor::Behaviour<Request, Response>;
@@ -88,8 +82,6 @@ pub enum ActorToClient {
         kill: bool,
     },
 }
-
-pub type ListContainersResult = Result<Vec<(Ulid, Arc<str>)>, String>;
 
 #[derive(Debug)]
 pub enum Command {

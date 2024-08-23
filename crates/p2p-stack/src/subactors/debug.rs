@@ -3,6 +3,7 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
+use p2p_industries_core::{debug::MeshTopologyEvent, discovery::NeighbourEvent};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};
 
@@ -12,13 +13,6 @@ use crate::{
     client::{RequestError, SpecialClient},
     impl_from_special_command,
 };
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NeighbourEvent {
-    Init(Vec<PeerId>),
-    Discovered(PeerId),
-    Lost(PeerId),
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Message {
@@ -35,7 +29,7 @@ pub fn new() -> Behaviour {
 }
 
 pub enum Command {
-    SubscribeNeighbourEvents(oneshot::Sender<broadcast::Receiver<(PeerId, NeighbourEvent)>>),
+    SubscribeNeighbourEvents(oneshot::Sender<broadcast::Receiver<MeshTopologyEvent>>),
     SendNeighbourEvent {
         peer_id: PeerId,
         event: NeighbourEvent,
@@ -46,7 +40,7 @@ impl_from_special_command!(Debug);
 
 #[derive(Debug)]
 pub struct Actor {
-    neighbour_event_sender: broadcast::Sender<(PeerId, NeighbourEvent)>,
+    neighbour_event_sender: broadcast::Sender<MeshTopologyEvent>,
 }
 
 impl Default for Actor {
@@ -98,7 +92,10 @@ impl SubActor for Actor {
                         ..
                     },
             } => {
-                let _ = self.neighbour_event_sender.send((peer, event));
+                let _ = self.neighbour_event_sender.send(MeshTopologyEvent {
+                    peer_id: peer,
+                    event,
+                });
             }
             e => {
                 tracing::info!("Unhandled event: {e:?}");
@@ -121,7 +118,7 @@ impl From<SpecialClient<Command>> for Client {
 impl Client {
     pub async fn subscribe_neighbour_events(
         &self,
-    ) -> Result<broadcast::Receiver<(PeerId, NeighbourEvent)>, RequestError> {
+    ) -> Result<broadcast::Receiver<MeshTopologyEvent>, RequestError> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .send(Command::SubscribeNeighbourEvents(sender))

@@ -10,6 +10,7 @@ const_format = "0.2.32"
 drop-stream = "0.3.0"
 futures = { workspace = true }
 libp2p = { workspace = true }
+p2p-industries-core = { workspace = true }
 p2p-stack = { workspace = true }
 prost = { workspace = true }
 regex = { workspace = true }
@@ -19,10 +20,8 @@ tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 tonic = { workspace = true }
 tracing = { workspace = true }
+trait-variant = "0.1.2"
 ulid = { workspace = true }
-
-[build-dependencies]
-tonic-build = { workspace = true }
 
 [features]
 batman = ["p2p-stack/batman"]

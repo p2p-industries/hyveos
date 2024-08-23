@@ -17,6 +17,7 @@ use libp2p::{
     PeerId, StreamProtocol,
 };
 use libp2p_stream::{Behaviour, Control, OpenStreamError};
+use p2p_industries_core::file_transfer::Cid;
 use pin_project::pin_project;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -96,16 +97,16 @@ impl SubActor for Actor {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, Eq, PartialEq)]
-pub struct Cid {
-    pub id: Ulid,
-    pub hash: [u8; 32],
-}
-
 const STREAM_PROTOCOL: StreamProtocol = StreamProtocol::new("/file-transfer/0.1.0");
 
-impl From<Cid> for PathBuf {
-    fn from(Cid { id, hash }: Cid) -> Self {
+trait CidExt {
+    fn to_path(&self) -> PathBuf;
+    fn to_key(&self) -> RecordKey;
+}
+
+impl CidExt for Cid {
+    fn to_path(&self) -> PathBuf {
+        let Self { id, hash } = self;
         let mut out = [0u8; 64];
         let hash = URL_SAFE.encode_as_str(&hash[..], Out::from_slice(&mut out[..]));
         debug_assert!(!hash.contains('/') && !hash.contains('+'));
@@ -113,12 +114,23 @@ impl From<Cid> for PathBuf {
         path = path.with_extension("data");
         path
     }
+
+    fn to_key(&self) -> RecordKey {
+        let mut key = [0u8; 16 + 32];
+        key[..16].copy_from_slice(&self.id.to_bytes());
+        key[16..].copy_from_slice(&self.hash);
+        RecordKey::new(&key)
+    }
 }
 
-impl TryFrom<&Path> for Cid {
-    type Error = io::Error;
-    fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        let stem = value
+trait PathExt {
+    fn to_cid(&self) -> io::Result<Cid>;
+}
+
+impl<T: AsRef<Path>> PathExt for T {
+    fn to_cid(&self) -> io::Result<Cid> {
+        let stem = self
+            .as_ref()
             .file_stem()
             .ok_or(io::ErrorKind::InvalidInput)?
             .to_str()
@@ -137,16 +149,7 @@ impl TryFrom<&Path> for Cid {
         if hash_out.len() != 32 {
             return Err(io::ErrorKind::InvalidInput.into());
         }
-        Ok(Self { id, hash })
-    }
-}
-
-impl From<Cid> for RecordKey {
-    fn from(value: Cid) -> Self {
-        let mut key = [0u8; 16 + 32];
-        key[..16].copy_from_slice(&value.id.to_bytes());
-        key[16..].copy_from_slice(&value.hash);
-        Self::new(&key)
+        Ok(Cid { id, hash })
     }
 }
 
@@ -274,14 +277,14 @@ impl Client {
 
     async fn provide_cid(&self, cid: Cid) -> Result<(), ClientError> {
         self.kademlia
-            .start_providing(cid.into())
+            .start_providing(cid.to_key())
             .await
             .map_err(ClientError::KadProviding)?;
         Ok(())
     }
 
     pub async fn import_file(&self, cid: Cid, file: &Path) -> Result<(), ClientError> {
-        let path = self.get_directory().await?.join::<PathBuf>(cid.into());
+        let path = self.get_directory().await?.join(cid.to_path());
         if !file.exists() {
             return Err(io::Error::from(io::ErrorKind::NotFound).into());
         }
@@ -309,7 +312,7 @@ impl Client {
     }
 
     async fn get_local_file(&self, cid: Cid) -> Result<Option<File>, ClientError> {
-        let path = self.get_directory().await?.join::<PathBuf>(cid.into());
+        let path = self.get_directory().await?.join(cid.to_path());
         if tokio::fs::try_exists(&path).await? {
             Ok(Some(File::open(path).await?))
         } else {
@@ -332,7 +335,7 @@ impl Client {
         let all_providers = async {
             let mut providers = self
                 .kademlia
-                .get_providers(cid.into())
+                .get_providers(cid.to_key())
                 .await
                 .map_err(ClientError::Request)?;
             let mut ret = HashSet::new();
@@ -437,7 +440,7 @@ impl Client {
 
     pub async fn get_cid(&self, cid: Cid) -> Result<PathBuf, ClientError> {
         if (self.get_local_file(cid).await?).is_some() {
-            return Ok(self.get_directory().await?.join::<PathBuf>(cid.into()));
+            return Ok(self.get_directory().await?.join(cid.to_path()));
         }
 
         let (neighbours, non_neighbours) = self.get_all_providers(cid).await?;
@@ -475,7 +478,7 @@ impl Client {
             }
         };
 
-        let path = self.get_directory().await?.join::<PathBuf>(cid.into());
+        let path = self.get_directory().await?.join(cid.to_path());
         let mut file = File::create(&path).await?;
         file.sync_all().await?;
         let mut framed = Framed::from_parts(parts);
@@ -531,10 +534,7 @@ impl Client {
                 Ok(entry) => match entry.file_type().await {
                     Err(e) => Some(Err(e)),
                     Ok(file_type) if !file_type.is_file() => None,
-                    Ok(_) => {
-                        let path = entry.path();
-                        Some(Cid::try_from(path.as_path()))
-                    }
+                    Ok(_) => Some(entry.path().to_cid()),
                 },
                 Err(e) => Some(Err(e)),
             }

@@ -5,10 +5,10 @@ import warnings
 
 from . import script_pb2 as script__pb2
 
-GRPC_GENERATED_VERSION = '1.64.0'
+GRPC_GENERATED_VERSION = '1.65.5'
 GRPC_VERSION = grpc.__version__
-EXPECTED_ERROR_RELEASE = '1.65.0'
-SCHEDULED_RELEASE_DATE = 'June 25, 2024'
+EXPECTED_ERROR_RELEASE = '1.66.0'
+SCHEDULED_RELEASE_DATE = 'August 6, 2024'
 _version_not_supported = False
 
 try:
@@ -815,6 +815,211 @@ class Debug(object):
             '/script.Debug/SubscribeMeshTopology',
             script__pb2.Empty.SerializeToString,
             script__pb2.MeshTopologyEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class ScriptingStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.DeployScript = channel.unary_unary(
+                '/script.Scripting/DeployScript',
+                request_serializer=script__pb2.DeployScriptRequest.SerializeToString,
+                response_deserializer=script__pb2.ID.FromString,
+                _registered_method=True)
+        self.ListRunningScripts = channel.unary_unary(
+                '/script.Scripting/ListRunningScripts',
+                request_serializer=script__pb2.ListRunningScriptsRequest.SerializeToString,
+                response_deserializer=script__pb2.RunningScripts.FromString,
+                _registered_method=True)
+        self.StopScript = channel.unary_unary(
+                '/script.Scripting/StopScript',
+                request_serializer=script__pb2.StopScriptRequest.SerializeToString,
+                response_deserializer=script__pb2.Empty.FromString,
+                _registered_method=True)
+        self.GetOwnId = channel.unary_unary(
+                '/script.Scripting/GetOwnId',
+                request_serializer=script__pb2.Empty.SerializeToString,
+                response_deserializer=script__pb2.ID.FromString,
+                _registered_method=True)
+
+
+class ScriptingServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def DeployScript(self, request, context):
+        """Deploy a script to a peer and get the id of the deployed script
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListRunningScripts(self, request, context):
+        """List running scripts on a peer
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopScript(self, request, context):
+        """Stop a running script on a peer
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetOwnId(self, request, context):
+        """Get the id of the current script
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ScriptingServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'DeployScript': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeployScript,
+                    request_deserializer=script__pb2.DeployScriptRequest.FromString,
+                    response_serializer=script__pb2.ID.SerializeToString,
+            ),
+            'ListRunningScripts': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListRunningScripts,
+                    request_deserializer=script__pb2.ListRunningScriptsRequest.FromString,
+                    response_serializer=script__pb2.RunningScripts.SerializeToString,
+            ),
+            'StopScript': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopScript,
+                    request_deserializer=script__pb2.StopScriptRequest.FromString,
+                    response_serializer=script__pb2.Empty.SerializeToString,
+            ),
+            'GetOwnId': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetOwnId,
+                    request_deserializer=script__pb2.Empty.FromString,
+                    response_serializer=script__pb2.ID.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'script.Scripting', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.Scripting', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class Scripting(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def DeployScript(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.Scripting/DeployScript',
+            script__pb2.DeployScriptRequest.SerializeToString,
+            script__pb2.ID.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListRunningScripts(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.Scripting/ListRunningScripts',
+            script__pb2.ListRunningScriptsRequest.SerializeToString,
+            script__pb2.RunningScripts.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StopScript(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.Scripting/StopScript',
+            script__pb2.StopScriptRequest.SerializeToString,
+            script__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetOwnId(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.Scripting/GetOwnId',
+            script__pb2.Empty.SerializeToString,
+            script__pb2.ID.FromString,
             options,
             channel_credentials,
             insecure,

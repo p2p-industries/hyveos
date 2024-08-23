@@ -3,37 +3,20 @@ use futures::{
     stream::{self, StreamExt as _, TryStreamExt as _},
 };
 use libp2p::kad::{GetProvidersOk, GetRecordOk, Quorum, RecordKey};
+use p2p_industries_core::{
+    dht::Key as DhtKey,
+    grpc::{self, dht_server::Dht},
+};
 use p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{
-    script::{self, dht_server::Dht},
-    ServerStream, TonicResult,
-};
+use crate::{ServerStream, TonicResult};
 
-impl TryFrom<script::DhtKey> for RecordKey {
-    type Error = Status;
-
-    fn try_from(key: script::DhtKey) -> Result<Self, Status> {
-        let script::DhtKey {
-            topic: script::Topic { topic },
-            key,
-        } = key;
-
-        let topic_bytes = topic.into_bytes();
-
-        if topic_bytes.contains(&b'/') {
-            return Err(Status::invalid_argument("Topic cannot contain '/'"));
-        }
-
-        let key_bytes = topic_bytes
-            .into_iter()
-            .chain(Some(b'/'))
-            .chain(key)
-            .collect::<Vec<_>>();
-
-        Ok(RecordKey::new(&key_bytes))
-    }
+fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
+    DhtKey::from(key)
+        .into_bytes()
+        .map(Into::into)
+        .map_err(Into::into)
 }
 
 pub struct DhtServer {
@@ -46,32 +29,32 @@ impl DhtServer {
     }
 }
 
-#[tonic::async_trait]
+#[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl Dht for DhtServer {
-    type GetProvidersStream = ServerStream<script::Peer>;
+    type GetProvidersStream = ServerStream<grpc::Peer>;
 
     async fn put_record(
         &self,
-        request: TonicRequest<script::DhtPutRecord>,
-    ) -> TonicResult<script::Empty> {
+        request: TonicRequest<grpc::DhtPutRecord>,
+    ) -> TonicResult<grpc::Empty> {
         let record = request.into_inner();
 
         tracing::debug!(request=?record, "Received put_record request");
 
-        let script::DhtPutRecord { key, value } = record;
+        let grpc::DhtPutRecord { key, value } = record;
 
         self.client
             .kad()
-            .put_record(key.try_into()?, value, None, Quorum::One)
+            .put_record(convert_key(key)?, value, None, Quorum::One)
             .await
-            .map(|_| TonicResponse::new(script::Empty {}))
+            .map(|_| TonicResponse::new(grpc::Empty {}))
             .map_err(|e| Status::internal(e.to_string()))
     }
 
     async fn get_record(
         &self,
-        request: TonicRequest<script::DhtKey>,
-    ) -> TonicResult<script::DhtGetRecord> {
+        request: TonicRequest<grpc::DhtKey>,
+    ) -> TonicResult<grpc::DhtGetRecord> {
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received get_record request");
@@ -79,7 +62,7 @@ impl Dht for DhtServer {
         let records = self
             .client
             .kad()
-            .get_record(key.clone().try_into()?)
+            .get_record(convert_key(key)?)
             .await
             .map_err(|e| Status::internal(format!("{e:?}")))?;
 
@@ -96,25 +79,25 @@ impl Dht for DhtServer {
             .transpose()
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(TonicResponse::new(script::DhtGetRecord { key, value }))
+        Ok(TonicResponse::new(grpc::DhtGetRecord { value }))
     }
 
-    async fn provide(&self, request: TonicRequest<script::DhtKey>) -> TonicResult<script::Empty> {
+    async fn provide(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received provide request");
 
         self.client
             .kad()
-            .start_providing(key.try_into()?)
+            .start_providing(convert_key(key)?)
             .await
-            .map(|_| TonicResponse::new(script::Empty {}))
+            .map(|_| TonicResponse::new(grpc::Empty {}))
             .map_err(|e| Status::internal(e.to_string()))
     }
 
     async fn get_providers(
         &self,
-        request: TonicRequest<script::DhtKey>,
+        request: TonicRequest<grpc::DhtKey>,
     ) -> TonicResult<Self::GetProvidersStream> {
         let key = request.into_inner();
 
@@ -123,17 +106,13 @@ impl Dht for DhtServer {
         let stream = self
             .client
             .kad()
-            .get_providers(key.try_into()?)
+            .get_providers(convert_key(key)?)
             .await
             .map_err(|e| Status::internal(format!("{e:?}")))?
             .try_filter_map(|providers| {
                 future::ready(Ok(
                     if let GetProvidersOk::FoundProviders { providers, .. } = providers {
-                        Some(stream::iter(providers).map(|peer_id| {
-                            Ok(script::Peer {
-                                peer_id: peer_id.to_string(),
-                            })
-                        }))
+                        Some(stream::iter(providers).map(Into::into).map(Ok))
                     } else {
                         None
                     },

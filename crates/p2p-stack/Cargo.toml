@@ -31,9 +31,9 @@ libp2p = { workspace = true, features = [
 libp2p-batman-adv = { workspace = true, optional = true }
 libp2p-stream = { workspace = true }
 libp2p-quic = { workspace = true, features = ["tokio"] }
+p2p-industries-core = { workspace = true, features = ["serde", "scripting"] }
 pin-project = { workspace = true }
 rand = { workspace = true }
-regex = { workspace = true }
 sha2 = { version = "0.10.8", features = ["asm"] }
 serde = { workspace = true }
 thiserror = { workspace = true }
