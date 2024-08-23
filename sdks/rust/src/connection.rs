@@ -1,6 +1,7 @@
 use std::env;
 
 use async_lazy::Lazy;
+use hyper_util::rt::TokioIo;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::net::UnixStream;
@@ -28,7 +29,10 @@ static CONNECTION: Lazy<Result<P2PConnection>> = Lazy::const_new(|| {
                 let path = env::var("P2P_INDUSTRIES_BRIDGE_SOCKET")
                     .map_err(|e| Error::EnvVarMissing("P2P_INDUSTRIES_BRIDGE_SOCKET", e))?;
 
-                UnixStream::connect(path).await.map_err(Error::from)
+                UnixStream::connect(path)
+                    .await
+                    .map_err(Error::from)
+                    .map(TokioIo::new)
             }))
             .await?;
 

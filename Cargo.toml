@@ -37,7 +37,7 @@ p2p-industries-core = { version = "0.1.0", path = "crates/core" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
 p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
 pin-project = { version = "1.1.5" }
-prost = { version = "0.12" }
+prost = "0.13"
 rand = { version = "0.8.5" }
 regex = { version = "1.10.4", default-features = false, features = [
     "perf",
@@ -50,7 +50,7 @@ tarpc = { version = "0.34.0" }
 tokio = { version = "1.38" }
 tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
 tokio-util = { version = "0.7.11" }
-tonic = { version = "0.11.0" }
+tonic = { version = "0.12.1" }
 tracing = { version = "0.1.40" }
 ulid = { version = "1.1.2", features = ["serde"] }
 void = { version = "1.0.2" }

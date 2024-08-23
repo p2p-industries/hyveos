@@ -7,7 +7,7 @@ publish = { workspace = true }
 
 [dependencies]
 async-compression = { workspace = true, optional = true, features = ["tokio"] }
-bollard = "0.16.1"
+bollard = "0.17.1"
 bytes = { workspace = true }
 futures = { workspace = true }
 indicatif = { workspace = true }

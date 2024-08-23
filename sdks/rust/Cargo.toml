@@ -9,6 +9,7 @@ license = "MIT or Apache-2.0"
 async-lazy = { version = "0.1.0", features = ["parking_lot"] }
 derive-where = "1.2.7"
 futures = { workspace = true }
+hyper-util = { version = "0.1.7", features = ["tokio"] }
 libp2p-identity = { workspace = true, features = ["peerid"] }
 p2p-industries-core = { workspace = true }
 prost = { workspace = true }
@@ -18,7 +19,7 @@ serde_json = { version = "1.0.118", optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs"] }
 tonic = { workspace = true }
-tower = "0.4.13"
+tower = { version = "0.5.0", features = ["util"] }
 tracing = { workspace = true }
 ulid = { workspace = true }
 
