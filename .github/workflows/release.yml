@@ -142,7 +142,6 @@ jobs:
           tag_name: ${{ needs.get-latest-release-number.outputs.new_version }}
           make_latest: true
           files: ./artifacts/*
-          prerelease: true
           title: Rolling release (${{ needs.get-latest-release-number.outputs.number }})
           generate_release_notes: true
 
