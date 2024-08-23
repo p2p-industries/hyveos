@@ -103,8 +103,12 @@ impl<T> SpecialClient<T> {
     }
 }
 
+pub trait DynamicError: std::error::Error + Send + Sync + 'static {}
+
+impl<T> DynamicError for T where T: std::error::Error + Send + Sync + 'static {}
+
 #[derive(Debug, thiserror::Error)]
-pub enum RequestError<E = ()> {
+pub enum RequestError<E = &'static dyn DynamicError> {
     #[error("Failed to send command `{0}`")]
     Send(mpsc::error::SendError<Command>),
     #[error("Received error from command execution: `{0}`")]

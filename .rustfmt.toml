@@ -1,3 +1,5 @@
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
 max_width = 100
+format_macro_matchers = true
+format_macro_bodies = true

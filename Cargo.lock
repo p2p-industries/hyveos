@@ -4255,6 +4255,7 @@ dependencies = [
  "rand",
  "rustyline",
  "serde",
+ "smallvec",
  "thiserror",
  "tokio",
  "tokio-util",
