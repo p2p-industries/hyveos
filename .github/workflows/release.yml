@@ -1,0 +1,148 @@
+name: Automated release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-latest-release-number:
+    name: Get latest release number
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.increment_version.outputs.new_version }}
+      number: ${{ steps.increment_version.outputs.number }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get latest release tag
+        id: latest-number
+        run: |
+          number=$(gh release list --json tagName --jq '[.[]?] | map(select(.tagName | test("^v[0-9]+-rolling$"))) | first | .tagName | capture("v(?<number>[0-9]+)-rolling").number')
+          echo "Current number: $number"
+          echo "number=$number" >> $GITHUB_ENV
+
+      - name: Increment version number
+        id: increment_version
+        run: |
+          new_number=$(( ${{ env.number }} + 1))
+          new_version="v${new_number}-rolling"
+          echo "New version: $new_version"
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "number=$new_number" >> $GITHUB_OUTPUT
+
+  extract-debian-packages:
+    name: Extract debian packages
+    runs-on: ubuntu-latest
+    outputs:
+      crates: ${{ steps.cargo-metadata.outputs.crates }}
+      targets: ${{ steps.cargo-metadata.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
+
+      - id: cargo-metadata
+        run: |
+          DEBIAN_PACKAGES=$(cargo metadata --no-deps --format-version=1 | jq -c '.packages | map(select(.metadata.deb)) | map(.name)')
+          DEBIAN_TARGETS="['x86_64-unknown-linux-gnu','aarch64-unknown-linux-gnu']"
+          echo "crates=$DEBIAN_PACKAGES" >> $GITHUB_OUTPUT
+          echo "targets=$DEBIAN_TARGETS" >> $GITHUB_OUTPUT
+
+
+  build-debian:
+    name: Build debian packages
+    runs-on: ubuntu-latest
+    needs: extract-debian-packages
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: ${{ fromJSON(needs.extract-debian-packages.outputs.crates) }}
+        target: ${{ fromJSON(needs.extract-debian-packages.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
+        with:
+          ssh-private-key: |
+            ${{ secrets.GITSECRET }}
+            ${{ secrets.GIT_STREAM_SECRET }}
+
+      - uses: taiki-e/cache-cargo-install-action@caa6f48d18d42462f9c30df89e2b4f71a42b7c2c
+        with:
+          tool: cargo-deb
+
+      - name: Install cross compile linker
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        run: sudo apt-get install gcc-aarch64-linux-gnu
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+
+      - name: Build debian binary
+        if: ${{ matrix.target != 'aarch64-unknown-linux-gnu' }}
+        run: cargo deb -p ${{ matrix.crate }} --target ${{ matrix.target }}
+
+      - name: Build Raspbian binary
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        run: cargo deb -p ${{ matrix.crate }} --variant raspbian --target ${{ matrix.target }}
+
+      - name: Upload artifacts
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.crate }}--${{ matrix.target }}.deb
+          path: target/${{ matrix.target }}/debian/*.deb
+
+  create-release:
+    name: Create a release
+    runs-on: ubuntu-latest
+    needs: 
+      - get-latest-release-number
+      - build-debian
+    env:
+      GH_TOKEN: ${{ github.token }}
+    permissions:
+      contents: write
+      attestations: read
+    steps:
+      # For each combination of crate and target download the artifact
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: "*--*.deb"
+          merge-multiple: true
+
+      - name: List contents
+        run: ls -R ./artifacts/
+
+      - name: Create release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # 2.0.8
+        with:
+          tag_name: ${{ needs.get-latest-release-number.outputs.new_version }}
+          make_latest: true
+          files: ./artifacts/*
+          prerelease: true
+          title: Rolling release (${{ needs.get-latest-release-number.outputs.number }})
+          generate_release_notes: true
+
