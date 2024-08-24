@@ -7,13 +7,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bridge::ScriptingClient as _;
 use clap::Parser;
 use dirs::{data_local_dir, runtime_dir};
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, multiaddr::Protocol, Multiaddr};
 use p2p_industries_core::gossipsub::ReceivedMessage;
 #[cfg(feature = "batman")]
 use p2p_stack::DebugClient;
-use p2p_stack::{Client, FullActor};
+use p2p_stack::{Client as P2PClient, FullActor};
 use scripting::ScriptManagementConfig;
 use serde::Deserialize;
 use tokio::task::JoinHandle;
@@ -21,11 +22,13 @@ use tracing_subscriber::EnvFilter;
 
 use crate::{
     command_line::{interaction_loop, prep_interaction},
+    db::Client as DbClient,
     printer::SharedPrinter,
     scripting::{ScriptingClient, ScriptingManagerBuilder},
 };
 
 mod command_line;
+mod db;
 mod printer;
 mod scripting;
 
@@ -42,6 +45,8 @@ struct Config {
     interfaces: Option<Vec<String>>,
     #[serde(default)]
     store_directory: Option<PathBuf>,
+    #[serde(default)]
+    db_file: Option<PathBuf>,
     #[serde(default)]
     key_file: Option<PathBuf>,
     #[serde(default)]
@@ -99,6 +104,8 @@ pub struct Opts {
     pub interfaces: Option<Vec<String>>,
     #[clap(short, long)]
     pub store_directory: Option<PathBuf>,
+    #[clap(long)]
+    pub db_file: Option<PathBuf>,
     #[clap(short, long)]
     pub key_file: Option<PathBuf>,
     #[clap(short, long)]
@@ -185,6 +192,7 @@ async fn main() -> anyhow::Result<()> {
         listen_addrs,
         interfaces,
         store_directory,
+        db_file,
         key_file,
         random_directory,
         script_management,
@@ -195,6 +203,7 @@ async fn main() -> anyhow::Result<()> {
     let Config {
         interfaces: config_interfaces,
         store_directory: config_store_directory,
+        db_file: config_db_file,
         key_file: config_key_file,
         random_directory: config_random_directory,
         script_management: config_script_management,
@@ -219,6 +228,10 @@ async fn main() -> anyhow::Result<()> {
         std::fs::create_dir_all(&store_directory)?;
     }
 
+    let db_file = db_file
+        .or(config_db_file)
+        .unwrap_or_else(|| store_directory.join("db"));
+
     let key_file = key_file
         .or(config_key_file)
         .unwrap_or_else(|| store_directory.join("keypair"));
@@ -237,64 +250,55 @@ async fn main() -> anyhow::Result<()> {
         .or(config_script_management)
         .unwrap_or_default();
 
+    let args = CommonArgs {
+        listen_addrs,
+        store_directory,
+        db_file,
+        keypair,
+        random_directory,
+        script_management,
+        clean,
+    };
+
     if io::stdin().is_terminal() && io::stdout().is_terminal() {
-        Box::pin(main_tty(
-            listen_addrs,
-            store_directory,
-            keypair,
-            random_directory,
-            script_management,
-            clean,
-            vim,
-        ))
-        .await
+        Box::pin(main_tty(args, vim)).await
     } else {
-        main_alt(
-            listen_addrs,
-            store_directory,
-            keypair,
-            random_directory,
-            script_management,
-            clean,
-        )
-        .await
+        main_alt(args).await
     }
 }
 
-async fn main_tty(
-    listen_addrs: impl Iterator<Item = Multiaddr>,
+struct CommonArgs<Addrs> {
+    listen_addrs: Addrs,
     store_directory: PathBuf,
+    db_file: PathBuf,
     keypair: Keypair,
     random_directory: bool,
     script_management: ScriptManagementConfig,
     clean: bool,
+}
+
+async fn main_tty(
+    args: CommonArgs<impl Iterator<Item = Multiaddr>>,
     vim: bool,
 ) -> anyhow::Result<()> {
-    let (rl, rl_printer, history_file) = prep_interaction(&store_directory, vim).await?;
+    let (rl, rl_printer, history_file) = prep_interaction(&args.store_directory, vim).await?;
 
     let Setup {
-        client,
-        scripting_client,
+        clients,
         actor_task,
         file_provider_task,
         #[cfg(feature = "batman")]
         debug_client_task,
         scripting_manager_task,
         ping_task,
-    } = Setup::new(
-        listen_addrs,
-        store_directory,
-        keypair,
-        random_directory,
-        script_management,
-        clean,
-        Some(rl_printer.clone()),
-    )
-    .await?;
+    } = Setup::new(args, Some(rl_printer.clone())).await?;
 
-    interaction_loop(rl, rl_printer, history_file, client, &scripting_client).await?;
+    interaction_loop(rl, rl_printer, history_file, &clients).await?;
 
-    scripting_client.stop_all_containers(true, None).await?;
+    clients
+        .scripting_client
+        .stop_all_containers(true, None)
+        .await?;
 
     actor_task.abort();
     file_provider_task.abort();
@@ -323,16 +327,9 @@ async fn main_tty(
     Ok(())
 }
 
-async fn main_alt(
-    listen_addrs: impl Iterator<Item = Multiaddr>,
-    store_directory: PathBuf,
-    keypair: Keypair,
-    random_directory: bool,
-    script_management: ScriptManagementConfig,
-    clean: bool,
-) -> anyhow::Result<()> {
+async fn main_alt(args: CommonArgs<impl Iterator<Item = Multiaddr>>) -> anyhow::Result<()> {
     let Setup {
-        scripting_client,
+        clients,
         actor_task,
         file_provider_task,
         #[cfg(feature = "batman")]
@@ -340,20 +337,14 @@ async fn main_alt(
         scripting_manager_task,
         ping_task,
         ..
-    } = Setup::new(
-        listen_addrs,
-        store_directory,
-        keypair,
-        random_directory,
-        script_management,
-        clean,
-        None,
-    )
-    .await?;
+    } = Setup::new(args, None).await?;
 
     actor_task.await?;
 
-    scripting_client.stop_all_containers(true, None).await?;
+    clients
+        .scripting_client
+        .stop_all_containers(true, None)
+        .await?;
 
     file_provider_task.abort();
     #[cfg(feature = "batman")]
@@ -375,9 +366,13 @@ async fn main_alt(
     Ok(())
 }
 
-struct Setup {
-    client: Client,
+struct Clients {
+    p2p_client: P2PClient,
     scripting_client: ScriptingClient,
+}
+
+struct Setup {
+    clients: Clients,
     actor_task: JoinHandle<()>,
     file_provider_task: JoinHandle<()>,
     #[cfg(feature = "batman")]
@@ -388,14 +383,19 @@ struct Setup {
 
 impl Setup {
     async fn new(
-        listen_addrs: impl Iterator<Item = Multiaddr>,
-        store_directory: PathBuf,
-        keypair: Keypair,
-        random_directory: bool,
-        script_management: ScriptManagementConfig,
-        clean: bool,
+        args: CommonArgs<impl Iterator<Item = Multiaddr>>,
         printer: Option<SharedPrinter>,
     ) -> anyhow::Result<Setup> {
+        let CommonArgs {
+            listen_addrs,
+            store_directory,
+            db_file,
+            keypair,
+            random_directory,
+            script_management,
+            clean,
+        } = args;
+
         let subscriber = tracing_subscriber::fmt().with_env_filter(EnvFilter::from_default_env());
 
         if let Some(printer) = printer.as_ref() {
@@ -408,35 +408,7 @@ impl Setup {
         console_subscriber::init();
 
         if clean {
-            let number_of_cleans: usize = store_directory
-                .read_dir()
-                .expect("Failed to read directory")
-                .map(|e| {
-                    let entry = e?;
-                    if entry.file_type()?.is_dir() {
-                        let m = entry
-                            .path()
-                            .file_name()
-                            .map(|e| e.to_string_lossy().to_string())
-                            .unwrap();
-                        let m = ulid::Ulid::from_string(&m)
-                            .map(|_| {
-                                std::fs::remove_dir_all(entry.path())?;
-                                Ok::<_, std::io::Error>(1)
-                            })
-                            .unwrap_or(Ok(0usize))?;
-                        return Ok(m);
-                    } else if entry.file_type()?.is_file() {
-                        std::fs::remove_file(entry.path())?;
-                        return Ok(1);
-                    }
-
-                    Ok::<usize, io::Error>(0)
-                })
-                .collect::<std::io::Result<Vec<usize>>>()?
-                .into_iter()
-                .sum();
-            println!("Cleaned up {number_of_cleans} directories and files");
+            Self::cleanup_store_directory(&store_directory)?;
         }
 
         let store_directory = if random_directory {
@@ -451,7 +423,9 @@ impl Setup {
             std::fs::create_dir_all(&store_directory)?;
         }
 
-        let (client, mut actor) = FullActor::build(keypair);
+        let db_client = DbClient::new(db_file)?;
+
+        let (p2p_client, mut actor) = FullActor::build(keypair);
 
         actor.setup(listen_addrs);
 
@@ -459,7 +433,7 @@ impl Setup {
             Box::pin(actor.drive()).await;
         });
 
-        let file_provider = client
+        let file_provider = p2p_client
             .file_transfer()
             .create_provider(store_directory.clone())
             .await
@@ -468,12 +442,12 @@ impl Setup {
         let file_provider_task = tokio::spawn(file_provider.run());
 
         #[cfg(feature = "batman")]
-        let (debug_client, debug_command_sender) = DebugClient::build(client.clone());
+        let (debug_client, debug_command_sender) = DebugClient::build(p2p_client.clone());
 
         #[cfg(feature = "batman")]
         let debug_client_task = tokio::spawn(debug_client.run());
 
-        let Ok(Some(scripting_command_broker)) = client.scripting().subscribe().await else {
+        let Ok(Some(scripting_command_broker)) = p2p_client.scripting().subscribe().await else {
             return Err(anyhow::anyhow!("Failed to get command broker"));
         };
 
@@ -482,7 +456,8 @@ impl Setup {
 
         let mut builder = ScriptingManagerBuilder::new(
             scripting_command_broker,
-            client.clone(),
+            p2p_client.clone(),
+            db_client.clone(),
             runtime_base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
@@ -496,11 +471,21 @@ impl Setup {
         let (scripting_manager, scripting_client) = builder.build();
         let scripting_manager_task = tokio::spawn(scripting_manager.run());
 
-        let ping_task = tokio::spawn(ping_task(client.clone()));
+        for (image, ports) in db_client.get_startup_scripts()? {
+            scripting_client
+                .self_deploy_image(&image, true, false, ports, false)
+                .await?;
+        }
+
+        let ping_task = tokio::spawn(Self::ping_task(p2p_client.clone()));
+
+        let clients = Clients {
+            p2p_client,
+            scripting_client,
+        };
 
         Ok(Setup {
-            client,
-            scripting_client,
+            clients,
             actor_task,
             file_provider_task,
             #[cfg(feature = "batman")]
@@ -509,41 +494,76 @@ impl Setup {
             ping_task,
         })
     }
-}
 
-async fn ping_task(client: Client) {
-    let gos = client.gossipsub();
-
-    let topic_handle = gos.get_topic(IdentTopic::new("PING"));
-
-    let mut receiver = topic_handle.subscribe().await.expect("Failed to subscribe");
-    let round_trip = client.round_trip();
-
-    loop {
-        match receiver.recv().await {
-            Ok(ReceivedMessage {
-                propagation_source,
-                source,
-                message_id,
-                message,
-            }) => {
-                if let Some(source) = source {
-                    if let Ok(nonce_data) = message.data.try_into() {
-                        let nonce = u64::from_le_bytes(nonce_data);
-                        tracing::debug!(
-                            "Received pong message from {source} via \
-                            {propagation_source} and message id: {message_id}"
-                        );
-                        round_trip.report_round_trip(source, nonce).await;
-                    }
-                } else {
-                    println!("Received pong message from unknown source");
-                    continue;
+    fn cleanup_store_directory(store_directory: impl AsRef<Path>) -> anyhow::Result<()> {
+        let number_of_cleans: usize = store_directory
+            .as_ref()
+            .read_dir()
+            .expect("Failed to read directory")
+            .map(|e| {
+                let entry = e?;
+                if entry.file_type()?.is_dir() {
+                    let m = entry
+                        .path()
+                        .file_name()
+                        .map(|e| e.to_string_lossy().to_string())
+                        .unwrap();
+                    let m = ulid::Ulid::from_string(&m)
+                        .map(|_| {
+                            std::fs::remove_dir_all(entry.path())?;
+                            Ok::<_, std::io::Error>(1)
+                        })
+                        .unwrap_or(Ok(0usize))?;
+                    return Ok(m);
+                } else if entry.file_type()?.is_file() {
+                    std::fs::remove_file(entry.path())?;
+                    return Ok(1);
                 }
-            }
-            Err(err) => {
-                println!("Error: {err:?}");
-                break;
+
+                Ok::<usize, io::Error>(0)
+            })
+            .collect::<std::io::Result<Vec<usize>>>()?
+            .into_iter()
+            .sum();
+        println!("Cleaned up {number_of_cleans} directories and files");
+
+        Ok(())
+    }
+
+    async fn ping_task(client: P2PClient) {
+        let gos = client.gossipsub();
+
+        let topic_handle = gos.get_topic(IdentTopic::new("PING"));
+
+        let mut receiver = topic_handle.subscribe().await.expect("Failed to subscribe");
+        let round_trip = client.round_trip();
+
+        loop {
+            match receiver.recv().await {
+                Ok(ReceivedMessage {
+                    propagation_source,
+                    source,
+                    message_id,
+                    message,
+                }) => {
+                    if let Some(source) = source {
+                        if let Ok(nonce_data) = message.data.try_into() {
+                            let nonce = u64::from_le_bytes(nonce_data);
+                            tracing::debug!(
+                                "Received pong message from {source} via \
+                                {propagation_source} and message id: {message_id}"
+                            );
+                            round_trip.report_round_trip(source, nonce).await;
+                        }
+                    } else {
+                        println!("Received pong message from unknown source");
+                        continue;
+                    }
+                }
+                Err(err) => {
+                    println!("Error: {err:?}");
+                    break;
+                }
             }
         }
     }

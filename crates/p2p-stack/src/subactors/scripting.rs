@@ -29,6 +29,7 @@ pub enum Request {
         root_fs: Cid,
         compression: Compression,
         ports: Vec<u16>,
+        persistent: bool,
     },
     ListContainers,
     StopContainer {
@@ -68,6 +69,7 @@ pub enum ActorToClient {
         root_fs: Cid,
         compression: Compression,
         ports: Vec<u16>,
+        persistent: bool,
         request_id: InboundRequestId,
     },
     ListContainers {
@@ -89,8 +91,9 @@ pub enum Command {
         to: PeerId,
         root_fs: Cid,
         compression: Compression,
-        sender: oneshot::Sender<Result<Ulid, String>>,
         ports: Vec<u16>,
+        persistent: bool,
+        sender: oneshot::Sender<Result<Ulid, String>>,
     },
     Subscribe(oneshot::Sender<Option<mpsc::Receiver<ActorToClient>>>),
     DeployedImage {
@@ -167,8 +170,9 @@ impl SubActor for Actor {
                 to,
                 root_fs,
                 compression,
-                sender,
                 ports,
+                persistent,
+                sender,
             } => {
                 let req_id = behaviour.scripting.send_request(
                     &to,
@@ -176,6 +180,7 @@ impl SubActor for Actor {
                         root_fs,
                         compression,
                         ports,
+                        persistent,
                     },
                 );
                 self.inflight_deploy.insert(req_id, sender);
@@ -255,6 +260,7 @@ impl SubActor for Actor {
                                 root_fs,
                                 compression,
                                 ports,
+                                persistent,
                             },
                         channel,
                     },
@@ -263,8 +269,9 @@ impl SubActor for Actor {
                 if let Err(e) = self.to_client_sender.try_send(ActorToClient::DeployImage {
                     root_fs,
                     compression,
-                    request_id,
                     ports,
+                    persistent,
+                    request_id,
                 }) {
                     tracing::error!(peer = ?peer, error = ?e, "Failed to send local deployment command");
                 } else {
@@ -415,6 +422,7 @@ impl Client {
         root_fs: Cid,
         compression: Compression,
         ports: impl IntoIterator<Item = u16>,
+        persistent: bool,
     ) -> Result<Ulid, String> {
         let (sender, receiver) = oneshot::channel();
         self.inner
@@ -422,8 +430,9 @@ impl Client {
                 to,
                 root_fs,
                 compression,
-                sender,
                 ports: ports.into_iter().collect(),
+                persistent,
+                sender,
             })
             .await
             .expect("Failed to send");

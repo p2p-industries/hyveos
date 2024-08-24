@@ -19,6 +19,7 @@ pub trait ScriptingClient: Sync + 'static {
         peer_id: PeerId,
         verbose: bool,
         ports: impl IntoIterator<Item = u16> + Send,
+        persistent: bool,
     ) -> Result<Ulid, Self::Error>;
 
     async fn self_deploy_image(
@@ -27,6 +28,7 @@ pub trait ScriptingClient: Sync + 'static {
         local: bool,
         verbose: bool,
         ports: impl IntoIterator<Item = u16> + Send,
+        persistent: bool,
     ) -> Result<Ulid, Self::Error>;
 
     async fn list_containers(
@@ -70,6 +72,7 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
                 },
             local,
             peer,
+            persistent,
         } = request;
 
         let ports = ports
@@ -80,11 +83,11 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
 
         let id = if let Some(peer_id) = peer.map(TryInto::try_into).transpose()? {
             self.client
-                .deploy_image(&name, local, peer_id, false, ports)
+                .deploy_image(&name, local, peer_id, false, ports, persistent)
                 .await
         } else {
             self.client
-                .self_deploy_image(&name, local, false, ports)
+                .self_deploy_image(&name, local, false, ports, persistent)
                 .await
         }
         .map_err(|e| Status::internal(e.to_string()))?;

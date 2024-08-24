@@ -190,14 +190,16 @@ class DockerScript(_message.Message):
     def __init__(self, image: _Optional[_Union[DockerImage, _Mapping]] = ..., ports: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class DeployScriptRequest(_message.Message):
-    __slots__ = ("script", "local", "peer")
+    __slots__ = ("script", "local", "peer", "persistent")
     SCRIPT_FIELD_NUMBER: _ClassVar[int]
     LOCAL_FIELD_NUMBER: _ClassVar[int]
     PEER_FIELD_NUMBER: _ClassVar[int]
+    PERSISTENT_FIELD_NUMBER: _ClassVar[int]
     script: DockerScript
     local: bool
     peer: Peer
-    def __init__(self, script: _Optional[_Union[DockerScript, _Mapping]] = ..., local: bool = ..., peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
+    persistent: bool
+    def __init__(self, script: _Optional[_Union[DockerScript, _Mapping]] = ..., local: bool = ..., peer: _Optional[_Union[Peer, _Mapping]] = ..., persistent: bool = ...) -> None: ...
 
 class ListRunningScriptsRequest(_message.Message):
     __slots__ = ("peer",)
@@ -206,12 +208,14 @@ class ListRunningScriptsRequest(_message.Message):
     def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
 
 class RunningScript(_message.Message):
-    __slots__ = ("id", "image")
+    __slots__ = ("id", "image", "name")
     ID_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
     id: ID
     image: DockerImage
-    def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., image: _Optional[_Union[DockerImage, _Mapping]] = ...) -> None: ...
+    name: str
+    def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., image: _Optional[_Union[DockerImage, _Mapping]] = ..., name: _Optional[str] = ...) -> None: ...
 
 class RunningScripts(_message.Message):
     __slots__ = ("scripts",)

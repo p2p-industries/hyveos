@@ -1,9 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use p2p_stack::Client;
 use rustyline::{error::ReadlineError, hint::Hinter, history::DefaultHistory, Editor};
 
-use crate::{printer::SharedPrinter, scripting::ScriptingClient};
+use crate::{printer::SharedPrinter, Clients};
 
 pub async fn prep_interaction(
     store_directory: &Path,
@@ -35,8 +34,7 @@ pub async fn interaction_loop(
     mut rl: Editor<FamilyHinter, DefaultHistory>,
     rl_printer: SharedPrinter,
     history_file: PathBuf,
-    client: Client,
-    scripting_client: &ScriptingClient,
+    clients: &Clients,
 ) -> anyhow::Result<()> {
     loop {
         let readline = rl.readline(">> ");
@@ -53,10 +51,7 @@ pub async fn interaction_loop(
                         let input = line.split_whitespace().collect::<Vec<_>>();
                         let command = family.all_commands();
                         if command.is_command(&input) {
-                            match command
-                                .execute(&input, &client, &rl_printer, scripting_client)
-                                .await
-                            {
+                            match command.execute(&input, &rl_printer, clients).await {
                                 Ok(()) => {}
                                 Err(err) => {
                                     println!("Error: {err}");
@@ -240,9 +235,8 @@ pub(crate) trait Command {
     async fn execute(
         &self,
         input: &[&str],
-        client: &Client,
         rl_printer: &SharedPrinter,
-        scripting_client: &ScriptingClient,
+        clients: &Clients,
     ) -> anyhow::Result<()>;
 }
 
@@ -307,13 +301,12 @@ macro_rules! impl_tuple {
             async fn execute(
                 &self,
                 input: &[&str],
-                client: &Client,
                 rl_printer: &SharedPrinter,
-                scripting_client: &ScriptingClient,
+                clients: &Clients,
             ) -> anyhow::Result<()> {
                 $(
                     if self.$idx.is_command(input) {
-                        return self.$idx.execute(input, client, rl_printer, scripting_client).await;
+                        return self.$idx.execute(input, rl_printer, clients).await;
                     }
                 )+
                 unreachable!()
@@ -329,6 +322,10 @@ impl_tuple!(0 A, 1 B, 2 C, 3 D);
 impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E);
 impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F);
 impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G);
+impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H);
+impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I);
+impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J);
+impl_tuple!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J, 10 K);
 
 impl<T> Command for &T
 where
@@ -345,9 +342,8 @@ where
     async fn execute(
         &self,
         _input: &[&str],
-        _client: &Client,
         _rl_printer: &SharedPrinter,
-        _scripting_client: &ScriptingClient,
+        _clients: &Clients,
     ) -> anyhow::Result<()> {
         self.print_help_message();
         Ok(())
@@ -423,9 +419,8 @@ macro_rules! extract_parameters {
 macro_rules! command_instance {
     (
         $t:ident,
-        $client:ident,
         $rl_printer:ident,
-        $scripting_client:ident,
+        $clients:ident,
         $family_prefix:literal,
         [
         $(
@@ -461,9 +456,8 @@ macro_rules! command_instance {
             async fn execute(
                 &self,
                 input: &[&str],
-                $client: &Client,
                 $rl_printer: &SharedPrinter,
-                $scripting_client: &ScriptingClient,
+                $clients: &Clients,
             ) -> anyhow::Result<()> {
                 debug_assert!(self.is_command(input));
                 let [$( $p),*] = extract_parameters!(input, $family_prefix, $($label),*);
@@ -477,9 +471,8 @@ macro_rules! command_family {
     (
         $t:ident,
         $name:literal,
-        $client:ident,
         $rl_printer:ident,
-        $scripting_client:ident,
+        $clients:ident,
         $family_prefix:literal,
       [
             $(
@@ -501,7 +494,7 @@ macro_rules! command_family {
         ]
     ) => {
         $(
-            command_instance!($command, $client, $rl_printer, $scripting_client, $family_prefix, [$($label),*], [$($($p),*)?], $description, $execute);
+            command_instance!($command, $rl_printer, $clients, $family_prefix, [$($label),*], [$($($p),*)?], $description, $execute);
         )*
 
         #[derive(Debug, Default, Clone, Copy)]
@@ -525,14 +518,13 @@ macro_rules! command_family {
     };
 }
 
-pub(super) mod prelude {
+mod prelude {
     pub(super) use std::fmt::Write;
 
     pub(super) use futures::stream::TryStreamExt;
-    pub(super) use p2p_stack::Client;
 
     pub(super) use super::{trim, Command, CommandFamily, HelpMessage};
-    pub(super) use crate::{scripting::ScriptingClient, SharedPrinter};
+    pub(super) use crate::{printer::SharedPrinter, Clients};
 }
 
 macro_rules! special_family {
@@ -617,14 +609,13 @@ macro_rules! special_family {
             async fn execute(
                 &self,
                 input: &[&str],
-                client: &Client,
                 rl_printer: &SharedPrinter,
-                scripting_client: &ScriptingClient,
+                clients: &Clients,
             ) -> anyhow::Result<()> {
                 match self {
                     $(
                         $(#[$attr])*
-                        SpecialCommand::$family(c) => c.execute(input, client, rl_printer, scripting_client).await,
+                        SpecialCommand::$family(c) => c.execute(input, rl_printer, clients).await,
                     )+
                 }
             }
@@ -654,16 +645,16 @@ pub mod kad {
     command_family!(
         KadCommands,
         "Kademlia",
-        client,
         _rl_printer,
-        _scripting_client,
+        clients,
         "KAD",
         [
             (
                 KadPutCommand,
                 "Publish the record for the given key",
                 |"PUT", key, value| {
-                    let res = client
+                    let res = clients
+                        .p2p_client
                         .kad()
                         .put_record(
                             RecordKey::new(key),
@@ -680,7 +671,8 @@ pub mod kad {
                 KadGetCommand,
                 "Get the record for the given key",
                 |"GET", key| {
-                    let res: Result<Vec<GetRecordOk>, GetRecordError> = client
+                    let res: Result<Vec<GetRecordOk>, GetRecordError> = clients
+                        .p2p_client
                         .kad()
                         .get_record(RecordKey::new(&key))
                         .await?
@@ -694,8 +686,13 @@ pub mod kad {
                 KadBootstrapCommand,
                 "Bootstrap the Kademlia DHT",
                 |"BOOT"| {
-                    let res: Result<Vec<BootstrapOk>, BootstrapError> =
-                        client.kad().bootstrap().await?.try_collect().await;
+                    let res: Result<Vec<BootstrapOk>, BootstrapError> = clients
+                        .p2p_client
+                        .kad()
+                        .bootstrap()
+                        .await?
+                        .try_collect()
+                        .await;
                     println!("Bootstrap Result: {res:?}");
                     Ok(())
                 }
@@ -704,7 +701,11 @@ pub mod kad {
                 KadProvideCommand,
                 "Announce that this node can provide the value for the given key",
                 |"PROVIDE", key| {
-                    let res = client.kad().start_providing(RecordKey::new(&key)).await?;
+                    let res = clients
+                        .p2p_client
+                        .kad()
+                        .start_providing(RecordKey::new(&key))
+                        .await?;
                     println!("Provide Result: {res:?}");
                     Ok(())
                 }
@@ -713,7 +714,8 @@ pub mod kad {
                 KadGetProvidersCommand,
                 "Get the providers for the given key",
                 |"PROVIDERS", key| {
-                    let res: Result<Vec<GetProvidersOk>, GetProvidersError> = client
+                    let res: Result<Vec<GetProvidersOk>, GetProvidersError> = clients
+                        .p2p_client
                         .kad()
                         .get_providers(RecordKey::new(&key))
                         .await?
@@ -803,12 +805,12 @@ pub mod gos {
     command_family!(
         GossipSubCommands,
         "GossipSub",
-        client,
         rl_printer,
-        _scripting_client,
+        clients,
         "GOS",
         [
             (GosPingCommand, "Respond to ping messages", |"PING"| {
+                let client = &clients.p2p_client;
                 let topic_handle = client.gossipsub().get_topic(IdentTopic::new("PING"));
                 let nonce = rand::random();
                 let round_trip = client.round_trip();
@@ -839,7 +841,10 @@ pub mod gos {
                 GosPubCommand,
                 "Publish a message to a given topic",
                 |"PUB", topic, message| {
-                    let topic_handle = client.gossipsub().get_topic(IdentTopic::new(*topic));
+                    let topic_handle = clients
+                        .p2p_client
+                        .gossipsub()
+                        .get_topic(IdentTopic::new(*topic));
                     let res = topic_handle.publish(message.as_bytes().to_vec()).await;
                     println!("Publish Result: {res:?}");
                     res?;
@@ -850,7 +855,10 @@ pub mod gos {
                 GosSubCommand,
                 "Subscribe to a given topic",
                 |"SUB", topic| {
-                    let topic_handle = client.gossipsub().get_topic(IdentTopic::new(*topic));
+                    let topic_handle = clients
+                        .p2p_client
+                        .gossipsub()
+                        .get_topic(IdentTopic::new(*topic));
                     let mut res = topic_handle.subscribe().await.expect("Failed to subscribe");
 
                     let local_printer = rl_printer.clone();
@@ -883,12 +891,11 @@ pub mod ping {
     command_family!(
         PingCommands,
         "Ping",
-        client,
         rl_printer,
-        _scripting_client,
+        clients,
         "PING",
         [(PingCommand, "Ping the network", |"PING"| {
-            let mut sub = client.ping().subscribe().await?;
+            let mut sub = clients.p2p_client.ping().subscribe().await?;
             let local_printer = rl_printer.clone();
             tokio::spawn(async move {
                 let mut printer = local_printer;
@@ -959,22 +966,21 @@ pub mod neigh {
     command_family!(
         NeighCommands,
         "Neighbourhood",
-        client,
         rl_printer,
-        _scripting_client,
+        clients,
         "NEIGH",
         [
             (
                 NeighSubCommand,
                 "Subscribe to neighbourhood events",
                 |"SUB"| {
-                    let sub = client.neighbours().subscribe().await?;
+                    let sub = clients.p2p_client.neighbours().subscribe().await?;
                     tokio::spawn(neighbours_task(sub, rl_printer.clone()));
                     Ok(())
                 }
             ),
             (NeighListCommand, "List resolved neighbours", |"LIST"| {
-                let neighbours = client.neighbours().get_resolved().await?;
+                let neighbours = clients.p2p_client.neighbours().get_resolved().await?;
                 if neighbours.is_empty() {
                     println!("No resolved neighbours");
                 } else {
@@ -996,7 +1002,7 @@ pub mod neigh {
                 NeighUnresolvedCommand,
                 "List unsresolved neighbours",
                 |"LIST", "UNRESOLVED"| {
-                    let neighbours = client.neighbours().get_unresolved().await?;
+                    let neighbours = clients.p2p_client.neighbours().get_unresolved().await?;
                     if neighbours.is_empty() {
                         println!("No unresolved neighbours");
                     } else {
@@ -1016,7 +1022,7 @@ mod script {
     use std::num::ParseIntError;
 
     use bridge::ScriptingClient as _;
-    use libp2p::PeerId;
+    use libp2p::{identity::ParseError, PeerId};
     use p2p_industries_core::scripting::RunningScript;
 
     use super::prelude::*;
@@ -1028,80 +1034,121 @@ mod script {
             .collect::<Result<Vec<_>, _>>()
     }
 
+    fn parse_peer_id(peer_id_or_self: &str) -> Result<Option<PeerId>, ParseError> {
+        if peer_id_or_self.to_uppercase() == "SELF" {
+            Ok(None)
+        } else {
+            peer_id_or_self.parse().map(Some)
+        }
+    }
+
     command_family!(
         ScriptCommands,
         "Scripting",
-        client,
         rl_printer,
-        scripting_client,
+        clients,
         "SCRIPT",
         [
             (
-                ScriptDeploySelfCommand,
-                "Deploy a docker image from the docker registry to self",
-                |"DEPLOY", "SELF", image, ports| {
+                ScriptDeployCommand,
+                "Deploy a docker image from the docker registry to a remote peer or SELF",
+                |"DEPLOY", peer_id_or_self, image, ports| {
                     let ports = parse_ports(ports)?;
-                    let ulid = scripting_client
-                        .self_deploy_image(image, false, true, ports)
-                        .await?;
-                    println!("Self-deployed image {image} with ULID: {ulid}");
+                    if let Some(peer) = parse_peer_id(peer_id_or_self)? {
+                        let ulid = clients
+                            .scripting_client
+                            .deploy_image(image, false, peer, true, ports, false)
+                            .await?;
+                        println!("Deployed image {image} to {peer} with ULID: {ulid}");
+                    } else {
+                        let ulid = clients
+                            .scripting_client
+                            .self_deploy_image(image, false, true, ports, false)
+                            .await?;
+                        println!("Self-deployed image {image} with ULID: {ulid}");
+                    }
                     Ok(())
                 }
             ),
             (
-                ScriptDeployRemoteCommand,
-                "Deploy a docker image from the docker registry to a remote peer",
-                |"DEPLOY", peer_id, image, ports| {
-                    let peer: PeerId = peer_id.parse()?;
+                ScriptDeployPersistentCommand,
+                "Deploy a docker image from the docker registry to a remote peer or SELF persistently",
+                |"DEPLOY", "PERSISTENT", peer_id_or_self, image, ports| {
                     let ports = parse_ports(ports)?;
-                    let ulid = scripting_client
-                        .deploy_image(image, false, peer, true, ports)
-                        .await?;
-                    println!("Deployed image {image} to {peer} with ULID: {ulid}");
+                    if let Some(peer) = parse_peer_id(peer_id_or_self)? {
+                        let ulid = clients
+                            .scripting_client
+                            .deploy_image(image, false, peer, true, ports, true)
+                            .await?;
+                        println!("Deployed image {image} to {peer} with ULID: {ulid}");
+                    } else {
+                        let ulid = clients
+                            .scripting_client
+                            .self_deploy_image(image, false, true, ports, true)
+                            .await?;
+                        println!("Self-deployed image {image} with ULID: {ulid}");
+                    }
                     Ok(())
                 }
             ),
             (
-                ScriptLocalDeploySelfCommand,
-                "Deploy a local docker image to self",
-                |"LOCAL", "DEPLOY", "SELF", image, ports| {
+                ScriptLocalDeployCommand,
+                "Deploy a local docker image to a remote peer or SELF",
+                |"LOCAL", "DEPLOY", peer_id_or_self, image, ports| {
                     let ports = parse_ports(ports)?;
-                    let ulid = scripting_client
-                        .self_deploy_image(image, true, true, ports)
-                        .await?;
-                    println!("Self-deployed local image {image} with ULID: {ulid}");
+                    if let Some(peer) = parse_peer_id(peer_id_or_self)? {
+                        let ulid = clients
+                            .scripting_client
+                            .deploy_image(image, true, peer, true, ports, false)
+                            .await?;
+                        println!("Deployed local image {image} to {peer} with ULID: {ulid}");
+                    } else {
+                        let ulid = clients
+                            .scripting_client
+                            .self_deploy_image(image, true, true, ports, false)
+                            .await?;
+                        println!("Self-deployed local image {image} with ULID: {ulid}");
+                    }
                     Ok(())
                 }
             ),
             (
-                ScriptLocalDeployRemoteCommand,
-                "Deploy a local docker image to a remote peer",
-                |"LOCAL", "DEPLOY", peer_id, image, ports| {
-                    let peer: PeerId = peer_id.parse()?;
+                ScriptLocalDeployPersistentCommand,
+                "Deploy a local docker image to a remote peer or SELF persistently",
+                |"LOCAL", "DEPLOY", "PERSISTENT", peer_id_or_self, image, ports| {
                     let ports = parse_ports(ports)?;
-                    let ulid = scripting_client
-                        .deploy_image(image, true, peer, true, ports)
-                        .await?;
-                    println!("Deployed local image {image} to {peer} with ULID: {ulid}");
+                    if let Some(peer) = parse_peer_id(peer_id_or_self)? {
+                        let ulid = clients
+                            .scripting_client
+                            .deploy_image(image, true, peer, true, ports, true)
+                            .await?;
+                        println!("Deployed image {image} to {peer} with ULID: {ulid}");
+                    } else {
+                        let ulid = clients
+                            .scripting_client
+                            .self_deploy_image(image, true, true, ports, true)
+                            .await?;
+                        println!("Self-deployed image {image} with ULID: {ulid}");
+                    }
                     Ok(())
                 }
             ),
             (
                 ScriptListCommand,
-                "List running scripts",
-                |"LIST", peer_id| {
-                    let peer_id = if peer_id.to_uppercase() == "SELF" {
-                        None
-                    } else {
-                        Some(peer_id.parse()?)
-                    };
-                    let scripts = scripting_client.list_containers(peer_id).await?;
+                "List running scripts on a remote peer or SELF",
+                |"LIST", peer_id_or_self| {
+                    let peer_id = parse_peer_id(peer_id_or_self)?;
+                    let scripts = clients.scripting_client.list_containers(peer_id).await?;
                     if scripts.is_empty() {
                         println!("No running scripts");
                     } else {
                         println!("Running scripts:");
-                        for RunningScript { id, image } in scripts {
-                            println!("  {id}: {image}");
+                        for RunningScript { id, image, name } in scripts {
+                            if let Some(name) = name {
+                                println!("  {id}: {image} ({name})");
+                            } else {
+                                println!("  {id}: {image}");
+                            }
                         }
                     }
                     Ok(())
@@ -1109,29 +1156,27 @@ mod script {
             ),
             (
                 ScriptStopAllCommand,
-                "Stop all containers",
-                |"STOP", "ALL", peer_id| {
-                    let peer_id = if peer_id.to_uppercase() == "SELF" {
-                        None
-                    } else {
-                        Some(peer_id.parse()?)
-                    };
-                    scripting_client.stop_all_containers(false, peer_id).await?;
+                "Stop all containers on a remote peer or SELF",
+                |"STOP", "ALL", peer_id_or_self| {
+                    let peer_id = parse_peer_id(peer_id_or_self)?;
+                    clients
+                        .scripting_client
+                        .stop_all_containers(false, peer_id)
+                        .await?;
                     println!("Stopped all containers");
                     Ok(())
                 }
             ),
             (
                 ScriptStopOneCommand,
-                "Stop a container",
-                |"STOP", peer_id, id| {
-                    let peer_id = if peer_id.to_uppercase() == "SELF" {
-                        None
-                    } else {
-                        Some(peer_id.parse()?)
-                    };
+                "Stop a container on a remote peer or SELF by ULID",
+                |"STOP", peer_id_or_self, id| {
+                    let peer_id = parse_peer_id(peer_id_or_self)?;
                     let ulid = id.parse()?;
-                    scripting_client.stop_container(ulid, peer_id).await?;
+                    clients
+                        .scripting_client
+                        .stop_container(ulid, peer_id)
+                        .await?;
                     println!("Stopped container {ulid}");
                     Ok(())
                 }
@@ -1146,15 +1191,15 @@ pub mod me {
     command_family!(
         MeCommands,
         "Me",
-        client,
         _rl_printer,
-        _scripting_client,
+        clients,
         "ME",
         [(MeIdCommand, "Print the local peer ID", |"ID"| {
-            println!("Peer ID: {}", client.peer_id());
+            let peer_id = clients.p2p_client.peer_id();
+            println!("Peer ID: {peer_id}");
             #[cfg(feature = "clipboard")]
             {
-                arboard::Clipboard::new()?.set_text(client.peer_id().to_string())?;
+                arboard::Clipboard::new()?.set_text(peer_id.to_string())?;
             }
             Ok(())
         })]
@@ -1172,13 +1217,12 @@ pub mod file {
     command_family!(
         FileCommands,
         "File Transfer",
-        client,
         _rl_printer,
-        _scripting_client,
+        clients,
         "FILE",
         [
             (FileListCommand, "List files", |"LIST"| {
-                let files = client.file_transfer().list().await?;
+                let files = clients.p2p_client.file_transfer().list().await?;
                 let all_files = files.try_collect::<Vec<_>>().await?;
                 if all_files.is_empty() {
                     println!("No files");
@@ -1193,7 +1237,8 @@ pub mod file {
             }),
             (FileImportCommand, "Import a file", |"IMPORT", path| {
                 let path = path.parse::<PathBuf>()?;
-                let Cid { id, hash } = client
+                let Cid { id, hash } = clients
+                    .p2p_client
                     .file_transfer()
                     .import_new_file(path.as_path().canonicalize()?.as_path())
                     .await?;
@@ -1225,7 +1270,7 @@ pub mod file {
                         }
                     };
                     let cid = cid_from_parts().ok_or_else(|| anyhow::anyhow!("Invalid CID"))?;
-                    let cid_path = client.file_transfer().get_cid(cid).await?;
+                    let cid_path = clients.p2p_client.file_transfer().get_cid(cid).await?;
                     tokio::fs::copy(cid_path, path).await?;
                     println!("Retrieved file to {path}");
                     Ok(())

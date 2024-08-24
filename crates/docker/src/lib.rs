@@ -5,9 +5,11 @@ use std::{
     net::{Ipv4Addr, Ipv6Addr, SocketAddr},
     ops::Not,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
 };
 
+use async_once_cell::OnceCell;
 use bollard::{
     container::{
         AttachContainerOptions, AttachContainerResults, Config, CreateContainerOptions, LogOutput,
@@ -15,7 +17,7 @@ use bollard::{
     },
     errors::Error as BollardError,
     image::{CreateImageOptions, ImportImageOptions},
-    secret::{BuildInfo, HostConfig, Mount, MountTypeEnum, PortBinding},
+    secret::{BuildInfo, HostConfig, ImageInspect, Mount, MountTypeEnum, PortBinding},
     service::{CreateImageInfo, ProgressDetail},
 };
 use bytes::Bytes;
@@ -113,10 +115,10 @@ impl ContainerManager {
                     let reg = regex!(r#"^Loaded image: (.+)$"#);
                     if let Some(caps) = reg.captures(stream.trim()) {
                         let id = caps.get(1).unwrap().as_str();
-                        return Ok(PulledImage {
-                            image: Cow::Owned(id.to_string()),
-                            docker: Cow::Borrowed(&self.inner),
-                        });
+                        return Ok(PulledImage::new_cow(
+                            Cow::Owned(id.to_string()),
+                            Cow::Borrowed(&self.inner),
+                        ));
                     }
                 }
                 Ok(_) => {}
@@ -127,10 +129,7 @@ impl ContainerManager {
     }
 
     pub fn get_local_image<'a>(&'a self, image: &'a str) -> PulledImage<'a> {
-        PulledImage {
-            image: Cow::Borrowed(image),
-            docker: Cow::Borrowed(&self.inner),
-        }
+        PulledImage::new(image, &self.inner)
     }
 
     /// Pull an image with the given name
@@ -196,10 +195,7 @@ impl ContainerManager {
             fetching_stream.try_collect::<Vec<_>>().await?;
         }
 
-        Ok(PulledImage {
-            image: Cow::Borrowed(image),
-            docker: Cow::Borrowed(&self.inner),
-        })
+        Ok(PulledImage::new(image, &self.inner))
     }
 }
 
@@ -207,6 +203,25 @@ impl ContainerManager {
 pub struct PulledImage<'a> {
     pub image: Cow<'a, str>,
     docker: Cow<'a, bollard::Docker>,
+    image_inspect: Arc<OnceCell<ImageInspect>>,
+}
+
+impl<'a> PulledImage<'a> {
+    pub fn new(image: &'a str, docker: &'a bollard::Docker) -> Self {
+        Self {
+            image: Cow::Borrowed(image),
+            docker: Cow::Borrowed(docker),
+            image_inspect: Default::default(),
+        }
+    }
+
+    pub fn new_cow(image: Cow<'a, str>, docker: Cow<'a, bollard::Docker>) -> Self {
+        Self {
+            image,
+            docker,
+            image_inspect: Default::default(),
+        }
+    }
 }
 
 impl PulledImage<'_> {
@@ -214,11 +229,21 @@ impl PulledImage<'_> {
         PulledImage {
             image: Cow::Owned(self.image.into_owned()),
             docker: Cow::Owned(self.docker.into_owned()),
+            image_inspect: self.image_inspect,
         }
     }
 
-    pub async fn get_id(&self) -> Result<Option<String>, BollardError> {
-        self.docker.inspect_image(&self.image).await.map(|i| i.id)
+    pub async fn get_id(&self) -> Result<Option<&str>, BollardError> {
+        self.inspect().await.map(|i| i.id.as_deref())
+    }
+
+    pub async fn get_label(&self, label: impl AsRef<str>) -> Result<Option<&str>, BollardError> {
+        self.inspect().await.map(|i| {
+            i.config
+                .as_ref()
+                .and_then(|c| c.labels.as_ref())
+                .and_then(|l| l.get(label.as_ref()).map(|x| &**x))
+        })
     }
 
     /// Remove the image from the docker daemon
@@ -311,6 +336,12 @@ impl PulledImage<'_> {
             exposed_ports: None,
             env: HashMap::new(),
         }
+    }
+
+    async fn inspect(&self) -> Result<&ImageInspect, BollardError> {
+        self.image_inspect
+            .get_or_try_init(self.docker.inspect_image(&self.image))
+            .await
     }
 }
 
@@ -747,10 +778,7 @@ impl<'a> RunningContainer<'a> {
                 handle.abort();
             }
         }
-        let image = PulledImage {
-            image: self.image,
-            docker: self.docker,
-        };
+        let image = PulledImage::new_cow(self.image, self.docker);
         Ok(StoppedContainer { id: self.id, image })
     }
 
@@ -843,7 +871,7 @@ impl<'a> RunningContainer<'a> {
                     }
                 }
                 else => {
-                    let image = PulledImage { image: self.image, docker: self.docker };
+                    let image = PulledImage::new_cow(self.image, self.docker);
 
                     return Ok(StoppedContainer { id: self.id, image });
                 }

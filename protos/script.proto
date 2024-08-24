@@ -162,6 +162,7 @@ message DeployScriptRequest {
   required bool local = 2;
   // The peer can be empty if the script should be deployed to self
   optional Peer peer = 3;
+  required bool persistent = 4;
 }
 
 // A request to list running scripts on a peer
@@ -174,6 +175,7 @@ message ListRunningScriptsRequest {
 message RunningScript {
   required ID id = 1;
   required DockerImage image = 2;
+  optional string name = 3;
 }
 
 // A list of running scripts

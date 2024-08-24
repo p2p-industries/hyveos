@@ -14,6 +14,7 @@ use crate::{
 pub struct RunningScript {
     pub id: Ulid,
     pub image: Arc<str>,
+    pub name: Option<Arc<str>>,
 }
 
 impl From<RunningScript> for grpc::RunningScript {
@@ -23,6 +24,7 @@ impl From<RunningScript> for grpc::RunningScript {
             image: grpc::DockerImage {
                 name: script.image.to_string(),
             },
+            name: script.name.map(|name| name.to_string()),
         }
     }
 }
@@ -34,6 +36,7 @@ impl TryFrom<grpc::RunningScript> for RunningScript {
         Ok(Self {
             id: script.id.try_into()?,
             image: script.image.name.into(),
+            name: script.name.map(Into::into),
         })
     }
 }

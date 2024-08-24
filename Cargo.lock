@@ -262,15 +262,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-lazy"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8537ff82429d7272fa9b4368466c064825d6763cfbe4f72857642d7d0852b59"
-dependencies = [
- "tokio",
-]
-
-[[package]]
 name = "async-lock"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1097,6 +1088,7 @@ name = "docker"
 version = "0.1.0"
 dependencies = [
  "async-compression",
+ "async-once-cell",
  "bollard",
  "bytes",
  "futures",
@@ -3353,7 +3345,7 @@ dependencies = [
 name = "p2p-industries-sdk"
 version = "0.1.0"
 dependencies = [
- "async-lazy",
+ "async-once-cell",
  "derive-where",
  "futures",
  "hyper-util",
@@ -3850,6 +3842,15 @@ dependencies = [
  "ring 0.16.20",
  "time",
  "yasna",
+]
+
+[[package]]
+name = "redb"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6dd20d3cdeb9c7d2366a0b16b93b35b75aec15309fbeb7ce477138c9f68c8c0"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -4383,6 +4384,7 @@ dependencies = [
  "p2p-stack",
  "patricia_tree",
  "rand",
+ "redb",
  "rustyline",
  "serde",
  "smallvec",
@@ -4657,7 +4659,6 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
- "parking_lot",
  "pin-project-lite",
  "socket2",
  "tokio-macros",

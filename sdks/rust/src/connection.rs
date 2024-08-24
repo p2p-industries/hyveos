@@ -1,6 +1,6 @@
 use std::env;
 
-use async_lazy::Lazy;
+use async_once_cell::OnceCell;
 use hyper_util::rt::TokioIo;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
@@ -22,23 +22,7 @@ use crate::{
     },
 };
 
-static CONNECTION: Lazy<Result<P2PConnection>> = Lazy::const_new(|| {
-    Box::pin(async {
-        let channel = Endpoint::try_from("http://[::]:50051")?
-            .connect_with_connector(service_fn(|_: Uri| async {
-                let path = env::var("P2P_INDUSTRIES_BRIDGE_SOCKET")
-                    .map_err(|e| Error::EnvVarMissing("P2P_INDUSTRIES_BRIDGE_SOCKET", e))?;
-
-                UnixStream::connect(path)
-                    .await
-                    .map_err(Error::from)
-                    .map(TokioIo::new)
-            }))
-            .await?;
-
-        Ok(P2PConnection { channel })
-    })
-});
+static CONNECTION: OnceCell<P2PConnection> = OnceCell::new();
 
 /// A connection to the P2P Industries bridge.
 ///
@@ -83,8 +67,24 @@ impl P2PConnection {
     /// println!("My peer id: {peer_id}");
     /// # }
     /// ```
-    pub async fn get() -> Result<&'static P2PConnection, &'static Error> {
-        CONNECTION.force().await.as_ref()
+    pub async fn get() -> Result<&'static P2PConnection, Error> {
+        CONNECTION
+            .get_or_try_init(async {
+                let channel = Endpoint::try_from("http://[::]:50051")?
+                    .connect_with_connector(service_fn(|_: Uri| async {
+                        let path = env::var("P2P_INDUSTRIES_BRIDGE_SOCKET")
+                            .map_err(|e| Error::EnvVarMissing("P2P_INDUSTRIES_BRIDGE_SOCKET", e))?;
+
+                        UnixStream::connect(path)
+                            .await
+                            .map_err(Error::from)
+                            .map(TokioIo::new)
+                    }))
+                    .await?;
+
+                Ok(P2PConnection { channel })
+            })
+            .await
     }
 
     /// Returns a handle to the debug service.

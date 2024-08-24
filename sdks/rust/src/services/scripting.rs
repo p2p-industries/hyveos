@@ -39,6 +39,7 @@ pub struct Config {
     pub local: bool,
     pub target_peer_id: Option<PeerId>,
     pub exposed_ports: Option<Vec<u16>>,
+    pub persistent: bool,
 }
 
 impl Config {
@@ -71,6 +72,7 @@ impl Config {
             local: false,
             target_peer_id: None,
             exposed_ports: None,
+            persistent: false,
         }
     }
 
@@ -163,6 +165,32 @@ impl Config {
         self.exposed_ports.get_or_insert_with(Vec::new).push(port);
         self
     }
+
+    /// Sets the script to be persistent, meaning it will be restarted when the stack is restarted.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = P2PConnection::get().await.unwrap();
+    /// let mut scripting_service = connection.scripting();
+    ///
+    /// let config = ScriptingConfig::new("my-docker-image:latest")
+    ///    .local()
+    ///    .persistent();
+    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    ///
+    /// println!("Deployed script with id on self: {script_id}");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn persistent(mut self) -> Self {
+        self.persistent = true;
+        self
+    }
 }
 
 /// A handle to the scripting service.
@@ -241,6 +269,7 @@ impl Service {
             },
             local: config.local,
             peer: config.target_peer_id.map(Into::into),
+            persistent: config.persistent,
         };
 
         self.client

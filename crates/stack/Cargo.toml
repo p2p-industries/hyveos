@@ -45,6 +45,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 ulid = { workspace = true }
 toml = "0.8.13"
 smallvec = { version = "1.13.2", features = ["const_generics"] }
+redb = "2.1.1"
 
 [features]
 batman = ["bridge/batman", "p2p-stack/batman", "dep:ifwatcher", "dep:netdev"]

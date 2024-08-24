@@ -16,7 +16,7 @@ use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedCon
 use futures::{
     future::OptionFuture,
     stream::{FuturesUnordered, TryStreamExt as _},
-    FutureExt,
+    FutureExt as _,
 };
 use libp2p::PeerId;
 use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
@@ -30,7 +30,10 @@ use tokio::{
 };
 use ulid::Ulid;
 
-use crate::printer::SharedPrinter;
+use crate::{
+    db::{self, Client as DbClient},
+    printer::SharedPrinter,
+};
 
 const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
 
@@ -50,6 +53,7 @@ enum SelfCommand {
     DeployImage {
         image: PulledImage<'static>,
         ports: Vec<u16>,
+        persistent: bool,
         sender: oneshot::Sender<Result<Ulid, ExecutionError>>,
     },
     ListContainers {
@@ -68,6 +72,7 @@ enum SelfCommand {
 pub struct ScriptingManagerBuilder {
     command_broker: mpsc::Receiver<ActorToClient>,
     client: P2PClient,
+    db_client: DbClient,
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
@@ -79,6 +84,7 @@ impl ScriptingManagerBuilder {
     pub fn new(
         command_broker: mpsc::Receiver<ActorToClient>,
         client: P2PClient,
+        db_client: DbClient,
         base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         script_management: ScriptManagementConfig,
@@ -86,6 +92,7 @@ impl ScriptingManagerBuilder {
         Self {
             command_broker,
             client,
+            db_client,
             base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
@@ -103,6 +110,7 @@ impl ScriptingManagerBuilder {
         let Self {
             command_broker,
             client,
+            db_client,
             base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
@@ -126,6 +134,7 @@ impl ScriptingManagerBuilder {
                 container_manager: ContainerManager::new()
                     .expect("Failed to create container manager"),
                 client,
+                db_client,
                 base_path,
                 #[cfg(feature = "batman")]
                 debug_command_sender,
@@ -144,6 +153,7 @@ pub struct ScriptingManager {
     self_command_receiver: mpsc::Receiver<SelfCommand>,
     container_manager: ContainerManager,
     client: P2PClient,
+    db_client: DbClient,
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
@@ -184,9 +194,12 @@ impl ScriptingManager {
             ActorToClient::DeployImage {
                 root_fs,
                 compression,
-                request_id,
                 ports,
+                persistent,
+                request_id,
             } => {
+                let persisted_ports = persistent.then(|| ports.clone());
+
                 let handle = self
                     .execution_manager()
                     .exec_foreign(root_fs, compression, ports)
@@ -194,7 +207,7 @@ impl ScriptingManager {
 
                 let scripting = self.client.scripting().clone();
 
-                self.add_handle(handle, move |id| async move {
+                self.add_handle(handle, persisted_ports, move |id| async move {
                     scripting
                         .deployed_image(request_id, id.map_err(|e| e.to_string()))
                         .map(|_| ())
@@ -237,11 +250,14 @@ impl ScriptingManager {
             SelfCommand::DeployImage {
                 image,
                 ports,
+                persistent,
                 sender,
             } => {
+                let persisted_ports = persistent.then(|| ports.clone());
+
                 let handle = self.execution_manager().exec(image, ports).await;
 
-                self.add_handle(handle, move |id| async move {
+                self.add_handle(handle, persisted_ports, move |id| async move {
                     let _ = sender.send(id);
                 })
                 .await;
@@ -264,13 +280,27 @@ impl ScriptingManager {
     async fn add_handle<Fut: Future<Output = ()>>(
         &mut self,
         handle: Result<ContainerHandle, ExecutionError>,
+        persisted_ports: Option<Vec<u16>>,
         send: impl FnOnce(Result<Ulid, ExecutionError>) -> Fut,
     ) {
         let id = match handle {
             Ok(handle) => {
                 let id = handle.id;
+                let image_name = handle.image_name.clone();
                 self.container_handles.insert(id, handle);
-                Ok(id)
+
+                if let Some(ports) = persisted_ports {
+                    if let Err(e) = self
+                        .db_client
+                        .insert_startup_script(image_name.as_ref(), ports)
+                    {
+                        Err(e.into())
+                    } else {
+                        Ok(id)
+                    }
+                } else {
+                    Ok(id)
+                }
             }
             Err(e) => {
                 tracing::error!("Failed to deploy image: {e}");
@@ -287,6 +317,7 @@ impl ScriptingManager {
             .map(|(id, handle)| RunningScript {
                 id: *id,
                 image: handle.image_name.clone(),
+                name: handle.script_name.clone(),
             })
             .collect()
     }
@@ -299,6 +330,8 @@ impl ScriptingManager {
                         "Stopped container: {container_id} ({})",
                         container.image.image
                     );
+                    self.db_client
+                        .remove_startup_script(container.image.image)?;
                     Ok(())
                 }
                 Err(e) => {
@@ -361,11 +394,14 @@ pub enum ExecutionError {
     ListContainersError(String),
     #[error("Container stop error: `{0}`")]
     StopContainerError(String),
+    #[error("Error persisting script: `{0}`")]
+    Persistence(#[from] db::Error),
 }
 
 struct ContainerHandle {
     id: Ulid,
     image_name: Arc<str>,
+    script_name: Option<Arc<str>>,
     stop_sender: oneshot::Sender<bool>,
     handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
     bridge_handle: JoinHandle<Result<(), BridgeError>>,
@@ -468,6 +504,11 @@ impl<'a> ExecutionManager<'a> {
 
         let image_name = Arc::from(&*image.image);
 
+        let script_name = image
+            .get_label("industries.p2p.script.name")
+            .await?
+            .map(Into::into);
+
         let volumes = [
             (
                 shared_dir_path
@@ -538,6 +579,7 @@ impl<'a> ExecutionManager<'a> {
         Ok(ContainerHandle {
             id: ulid,
             image_name,
+            script_name,
             stop_sender,
             handle,
             bridge_handle,
@@ -616,18 +658,19 @@ impl bridge::ScriptingClient for ScriptingClient {
         peer_id: PeerId,
         verbose: bool,
         ports: impl IntoIterator<Item = u16> + Send,
+        persistent: bool,
     ) -> Result<Ulid, ExecutionError> {
         if peer_id == self.client.peer_id() {
-            return self.self_deploy_image(image, local, verbose, ports).await;
+            return self
+                .self_deploy_image(image, local, verbose, ports, persistent)
+                .await;
         }
 
         let pulled_image = self.get_image(image, local, verbose).await?;
         let image_id = pulled_image.get_id().await?;
 
         let cid = if let Some(cid) = OptionFuture::from(
-            image_id
-                .as_ref()
-                .map(|id| async { self.exported_images.lock().await.get(id).copied() }),
+            image_id.map(|id| async { self.exported_images.lock().await.get(id).copied() }),
         )
         .await
         .flatten()
@@ -642,7 +685,7 @@ impl bridge::ScriptingClient for ScriptingClient {
             file.sync_data().await?;
             let cid = self.client.file_transfer().import_new_file(&tmp).await?;
             if let Some(id) = image_id {
-                self.exported_images.lock().await.insert(id, cid);
+                self.exported_images.lock().await.insert(id.into(), cid);
             }
 
             cid
@@ -651,7 +694,7 @@ impl bridge::ScriptingClient for ScriptingClient {
         let remote_ulid = self
             .client
             .scripting()
-            .deploy_image(peer_id, cid, Compression::Zstd, ports)
+            .deploy_image(peer_id, cid, Compression::Zstd, ports, persistent)
             .await
             .map_err(ExecutionError::RemoteDeployError)?;
         Ok(remote_ulid)
@@ -663,12 +706,14 @@ impl bridge::ScriptingClient for ScriptingClient {
         local: bool,
         verbose: bool,
         ports: impl IntoIterator<Item = u16> + Send,
+        persistent: bool,
     ) -> Result<Ulid, ExecutionError> {
         let pulled_image = self.get_image(image, local, verbose).await?;
         let (sender, receiver) = oneshot::channel();
         let command = SelfCommand::DeployImage {
             image: pulled_image.into_owned(),
             ports: ports.into_iter().collect(),
+            persistent,
             sender,
         };
 
@@ -749,6 +794,7 @@ impl bridge::ScriptingClient for ForbiddenScriptingClient {
         _peer: PeerId,
         _verbose: bool,
         _ports: impl IntoIterator<Item = u16> + Send,
+        _persistent: bool,
     ) -> Result<Ulid, String> {
         Err("Scripting is not allowed".to_string())
     }
@@ -759,6 +805,7 @@ impl bridge::ScriptingClient for ForbiddenScriptingClient {
         _local: bool,
         _verbose: bool,
         _ports: impl IntoIterator<Item = u16> + Send,
+        _persistent: bool,
     ) -> Result<Ulid, String> {
         Err("Scripting is not allowed".to_string())
     }
