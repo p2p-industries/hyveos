@@ -30,7 +30,7 @@ libp2p = { workspace = true, features = [
 ] }
 libp2p-batman-adv = { workspace = true, optional = true }
 libp2p-stream = { workspace = true }
-libp2p-quic = { workspace = true, features = ["tokio"] }
+libp2p-quic = { version = "0.10.2", git = "ssh://git@github.com/p2p-industries/libp2p-quic.git", rev = "a977b79242091a338e7ccc411f5878b8c5fccce6", features = ["tokio"]}
 p2p-industries-core = { workspace = true, features = ["serde", "scripting"] }
 pin-project = { workspace = true }
 rand = { workspace = true }

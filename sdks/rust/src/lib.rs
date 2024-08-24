@@ -45,6 +45,8 @@
 //! }
 //! ```
 
+pub use libp2p_identity::PeerId;
+
 #[doc(inline)]
 pub use crate::{connection::P2PConnection, error::Error};
 

@@ -1,3 +1,5 @@
+pub use p2p_industries_core::{debug::MeshTopologyEvent, discovery::NeighbourEvent};
+
 #[cfg(feature = "cbor")]
 #[doc(inline)]
 pub use self::req_resp::CborService as CborReqRespService;

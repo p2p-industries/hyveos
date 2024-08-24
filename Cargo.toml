@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "crates/libp2p/batman-adv", "sdks/rust"]
+members = ["crates/*", "crates/libp2p/batman-adv", "endpoint/ws-graph", "sdks/rust"]
 exclude = ["crates/libp2p"]
 default-members = [
     "crates/batman-neighbours-daemon",
@@ -9,7 +9,7 @@ default-members = [
 resolver = "2"
 
 [workspace.package]
-rust-version = "1.77.0"
+rust-version = "1.80.0"
 publish = false
 
 [workspace.dependencies]
@@ -30,7 +30,6 @@ indicatif = { version = "0.17.8", features = ["tokio"] }
 libp2p = { version = "0.53.2", features = ["tokio"] }
 libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 libp2p-identity = { version = "0.2.9" }
-libp2p-quic = { version = "0.10.2", git = "ssh://git@github.com/p2p-industries/libp2p-quic.git", rev = "a977b79242091a338e7ccc411f5878b8c5fccce6" }
 libp2p-stream = { version = "0.1.0-alpha.1" }
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
 netlink-packet-core = { version = "0.7.0" }

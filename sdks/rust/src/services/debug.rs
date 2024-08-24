@@ -1,10 +1,8 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
+pub use p2p_industries_core::debug::MeshTopologyEvent;
 #[cfg(docsrs)]
 use p2p_industries_core::discovery::NeighbourEvent;
-use p2p_industries_core::{
-    debug::MeshTopologyEvent,
-    grpc::{debug_client::DebugClient, Empty},
-};
+use p2p_industries_core::grpc::{debug_client::DebugClient, Empty};
 use tonic::transport::Channel;
 
 use crate::{connection::P2PConnection, error::Result};
