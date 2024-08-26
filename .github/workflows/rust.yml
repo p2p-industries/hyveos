@@ -43,7 +43,10 @@ jobs:
 
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
-        run: sudo apt-get install gcc-aarch64-linux-gnu
+        uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
+        with:
+          packages: gcc-aarch64-linux-gnu
+          version: 1.0
 
       - uses: dtolnay/rust-toolchain@stable
         with:
