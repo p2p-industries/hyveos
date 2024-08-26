@@ -678,7 +678,8 @@ impl bridge::ScriptingClient for ScriptingClient {
             cid
         } else {
             let image_archive = pulled_image.export(Compression::Zstd).await?;
-            let tmp = temp_dir().join(image);
+            let escaped_image = image.replace('/', "_");
+            let tmp = temp_dir().join(escaped_image);
             let mut file = File::create(&tmp).await?;
             file.write_all(&image_archive).await?;
             file.flush().await?;
