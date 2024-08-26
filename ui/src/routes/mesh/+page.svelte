@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import MeshGraph from '$lib/components/MeshGraph.svelte';
   import type { Graph } from '$lib/types';
   import { onMount } from 'svelte';
@@ -29,7 +30,10 @@
   });
 
   onMount(() => {
-    const websocket = new WebSocket('ws://localhost:3000/ws');
+    const wsUrl = new URL($page.url.toString());
+    wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    wsUrl.pathname = '/ws';
+    const websocket = new WebSocket(wsUrl);
 
     websocket.addEventListener('open', () => {
       console.log('WebSocket connection established');

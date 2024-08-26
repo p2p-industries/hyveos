@@ -15,6 +15,9 @@ anyhow = { workspace = true }
 futures = { workspace = true}
 libp2p-identity = { workspace = true, optional = true, features = ["rand"] }
 rand = { workspace = true, optional = true }
+tower-http = { version = "0.5.2", features = ["compression-gzip", "compression-br", "decompression-gzip", "decompression-br"] }
+tower = "0.5.0"
 
 [features]
 faker = ["dep:rand", "dep:libp2p-identity", "tokio/time"]
+frontend = ["tower-http/fs"]
