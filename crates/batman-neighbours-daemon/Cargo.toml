@@ -30,6 +30,7 @@ netlink-packet-utils = "0.5.2"
 uzers = "0.12.0"
 
 [package.metadata.deb]
+name = "batman-neighbours-daemon"
 depends = "batctl"
 assets = [["target/release/batman-neighbours-daemon", "usr/bin/", "755"]]
 maintainer-scripts = "systemd/debian/"

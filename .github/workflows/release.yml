@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,6 +17,7 @@ jobs:
     name: Get latest release number
     runs-on: ubuntu-latest
     outputs:
+      old_version: ${{ steps.latest_number.outputs.old_version }}
       new_version: ${{ steps.increment_version.outputs.new_version }}
       number: ${{ steps.increment_version.outputs.number }}
     env:
@@ -22,11 +26,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Get latest release tag
-        id: latest-number
+        id: latest_number
         run: |
-          number=$(gh release list --json tagName --jq '[.[]?] | map(select(.tagName | test("^v[0-9]+-rolling$"))) | first | .tagName | capture("v(?<number>[0-9]+)-rolling").number')
+          number=$(gh release list --json tagName --jq '[.[].tagName | capture("^v(?<number>[0-9]+)-rolling$").number][0]')
           echo "Current number: $number"
           echo "number=$number" >> $GITHUB_ENV
+          echo "old_version=v${number}-rolling" >> $GITHUB_OUTPUT
 
       - name: Increment version number
         id: increment_version
@@ -43,10 +48,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       crates: ${{ steps.cargo-metadata.outputs.crates }}
-      targets: ${{ steps.cargo-metadata.outputs.targets }}
     steps:
       - uses: actions/checkout@v4
-      
+
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
+        with:
+          toolchain: stable
+
       - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
         with:
           ssh-private-key: |
@@ -55,21 +63,26 @@ jobs:
 
       - id: cargo-metadata
         run: |
-          DEBIAN_PACKAGES=$(cargo metadata --no-deps --format-version=1 | jq -c '.packages | map(select(.metadata.deb)) | map(.name)')
-          DEBIAN_TARGETS="['x86_64-unknown-linux-gnu','aarch64-unknown-linux-gnu']"
+          DEBIAN_PACKAGES=$(cargo metadata --no-deps --format-version=1 | jq -c '[.packages[] | select(.metadata.deb) | {name, version, deb_name: (.metadata.deb.name // .name)}]')
           echo "crates=$DEBIAN_PACKAGES" >> $GITHUB_OUTPUT
-          echo "targets=$DEBIAN_TARGETS" >> $GITHUB_OUTPUT
-
 
   build-debian:
-    name: Build debian packages
+    name: Build debian package ${{ matrix.crate.deb_name }} for ${{ matrix.target.arch }}
     runs-on: ubuntu-latest
-    needs: extract-debian-packages
+    needs:
+      - extract-debian-packages
+      - get-latest-release-number
+    env:
+      GH_TOKEN: ${{ github.token }}
     strategy:
       fail-fast: false
       matrix:
         crate: ${{ fromJSON(needs.extract-debian-packages.outputs.crates) }}
-        target: ${{ fromJSON(needs.extract-debian-packages.outputs.targets) }}
+        target:
+          - target: x86_64-unknown-linux-gnu
+            arch: amd64
+          - target: aarch64-unknown-linux-gnu
+            arch: arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -89,34 +102,50 @@ jobs:
           tool: cargo-deb
 
       - name: Install cross compile linker
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        if: ${{ matrix.target.arch == 'arm64' }}
         run: sudo apt-get install gcc-aarch64-linux-gnu
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.target.target }}
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        with:
+          key: ${{ matrix.crate.name }}--${{ matrix.target.target }}
+
+      - name: Calculate revision number
+        run: |
+          version_and_rev=$(gh release view --json assets --jq '.assets[].name | capture("^${{ matrix.crate.deb_name }}_(?<version>[0-9]+.[0-9]+.[0-9]+)-(?<rev>[0-9]+)_${{ matrix.target.arch }}.deb$") | {version, rev}' ${{ needs.get-latest-release-number.outputs.old_version }})
+          version=$(echo $version_and_rev | jq -r '.version')
+          rev=$(echo $version_and_rev | jq -r '.rev')
+          if [ "$version" == "${{ matrix.crate.version }}" ]; then
+            rev=$(( $rev + 1 ))
+          else
+            rev=1
+          fi
+          echo "Revision number: $rev"
+          echo "rev=$rev" >> $GITHUB_ENV
 
       - name: Build debian binary
-        if: ${{ matrix.target != 'aarch64-unknown-linux-gnu' }}
-        run: cargo deb -p ${{ matrix.crate }} --target ${{ matrix.target }}
+        if: ${{ matrix.target.arch != 'arm64' }}
+        run: cargo deb -p ${{ matrix.crate.name }} --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
 
       - name: Build Raspbian binary
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
-        run: cargo deb -p ${{ matrix.crate }} --variant raspbian --target ${{ matrix.target }}
+        if: ${{ matrix.target.arch == 'arm64' }}
+        run: cargo deb -p ${{ matrix.crate.name }} --variant raspbian --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
 
       - name: Upload artifacts
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.crate }}--${{ matrix.target }}.deb
-          path: target/${{ matrix.target }}/debian/*.deb
+          name: ${{ matrix.crate.name }}--${{ matrix.target.arch }}.deb
+          path: target/${{ matrix.target.target }}/debian/*.deb
 
   create-release:
     name: Create a release
     runs-on: ubuntu-latest
-    needs: 
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
+    needs:
       - get-latest-release-number
       - build-debian
     env:
@@ -125,23 +154,45 @@ jobs:
       contents: write
       attestations: read
     steps:
+      - name: Install APT packages
+        uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
+        with:
+          packages: apt-utils
+          version: 1.0
+
+      - name: Import GPG key
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
+        with:
+          gpg_private_key: ${{ secrets.APT_REPO_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.APT_REPO_GPG_PRIVATE_KEY_PW }}
+
       # For each combination of crate and target download the artifact
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: apt-repo
           pattern: "*--*.deb"
           merge-multiple: true
 
-      - name: List contents
-        run: ls -R ./artifacts/
+      - name: List packages
+        run: ls -R ./apt-repo/
+
+      - name: Create repository
+        run: |
+          cd apt-repo
+          dpkg-scanpackages -m . > Packages
+          gzip -k -f Packages
+          apt-ftparchive release . > Release
+          gpg --default-key ${{ steps.import-gpg.outputs.keyid }} -abs -o - Release > Release.gpg
+          gpg --default-key ${{ steps.import-gpg.outputs.keyid }} --clearsign -o - Release > InRelease
 
       - name: Create release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # 2.0.8
         with:
           tag_name: ${{ needs.get-latest-release-number.outputs.new_version }}
           make_latest: true
-          files: ./artifacts/*
-          title: Rolling release (${{ needs.get-latest-release-number.outputs.number }})
+          files: ./apt-repo/*
+          name: Rolling release (${{ needs.get-latest-release-number.outputs.number }})
           generate_release_notes: true
-
+          draft: ${{ github.event_name != 'push' }}
