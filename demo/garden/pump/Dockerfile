@@ -9,8 +9,8 @@ WORKDIR /app/demo/garden/pump
 
 
 RUN poetry remove p2pindustries
-RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry add /app/python/sdks/dist/*.whl
-RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry install --only main
+RUN poetry add /app/python/sdks/dist/*.whl
+RUN poetry install --only main
 
 COPY main.py /app/demo/garden/pump/main.py
 

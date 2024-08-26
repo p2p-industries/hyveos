@@ -24,18 +24,16 @@ WORKDIR /app/python/sdks
 
 COPY poetry.lock pyproject.toml ./
 
-ENV POETRY_CACHE_DIR=/opt/.cache/pypoetry
-RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry install --only main
+RUN poetry install --only main
 
 COPY p2pindustries ./p2pindustries
 
-RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry install --only main
-RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry build
+RUN poetry install --only main
+RUN poetry build
 
 FROM python:3.11-slim
 
 ENV POETRY_HOME=/opt/poetry
 ENV PATH="$POETRY_HOME/bin:$PATH"
-ENV POETRY_CACHE_DIR=/opt/.cache/pypoetry
 COPY --from=poetry-builder ${POETRY_HOME} ${POETRY_HOME}
 COPY --from=builder /app/python/sdks/dist/*.whl /app/python/sdks/dist/
