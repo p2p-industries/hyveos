@@ -1,18 +1,41 @@
 FROM python:3.11-slim AS poetry-builder
 
-ARG POETRY_HOME
-RUN pip install poetry
+ENV POETRY_HOME=/opt/poetry
+
+RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+    --mount=target=/var/cache/apt,type=cache,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get -y --no-install-recommends install \
+        curl
+
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
 FROM python:3.11-slim AS builder
 
+ENV POETRY_HOME=/opt/poetry
 COPY --from=poetry-builder ${POETRY_HOME} ${POETRY_HOME}
 
+ENV PATH="$POETRY_HOME/bin:$PATH"
+
+RUN echo $PATH
+
 WORKDIR /app/python/sdks
-COPY . .
-RUN poetry install --only main
-RUN poetry build
+
+COPY poetry.lock pyproject.toml ./
+
+ENV POETRY_CACHE_DIR=/opt/.cache/pypoetry
+RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry install --only main
+
+COPY p2pindustries ./p2pindustries
+
+RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry install --only main
+RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry build
 
 FROM python:3.11-slim
 
+ENV POETRY_HOME=/opt/poetry
+ENV PATH="$POETRY_HOME/bin:$PATH"
+ENV POETRY_CACHE_DIR=/opt/.cache/pypoetry
 COPY --from=poetry-builder ${POETRY_HOME} ${POETRY_HOME}
 COPY --from=builder /app/python/sdks/dist/*.whl /app/python/sdks/dist/

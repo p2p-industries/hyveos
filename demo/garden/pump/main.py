@@ -1,31 +1,47 @@
 import asyncio
 import os
-from asyncio import Queue
-from p2pindustries import DHTService, GossipSubService, P2PConnection, RequestResponseService
+from p2pindustries import P2PConnection
 from json import dumps, loads
-from gpiozero import Button, PWMOutputDevice
-from datetime import datetime, timedelta
+from gpiozero import PWMOutputDevice, OutputDevice
 from time import time
-from random import randint
 
 FLOW_METER_PIN = int(os.environ['FLOW_METER_PIN'])
-PUMP_PIN = int(os.environ['PUMP_PIN'])
+PWM_PIN = int(os.environ['PWM_PIN'])
+FWD_PIN = int(os.environ['FWD_PIN'])
+REV_PIN = int(os.environ['REV_PIN'])
+
+
 
 OUR_TIME_DELTA = (60 * 2)
 #OUR_TIME_DELTA = timedelta(hours=1).total_seconds()
 
+ASSUMED_FLOW_RATE = 100.0 / 60.0 # ml/s
 
 class Pump:
     device: PWMOutputDevice
+    fwd: OutputDevice
+    rev: OutputDevice
     running: bool = False
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
 
     def __init__(self) -> None:
-        self.device = PWMOutputDevice(PUMP_PIN)
+        self.device = PWMOutputDevice(PWM_PIN)
+        self.fwd = OutputDevice(FWD_PIN)
+        self.rev = OutputDevice(REV_PIN)
+
+    def __forward__(self):
+        self.fwd.on()
+        self.rev.off()
+
+    def __stop__(self):
+        self.fwd.off()
+        self.rev.off()
 
     async def __turn_up__(self):
+        self.__forward__()
         self.running = True
         start = time()
+        self.device.on()
         while time() - start < 1:
             since_start = time() - start
             self.device.value = since_start
@@ -38,6 +54,7 @@ class Pump:
             since_start = time() - start
             self.device.value = 1 - since_start
             await asyncio.sleep(0.01)
+        self.__stop__()
         self.device.off()
         self.running = False
 
@@ -91,30 +108,6 @@ async def discover_role_peer(dht, name):
             return provider.peer_id
 
 
-async def report_global_counter(conn: P2PConnection):
-    gos = conn.get_gossip_sub_service()
-    queue = Queue()
-
-    flow_meter = Button(FLOW_METER_PIN)
-
-    def on_click():
-        queue.put_nowait(1)
-
-    flow_meter.when_activated = on_click
-
-    flow_count = 0
-
-    prometheus_peer = await discover_role_peer(conn.get_dht_service(), 'prometheus')
-    reqres = conn.get_request_response_service()
-
-    while True:
-        _ = await queue.get()
-        flow_count += 1
-
-        if flow_count % 10 == 0:
-            amount = flow_count * 2.25
-            await reqres.send_request(prometheus_peer, dumps({'flow_meter': amount}), 'flow_meter')
-
 
 async def give_water(conn: P2PConnection, water_claims: WaterClaims, pump: Pump):
     req_resp = conn.get_request_response_service()
@@ -160,7 +153,6 @@ async def main():
 
         try:
             await asyncio.gather(
-                report_global_counter(conn),
                 monitor_water_claims(conn, water_claims),
                 give_water(conn, water_claims, pump)
             )

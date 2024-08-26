@@ -1,21 +1,24 @@
-FROM ghcr.io/p2p-industries/mvp-base-python:main
+ARG BRANCH=main
+
+FROM ghcr.io/p2p-industries/mvp-base-python:${BRANCH}
 
 COPY poetry.lock /app/demo/garden/pump/poetry.lock
 COPY pyproject.toml /app/demo/garden/pump/pyproject.toml
 
 WORKDIR /app/demo/garden/pump
 
-# RUN apt install --yes build-essentials
 
 RUN poetry remove p2pindustries
-RUN poetry add /app/python/sdks/dist/*.whl
-RUN poetry install --only main
+RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry add /app/python/sdks/dist/*.whl
+RUN --mount=type=cache,target=/opt/.cache/pypoetry poetry install --only main
 
 COPY main.py /app/demo/garden/pump/main.py
 
 ENV PYTHONUNBUFFERED=1
 
 ENV FLOW_METER_PIN=22
-ENV PUMP_PIN=13
+ENV PWM_PIN=18
+ENV FWD_PIN=23
+ENV REV_PIN=24
 
 CMD ["poetry", "run", "python", "main.py"]
