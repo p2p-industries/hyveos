@@ -9,14 +9,18 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.11"
 p2pindustries = {path = "../../../sdks/python"}
-gpiozero = "^2.0.1"
 grpcio = "^1.64.0"
 protobuf = "^5.27.0"
-adafruit-blinka = "^8.39.2"
-adafruit-circuitpython-ahtx0 = "^1.0.21"
-adafruit-circuitpython-bh1750 = "^1.1.10"
-rpi-gpio = "^0.7.1"
-
+pillow = "^10.4.0"
+ltr559 = "^1.0.0"
+st7735 = "^1.0.0"
+fonts = "^0.0.3"
+font-roboto = "^0.0.1"
+gpiod = "^2.2.1"
+gpiodevice = "^0.0.5"
+gpiozero = "^2.0.1"
+lgpio = "^0.2.2.0"
+setuptools = "^73.0.1"
 
 [build-system]
 requires = ["poetry-core"]

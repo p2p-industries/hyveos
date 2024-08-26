@@ -1,3 +1,5 @@
 target/
 .vscode/
 .zed/
+
+__pycache__/

@@ -12,10 +12,14 @@ RUN poetry remove p2pindustries
 RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --only main
 
-COPY plant.py /app/demo/garden/plant/plant.py
+COPY plant /app/demo/garden/plant/plant
 
 ENV PYTHONUNBUFFERED=1
 
-ENV VALVE_PIN=6
+LABEL industries.p2p.script.name=plant1
 
-CMD ["poetry", "run", "python", "plant.py"]
+ENV PLANT_1=1
+ENV PLANT_2=1
+ENV PLANT_3=1
+
+CMD ["poetry", "run", "python", "-m", "plant.plant"]
