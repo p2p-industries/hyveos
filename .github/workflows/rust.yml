@@ -55,6 +55,7 @@ jobs:
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           key: ${{ matrix.crate }}--${{ matrix.target }}
+          cache-provider: buildjet
 
       - name: Run complete check
         run: cargo check --package "$CRATE" --all-features --target "$TARGET" --tests

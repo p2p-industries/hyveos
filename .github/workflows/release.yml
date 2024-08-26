@@ -111,7 +111,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
-          key: ${{ matrix.crate.name }}--${{ matrix.target.target }}--deb
+          key: ${{ matrix.target.target }}--${{ matrix.crate.name }}
 
       - name: Calculate revision number
         run: |
