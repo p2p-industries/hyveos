@@ -9,7 +9,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.11"
 p2pindustries = {path = "../../../sdks/python"}
-grpcio = "^1.64.0"
+grpcio = "^1.65.5"
 protobuf = "^5.27.0"
 pillow = "^10.4.0"
 ltr559 = "^1.0.0"

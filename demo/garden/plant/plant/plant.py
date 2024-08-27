@@ -17,7 +17,7 @@ lock = asyncio.Lock()
 
 
 class Plant:
-    def __init__(self, channel: int = 1, wet_point = None, dry_point = None):
+    def __init__(self, channel: int = 1, wet_point=None, dry_point=None):
         self.channel = channel
         self.moisture_sensor = MoistureSensor(channel, wet_point, dry_point)
         self.valve_controller = ValveController(self.moisture_sensor, channel)
@@ -38,17 +38,19 @@ async def manage_watering_request(gossip, peer_id, plants: list[Plant]):
                 if (pending_watering_request == None) and (
                     plant.moisture_sensor.is_dry
                 ):
-                    print(f"Moisture level {plant.moisture_sensor.moisture} below threshold")
-                    print(f"Sending watering request")
+                    print(
+                        f'Moisture level {plant.moisture_sensor.moisture} below threshold'
+                    )
+                    print(f'Sending watering request')
                     await gossip.publish(
                         json.dumps(
                             {
-                                "peer_id": peer_id,
-                                "watering_request": True,
-                                "claim": 0,
+                                'peer_id': peer_id,
+                                'watering_request': True,
+                                'claim': 0,
                             }
                         ),
-                        "watering_request",
+                        'watering_request',
                     )
 
                     pending_watering_request = plant.channel
@@ -59,9 +61,9 @@ async def manage_watering_request(gossip, peer_id, plants: list[Plant]):
 async def manage_valve(reqres, plants: list[Plant], peer_id):
     global pending_watering_request
 
-    async with reqres.receive("water") as requests:
+    async with reqres.receive('water') as requests:
         async for request in requests:
-            if json.loads(request.msg.data)["water_ready"]:
+            if json.loads(request.msg.data)['water_ready']:
                 async with lock:
                     if pending_watering_request != None:
                         plant = plants[pending_watering_request - 1]
@@ -69,12 +71,12 @@ async def manage_valve(reqres, plants: list[Plant], peer_id):
                             await plant.valve_controller.open_until_satisfied()
                             await reqres.respond(
                                 request.seq,
-                                json.dumps({"peer_id": peer_id, "done": True}),
+                                json.dumps({'peer_id': peer_id, 'done': True}),
                             )
-                            pending_watering_request = False
+                            pending_watering_request = None
                     else:
                         await reqres.send_response(
-                            request.seq, "", f"Peer {peer_id} did not request water"
+                            request.seq, '', f'Peer {peer_id} did not request water'
                         )
 
 
@@ -91,7 +93,7 @@ async def control_display(light, peer_id: str, plants: list[Plant]):
     )
     display.begin()
 
-    image = Image.new("RGBA", (display.width, display.height), color=(0, 0, 0))
+    image = Image.new('RGBA', (display.width, display.height), color=(0, 0, 0))
     draw = ImageDraw.Draw(image)
 
     font = ImageFont.truetype(Roboto, 20)
@@ -101,10 +103,15 @@ async def control_display(light, peer_id: str, plants: list[Plant]):
         for idx, plant in enumerate(plants):
             moisture = plant.moisture_sensor
             draw.rectangle((0, 0, display.width, display.height), (0, 0, 0))
-            draw.text((2, 2), f"Node: plant {idx + 1}", font=font, fill=(255, 255, 255))
-            draw.text((2, 26), f"Lux: {light.get_lux()}", font=font, fill=(255, 255, 64))
+            draw.text((2, 2), f'Node: plant {idx + 1}', font=font, fill=(255, 255, 255))
             draw.text(
-                (2, 50), f"Moisture: {moisture.moisture}", font=font, fill=(128, 128, 255)
+                (2, 26), f'Lux: {light.get_lux()}', font=font, fill=(255, 255, 64)
+            )
+            draw.text(
+                (2, 50),
+                f'Moisture: {moisture.moisture}',
+                font=font,
+                fill=(128, 128, 255),
             )
             draw.text(
                 (2, 74),
@@ -119,22 +126,22 @@ async def control_display(light, peer_id: str, plants: list[Plant]):
 
 
 async def discover_role_peer(dht, name):
-    async with dht.get_providers("identification", name) as providers:
+    async with dht.get_providers('identification', name) as providers:
         async for provider in providers:
             return provider.peer_id
 
 
 async def register_plant(dht):
-    await dht.provide("identification", "plant")
+    await dht.provide('identification', 'plant')
 
 
 async def main():
     plants: list[Plant] = []
-    if os.environ.get("PLANT_1"):
+    if os.environ.get('PLANT_1'):
         plants.append(Plant(1))
-    if os.environ.get("PLANT_2"):
+    if os.environ.get('PLANT_2'):
         plants.append(Plant(2))
-    if os.environ.get("PLANT_3"):
+    if os.environ.get('PLANT_3'):
         plants.append(Plant(3))
 
     light = ltr559.LTR559()
@@ -146,7 +153,7 @@ async def main():
         dht = connection.get_dht_service()
 
         my_peer_id = await discovery.get_own_id()
-        prometheus_peer = await discover_role_peer(dht, "prometheus")
+        prometheus_peer = await discover_role_peer(dht, 'prometheus')
         await register_plant(dht)
 
         await asyncio.gather(
@@ -154,16 +161,25 @@ async def main():
                 write_to_prometheus(
                     reqres,
                     prometheus_peer,
-                    "lux",
-                    lambda: json.dumps({"peer_id": my_peer_id, "lux": light.get_lux()}),
+                    'lux',
+                    lambda: json.dumps({'peer_id': my_peer_id, 'lux': light.get_lux()}),
                 )
             ),
             asyncio.create_task(
                 write_to_prometheus(
                     reqres,
                     prometheus_peer,
-                    "soil_moisture",
-                    lambda: json.dumps([{"peer_id": my_peer_id, "soil_moisture": plant.moisture_sensor.moisture, "channel": i + 1 } for i, plant in enumerate(plants)])
+                    'soil_moisture',
+                    lambda: json.dumps(
+                        [
+                            {
+                                'peer_id': my_peer_id,
+                                'soil_moisture': plant.moisture_sensor.moisture,
+                                'channel': i + 1,
+                            }
+                            for i, plant in enumerate(plants)
+                        ]
+                    ),
                 )
             ),
             asyncio.create_task(
@@ -173,5 +189,5 @@ async def main():
         )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())

@@ -5,17 +5,19 @@ from json import dumps, loads
 from gpiozero import PWMOutputDevice, OutputDevice
 from time import time
 
+from p2pindustries.protocol.script_pb2 import GossipSubRecvMessage
+
 FLOW_METER_PIN = int(os.environ['FLOW_METER_PIN'])
 PWM_PIN = int(os.environ['PWM_PIN'])
 FWD_PIN = int(os.environ['FWD_PIN'])
 REV_PIN = int(os.environ['REV_PIN'])
 
 
+OUR_TIME_DELTA = 60 * 2
+# OUR_TIME_DELTA = timedelta(hours=1).total_seconds()
 
-OUR_TIME_DELTA = (60 * 2)
-#OUR_TIME_DELTA = timedelta(hours=1).total_seconds()
+ASSUMED_FLOW_RATE = 100.0 / 60.0  # ml/s
 
-ASSUMED_FLOW_RATE = 100.0 / 60.0 # ml/s
 
 class Pump:
     device: PWMOutputDevice
@@ -84,11 +86,11 @@ class WaterClaims:
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
     event: asyncio.Event = asyncio.Event()
 
-    def add_claim(self, msg):
-        if msg.peer_id in self.claims:
-            self.claims[msg.peer_id] += loads(msg.msg.data)['claim']
+    def add_claim(self, msg: GossipSubRecvMessage):
+        if msg.source.peer_id in self.claims:
+            self.claims[msg.source.peer_id] += loads(msg.msg.data)['claim']
         else:
-            self.claims[msg.peer_id] = loads(msg.msg.data)['claim']
+            self.claims[msg.source.peer_id] = loads(msg.msg.data)['claim']
 
         self.event.set()
 
@@ -103,10 +105,9 @@ class WaterClaims:
 
 
 async def discover_role_peer(dht, name):
-    async with dht.get_providers("identification", name) as providers:
+    async with dht.get_providers('identification', name) as providers:
         async for provider in providers:
             return provider.peer_id
-
 
 
 async def give_water(conn: P2PConnection, water_claims: WaterClaims, pump: Pump):
@@ -117,9 +118,11 @@ async def give_water(conn: P2PConnection, water_claims: WaterClaims, pump: Pump)
                 for peer in water_claims.claims.keys():
                     water_ready = dumps({'water_ready': True})
                     try:
-                        print("Starting pump")
+                        print('Starting pump')
                         await pump.start()
-                        response = await req_resp.send_request(peer, water_ready, 'water')
+                        response = await req_resp.send_request(
+                            peer, water_ready, 'water'
+                        )
                         pump.reduce()
                         if len(response.error) > 0:
                             raise Exception(f'{peer}: {response.error}')
@@ -142,7 +145,7 @@ async def monitor_water_claims(conn: P2PConnection, water_claims: WaterClaims):
     async with await gos.subscribe('watering_request') as messages:
         async for msg in messages:
             async with water_claims:
-                print(f"Received water claim from {msg.peer_id}")
+                print(f'Received water claim from {msg.source}')
                 water_claims.add_claim(msg)
 
 
@@ -154,10 +157,11 @@ async def main():
         try:
             await asyncio.gather(
                 monitor_water_claims(conn, water_claims),
-                give_water(conn, water_claims, pump)
+                give_water(conn, water_claims, pump),
             )
         except Exception as e:
             print(f'Error: {e}')
+
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -2,19 +2,19 @@ name: Docker Base image
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: ["main"]
     paths:
       - "sdks/python/**/*"
       - "**.proto"
       - "demo/garden/**"
-      - '.github/workflows/docker-py.yml'
+      - ".github/workflows/docker-py.yml"
   pull_request:
-    branches: [ 'main' ]
+    branches: ["main"]
     paths:
       - "sdks/python/**/*"
       - "**.proto"
       - "demo/garden/**"
-      - '.github/workflows/docker-py.yml'
+      - ".github/workflows/docker-py.yml"
 
 env:
   REGISTRY: ghcr.io
@@ -43,7 +43,7 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -68,7 +68,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
-          platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/aarch64' || 'linux/amd64,linux/aarch64' }}
+          platforms: linux/amd64,linux/aarch64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -108,7 +108,7 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -133,11 +133,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
-          platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/aarch64' || 'linux/amd64' }}
+          platforms: linux/amd64,linux/aarch64
           build-args: BRANCH=${{ github.event_name == 'pull_request' && env.PR_NAME || 'main' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1

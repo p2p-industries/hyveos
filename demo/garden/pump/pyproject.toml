@@ -10,7 +10,7 @@ package-mode = false
 python = "^3.11"
 p2pindustries = { path = "../../../sdks/python" }
 gpiozero = "^2.0.1"
-grpcio = "^1.64.0"
+grpcio = "^1.65.5"
 protobuf = "^5.27.0"
 lgpio = "^0.2.2.0"
 

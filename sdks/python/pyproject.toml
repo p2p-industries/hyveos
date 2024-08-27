@@ -11,11 +11,11 @@ authors = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-grpcio = "^1.64.0"
+grpcio = "^1.66.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.5"
-grpcio-tools = "^1.64.0"
+grpcio-tools = "^1.66.0"
 
 [tool.ruff]
 exclude = ['protocol']
