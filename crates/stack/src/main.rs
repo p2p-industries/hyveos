@@ -29,6 +29,7 @@ use crate::{
 
 mod command_line;
 mod db;
+mod future_map;
 mod printer;
 mod scripting;
 

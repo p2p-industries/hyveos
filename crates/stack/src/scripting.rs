@@ -4,7 +4,9 @@ use std::{
     future::Future,
     net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6},
     path::PathBuf,
+    pin::Pin,
     sync::Arc,
+    task::{Context, Poll},
 };
 
 #[cfg(feature = "batman")]
@@ -14,8 +16,8 @@ use bytes::Bytes;
 use clap::ValueEnum;
 use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
-    future::OptionFuture,
-    stream::{FuturesUnordered, TryStreamExt as _},
+    future::{try_maybe_done, OptionFuture, TryMaybeDone},
+    stream::{FuturesUnordered, StreamExt as _, TryStreamExt as _},
     FutureExt as _,
 };
 use libp2p::PeerId;
@@ -32,6 +34,7 @@ use ulid::Ulid;
 
 use crate::{
     db::{self, Client as DbClient},
+    future_map::FutureMap,
     printer::SharedPrinter,
 };
 
@@ -140,7 +143,7 @@ impl ScriptingManagerBuilder {
                 debug_command_sender,
                 scripting_client,
                 shared_printer,
-                container_handles: HashMap::new(),
+                container_handles: FutureMap::new(),
             }
         };
 
@@ -159,7 +162,7 @@ pub struct ScriptingManager {
     debug_command_sender: DebugCommandSender,
     scripting_client: Option<ScriptingClient>,
     shared_printer: Option<SharedPrinter>,
-    container_handles: HashMap<Ulid, ContainerHandle>,
+    container_handles: FutureMap<Ulid, ContainerHandle>,
 }
 
 impl ScriptingManager {
@@ -184,6 +187,19 @@ impl ScriptingManager {
                 Some(command) = self.self_command_receiver.recv() => {
                     self.handle_self_command(command).await;
                 },
+                Some((_, res)) = self.container_handles.next() => {
+                    match res {
+                        Ok((id, container)) => {
+                            tracing::info!(
+                                "Container exited: {id} ({})",
+                                container.image.image
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!("Container exited with error: {e}");
+                        }
+                    }
+                }
                 else => { break }
             }
         }
@@ -347,8 +363,8 @@ impl ScriptingManager {
     async fn stop_all_containers(&mut self, kill: bool) -> Result<(), ExecutionError> {
         let containers = self
             .container_handles
-            .drain()
-            .map(|(_, handle)| handle.stop(kill))
+            .take_futures()
+            .map(|handle| handle.stop(kill))
             .collect::<FuturesUnordered<_>>()
             .try_collect::<Vec<_>>()
             .await;
@@ -398,22 +414,75 @@ pub enum ExecutionError {
     Persistence(#[from] db::Error),
 }
 
+#[pin_project::pin_project]
 struct ContainerHandle {
     id: Ulid,
     image_name: Arc<str>,
     script_name: Option<Arc<str>>,
     stop_sender: oneshot::Sender<bool>,
-    handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
-    bridge_handle: JoinHandle<Result<(), BridgeError>>,
+    #[pin]
+    handle: TryMaybeDone<JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>>,
+    #[pin]
+    bridge_handle: TryMaybeDone<JoinHandle<Result<(), BridgeError>>>,
 }
 
 impl ContainerHandle {
-    async fn stop(self, kill: bool) -> Result<(Ulid, StoppedContainer<'static>), ExecutionError> {
+    fn new(
+        id: Ulid,
+        image_name: Arc<str>,
+        script_name: Option<Arc<str>>,
+        stop_sender: oneshot::Sender<bool>,
+        handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
+        bridge_handle: JoinHandle<Result<(), BridgeError>>,
+    ) -> Self {
+        Self {
+            id,
+            image_name,
+            script_name,
+            stop_sender,
+            handle: try_maybe_done(handle),
+            bridge_handle: try_maybe_done(bridge_handle),
+        }
+    }
+
+    async fn stop(
+        mut self,
+        kill: bool,
+    ) -> Result<(Ulid, StoppedContainer<'static>), ExecutionError> {
         let _ = self.stop_sender.send(kill);
-        match tokio::try_join!(self.handle, self.bridge_handle)? {
+        tokio::try_join!(&mut self.handle, &mut self.bridge_handle)?;
+        match (
+            Pin::new(&mut self.handle).take_output().unwrap(),
+            Pin::new(&mut self.bridge_handle).take_output().unwrap(),
+        ) {
             (Ok(container), Ok(())) => Ok((self.id, container)),
             (Err(e), _) => Err(e),
             (_, Err(e)) => Err(e.into()),
+        }
+    }
+}
+
+impl Future for ContainerHandle {
+    type Output = Result<(Ulid, StoppedContainer<'static>), ExecutionError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let id = self.id;
+        let mut this = self.project();
+        if this.handle.as_mut().poll(cx)?.is_ready()
+            && this.bridge_handle.as_mut().poll(cx)?.is_ready()
+        {
+            Poll::Ready(
+                match (
+                    this.handle.take_output().unwrap(),
+                    this.bridge_handle.take_output().unwrap(),
+                ) {
+                    (Ok(container), Ok(())) => Ok((id, container)),
+                    (Err(e), _) => Err(e),
+                    (_, Err(e)) => Err(e.into()),
+                },
+            )
+        } else {
+            Poll::Pending
         }
     }
 }
@@ -576,14 +645,14 @@ impl<'a> ExecutionManager<'a> {
             res.map_err(Into::into)
         });
 
-        Ok(ContainerHandle {
-            id: ulid,
+        Ok(ContainerHandle::new(
+            ulid,
             image_name,
             script_name,
             stop_sender,
             handle,
             bridge_handle,
-        })
+        ))
     }
 }
 
