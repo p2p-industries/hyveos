@@ -2,17 +2,16 @@ ARG BRANCH=main
 
 FROM ghcr.io/p2p-industries/mvp-base-python:${BRANCH}
 
-COPY poetry.lock /app/demo/garden/pump/poetry.lock
-COPY pyproject.toml /app/demo/garden/pump/pyproject.toml
-
 WORKDIR /app/demo/garden/pump
 
+COPY poetry.lock poetry.lock
+COPY pyproject.toml pyproject.toml
 
 RUN poetry remove p2pindustries
 RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --only main
 
-COPY main.py /app/demo/garden/pump/main.py
+COPY main.py main.py
 
 ENV PYTHONUNBUFFERED=1
 

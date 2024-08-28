@@ -8,8 +8,10 @@ MOISTURE_2_PIN = 8
 MOISTURE_3_PIN = 25
 
 
-MOISTURE_THRESHOLDS = [float(os.environ.get(f'MOISTURE_THRESHOLD_{i}', "10.0")) for i in range(1, 4)]
-    
+MOISTURE_THRESHOLDS = [
+    float(os.environ.get(f"MOISTURE_THRESHOLD_{i}", "10.0")) for i in range(1, 4)
+]
+
 
 class MoistureSensor(object):
     """Grow moisture sensor driver."""
@@ -38,7 +40,7 @@ class MoistureSensor(object):
         ][channel - 1]
 
         self._input = DigitalInputDevice(self._gpio_pin, bounce_time=1 / 1000.0)
-        
+
         self._threshold = MOISTURE_THRESHOLDS[channel - 1]
 
         self._count = 0
@@ -119,7 +121,7 @@ class MoistureSensor(object):
         self._new_data = False
         return self._reading
 
-    @property 
+    @property
     def is_dry(self):
         return self.moisture > self._threshold
 

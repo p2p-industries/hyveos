@@ -2,9 +2,9 @@ name: Docker image
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: ["main"]
   pull_request:
-    branches: [ 'main' ]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
@@ -38,6 +38,10 @@ jobs:
             image: ws-graph-faker
             arg:
               - EXTRA_FEATURES=faker
+          - name: Data collector
+            context: .
+            file: endpoint/data-collector/Dockerfile
+            image: data-collector
     env:
       IMAGE_NAME: ${{ github.repository }}-${{ matrix.image }}
 
@@ -45,9 +49,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Cache Docker images
+        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
+        with:
+          key: docker-frontend-${{ matrix.image }}-image
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -73,9 +82,8 @@ jobs:
           file: ${{ matrix.file }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          # labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: ${{ github.ref == 'refs/heads/main' && 'linux/amd64,linux/aarch64' || 'linux/amd64,linux/aarch64' }}
+          labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
+          platforms: linux/amd64,linux/aarch64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

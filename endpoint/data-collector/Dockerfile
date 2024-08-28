@@ -14,17 +14,17 @@ COPY crates/ifwatcher /app/build/crates/ifwatcher
 COPY crates/batman-neighbours-core /app/build/crates/batman-neighbours-core
 COPY crates/batman-neighbours-daemon /app/build/crates/batman-neighbours-daemon
 COPY crates/libp2p/batman-adv /app/build/crates/libp2p/batman-adv
-COPY endpoint/data-collector /app/build/endpoint/data-collector
+COPY endpoint/ws-graph /app/build/endpoint/ws-graph
 COPY protos /app/build/protos
 
 COPY sdks/rust /app/build/sdks/rust
 
 WORKDIR /app/build
-RUN cargo init --bin --name ws-graph /app/build/endpoint/ws-graph
-COPY endpoint/ws-graph/Cargo.toml /app/build/endpoint/ws-graph/Cargo.toml
+RUN cargo init --bin --name data-collector /app/build/endpoint/data-collector
+COPY endpoint/data-collector/Cargo.toml /app/build/endpoint/data-collector/Cargo.toml
 
 
-WORKDIR /app/build/endpoint/ws-graph
+WORKDIR /app/build/endpoint/data-collector
 RUN --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
     --mount=type=cache,target=/root/.cargo/registry/index \
@@ -35,69 +35,51 @@ ARG TARGETPLATFORM
 
 ARG EXTRA_FEATURES
 
-WORKDIR /app/build/endpoint/ws-graph
+WORKDIR /app/build/endpoint/data-collector
 
 RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
     --mount=type=cache,target=/root/.cargo/registry/index \
-    xx-cargo build -r -p ws-graph -F frontend,${EXTRA_FEATURES} --target-dir /app/build/target && \
-    xx-verify /app/build/target/$(xx-cargo --print-target-triple)/release/ws-graph
+    xx-cargo build -r -p data-collector --target-dir /app/build/target && \
+    xx-verify /app/build/target/$(xx-cargo --print-target-triple)/release/data-collector
 
 
-COPY endpoint/ws-graph/src /app/build/endpoint/ws-graph/src
+COPY endpoint/data-collector/src /app/build/endpoint/data-collector/src
 
-RUN touch /app/build/endpoint/ws-graph/src/*
+RUN touch /app/build/endpoint/data-collector/src/*
 
-WORKDIR /app/build/endpoint/ws-graph
+WORKDIR /app/build/endpoint/data-collector
 RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
     --mount=type=cache,target=/root/.cargo/registry/index \
-    xx-cargo build -r -p ws-graph -F frontend,${EXTRA_FEATURES} --target-dir /app/build/target && \
-    xx-verify /app/build/target/$(xx-cargo --print-target-triple)/release/ws-graph
+    xx-cargo build -r -p data-collector --target-dir /app/build/target && \
+    xx-verify /app/build/target/$(xx-cargo --print-target-triple)/release/data-collector
 RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
     --mount=type=cache,target=/root/.cargo/registry/index \
-    cp /app/build/target/$(xx-cargo --print-target-triple)/release/ws-graph /app/build/ws-graph
+    cp /app/build/target/$(xx-cargo --print-target-triple)/release/data-collector /app/build/data-collector
 
-FROM --platform=$BUILDPLATFORM node:20-slim AS ui-builder
-
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-COPY ui /app
-WORKDIR /app
-
-FROM ui-builder AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --forzen-lockfile
-
-FROM ui-builder AS ui-build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
 
 FROM alpine:latest
 
-COPY --from=builder /app/build/ws-graph /app/ws-graph
-COPY --from=ui-build /app/build /app/ui
-
-ENV FRONTEND_PATH="/app/ui"
+COPY --from=builder /app/build/data-collector /app/data-collector
 
 ARG EXTRA_FEATURES
 
-LABEL org.opencontainers.image.ref.name="ws-graph (${EXTRA_FEATURES:-default})"
-LABEL org.opencontainers.image.title="ws-graph-${EXTRA_FEATURES:-default}"
-LABEL org.opencontainers.image.description="Backend component to UI framework for graphing batman-adv network topology"
+LABEL org.opencontainers.image.ref.name="data-collector"
+LABEL org.opencontainers.image.title="data-collector"
+LABEL org.opencontainers.image.description="Backend component to gather data from gossipsub and put it into prometheus"
 LABEL org.opencontainers.image.base.name="rust:1.80-alpine"
-LABEL industries.p2p.script.name="ws-graph"
+LABEL industries.p2p.script.name="data-collector"
 
-ENV PORT=3000
+ENV PORT=8080
 
-EXPOSE 3000
+EXPOSE 8080
 
-CMD ["/app/ws-graph"]
+CMD ["/app/data-collector"]

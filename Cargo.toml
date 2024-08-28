@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "crates/libp2p/batman-adv", "endpoint/ws-graph", "sdks/rust"]
+members = ["crates/*", "crates/libp2p/batman-adv", "endpoint/data-collector", "endpoint/ws-graph", "sdks/rust"]
 exclude = ["crates/libp2p"]
 default-members = [
     "crates/batman-neighbours-daemon",
@@ -18,7 +18,6 @@ async-once-cell = { version = "0.5.3" }
 anyhow = { version = "1.0.82" }
 base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
-batman-neighbours-daemon = { version = "0.1.0", path = "crates/batman-neighbours-daemon" }
 bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
 clap = { version = "4.5.4", features = ["derive"] }
@@ -44,7 +43,6 @@ regex = { version = "1.10.4", default-features = false, features = [
     "std",
 ] }
 serde = { version = "1.0.203", features = ["derive", "rc"] }
-stack = { version = "0.1.0", path = "crates/stack" }
 thiserror = { version = "1" }
 tarpc = { version = "0.34.0" }
 tokio = { version = "1.38" }
