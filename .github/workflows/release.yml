@@ -189,7 +189,14 @@ jobs:
           cd apt-repo
           dpkg-scanpackages -m . > Packages
           gzip -k -f Packages
-          apt-ftparchive release . > Release
+          touch Release
+          echo "Origin: P2P Industries Repository" >> Release
+          echo "Label: unstable"  >> Release
+          echo "Suite: unstable" >> Release
+          echo "Codename: unstable" >> Release
+          echo "Architectures: amd64 arm64" >> Release
+          echo "components: main" >> Release
+          apt-ftparchive release . >> Release
           gpg --default-key ${{ steps.import-gpg.outputs.keyid }} -abs -o - Release > Release.gpg
           gpg --default-key ${{ steps.import-gpg.outputs.keyid }} --clearsign -o - Release > InRelease
 
