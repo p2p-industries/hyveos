@@ -9,7 +9,7 @@ COPY pyproject.toml pyproject.toml
 
 RUN poetry remove p2pindustries
 RUN poetry add /app/python/sdks/dist/*.whl
-RUN poetry install --only main
+RUN poetry install --without dev --no-root
 
 COPY main.py main.py
 

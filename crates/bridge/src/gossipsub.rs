@@ -62,7 +62,7 @@ impl GossipSub for GossipSubServer {
         self.client
             .gossipsub()
             .get_topic(IdentTopic::new(format!("script/{topic}")))
-            .publish(data)
+            .publish(data.into())
             .await
             .map(Into::into)
             .map(TonicResponse::new)

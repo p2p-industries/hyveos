@@ -1,5 +1,7 @@
+from grpc.aio import Channel
 from ..protocol.script_pb2_grpc import ReqRespStub
 from ..protocol.script_pb2 import (
+    Data,
     Peer,
     Response,
     OptionalTopic,
@@ -22,7 +24,7 @@ class RequestResponseService:
     Direct peer-to-peer message exchange (Unicast)
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Channel):
         self.stub = ReqRespStub(conn)
 
     async def send_request(
@@ -50,7 +52,7 @@ class RequestResponseService:
         if topic is not None:
             optional_topic = OptionalTopic(topic=Topic(topic=topic))
 
-        send_data = enc(data)
+        send_data = Data(data=enc(data))
 
         message = Message(data=send_data, topic=optional_topic)
         send_request = SendRequest(peer=Peer(peer_id=peer_id), msg=message)
@@ -116,7 +118,7 @@ class RequestResponseService:
         if error is not None:
             response = Response(error=error)
         else:
-            response = Response(data=enc(data))
+            response = Response(data=Data(data=enc(data)))
 
         send_response = SendResponse(seq=seq, response=response)
         await self.stub.Respond(send_response)

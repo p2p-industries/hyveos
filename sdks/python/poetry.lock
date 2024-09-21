@@ -186,5 +186,5 @@ type = ["importlib-metadata (>=7.0.2)", "jaraco.develop (>=7.21)", "mypy (==1.11
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "20abb0e6f87a9aefb6008952f9307648dbcf76c22de47a80b9d45adf7f3e75db"
+python-versions = "^3.11"
+content-hash = "111e306fe78f177daa682cd55c41637aba4d373240891175dae300db92145dfb"

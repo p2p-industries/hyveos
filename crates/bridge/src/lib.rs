@@ -18,21 +18,21 @@ use ulid::Ulid;
 
 #[cfg(feature = "batman")]
 use crate::debug::DebugServer;
-pub use crate::scripting::ScriptingClient;
+pub use crate::{db::DbClient, scripting::ScriptingClient};
 use crate::{
-    dht::DhtServer, discovery::DiscoveryServer, file_transfer::FileTransferServer,
+    db::DbServer, dht::DhtServer, discovery::DiscoveryServer, file_transfer::FileTransferServer,
     gossipsub::GossipSubServer, req_resp::ReqRespServer, scripting::ScriptingServer,
 };
 
+mod db;
+#[cfg(feature = "batman")]
+mod debug;
 mod dht;
 mod discovery;
 mod file_transfer;
 mod gossipsub;
 mod req_resp;
 mod scripting;
-
-#[cfg(feature = "batman")]
-mod debug;
 
 pub const CONTAINER_SHARED_DIR: &str = "/p2p/shared";
 
@@ -46,20 +46,21 @@ pub type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
 #[cfg(not(feature = "batman"))]
 pub type DebugCommandSender = ();
 
-pub struct Bridge<C> {
-    pub client: BridgeClient<C>,
+pub struct Bridge<Db, Scripting> {
+    pub client: BridgeClient<Db, Scripting>,
     pub cancellation_token: CancellationToken,
     pub ulid: Ulid,
     pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
 }
 
-impl<C: ScriptingClient> Bridge<C> {
+impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
     pub async fn new(
         client: Client,
+        db_client: Db,
         mut base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
-        scripting_client: C,
+        scripting_client: Scripting,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
@@ -86,6 +87,7 @@ impl<C: ScriptingClient> Bridge<C> {
 
         let client = BridgeClient {
             client,
+            db_client,
             cancellation_token: cancellation_token.clone(),
             ulid,
             base_path,
@@ -114,8 +116,9 @@ pub enum Error {
     Tonic(#[from] tonic::transport::Error),
 }
 
-pub struct BridgeClient<C> {
+pub struct BridgeClient<Db, Scripting> {
     client: Client,
+    db_client: Db,
     cancellation_token: CancellationToken,
     ulid: Ulid,
     base_path: PathBuf,
@@ -123,11 +126,12 @@ pub struct BridgeClient<C> {
     socket_stream: UnixListenerStream,
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
-    scripting_client: C,
+    scripting_client: Scripting,
 }
 
-impl<C: ScriptingClient> BridgeClient<C> {
+impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
     pub async fn run(self) -> Result<(), Error> {
+        let db = DbServer::new(self.db_client);
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());
         let file_transfer = FileTransferServer::new(self.client.clone(), self.shared_dir_path);
@@ -136,6 +140,7 @@ impl<C: ScriptingClient> BridgeClient<C> {
         let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
 
         let router = TonicServer::builder()
+            .add_service(grpc::db_server::DbServer::new(db))
             .add_service(grpc::dht_server::DhtServer::new(dht))
             .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
             .add_service(grpc::file_transfer_server::FileTransferServer::new(

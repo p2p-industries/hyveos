@@ -170,6 +170,7 @@ impl ScriptingManager {
         ExecutionManager {
             container_manger: &self.container_manager,
             client: self.client.clone(),
+            db_client: self.db_client.clone(),
             base_path: self.base_path.clone(),
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
@@ -490,6 +491,7 @@ impl Future for ContainerHandle {
 struct ExecutionManager<'a> {
     container_manger: &'a ContainerManager,
     client: P2PClient,
+    db_client: DbClient,
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
@@ -535,6 +537,7 @@ impl<'a> ExecutionManager<'a> {
         if let Some(scripting_client) = self.scripting_client {
             let bridge = Bridge::new(
                 self.client,
+                self.db_client,
                 self.base_path,
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
@@ -546,6 +549,7 @@ impl<'a> ExecutionManager<'a> {
         } else {
             let bridge = Bridge::new(
                 self.client,
+                self.db_client,
                 self.base_path,
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
@@ -558,7 +562,7 @@ impl<'a> ExecutionManager<'a> {
     }
 
     async fn exec_with_bridge(
-        bridge: Bridge<impl bridge::ScriptingClient>,
+        bridge: Bridge<DbClient, impl bridge::ScriptingClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
         shared_printer: Option<SharedPrinter>,
@@ -606,7 +610,8 @@ impl<'a> ExecutionManager<'a> {
             .add_volumes(volumes)
             .privileged(true) // Unfortunate hack for now
             .env("P2P_INDUSTRIES_SHARED_DIR", CONTAINER_SHARED_DIR)
-            .env("P2P_INDUSTRIES_BRIDGE_SOCKET", CONTAINER_BRIDGE_SOCKET);
+            .env("P2P_INDUSTRIES_BRIDGE_SOCKET", CONTAINER_BRIDGE_SOCKET)
+            .auto_remove(true);
 
         for port in ports {
             let ip4socket = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port);

@@ -11,11 +11,12 @@ pub use self::req_resp::JsonService as JsonReqRespService;
 pub use self::scripting::{Config as ScriptingConfig, Service as ScriptingService};
 #[doc(inline)]
 pub use self::{
-    debug::Service as DebugService, dht::Service as DhtService,
+    db::Service as DbService, debug::Service as DebugService, dht::Service as DhtService,
     discovery::Service as DiscoveryService, file_transfer::Service as FileTransferService,
     gossipsub::Service as GossipSubService, req_resp::Service as ReqRespService,
 };
 
+pub mod db;
 pub mod debug;
 pub mod dht;
 pub mod discovery;

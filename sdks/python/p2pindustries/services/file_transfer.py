@@ -1,3 +1,4 @@
+from grpc.aio import Channel
 from ..protocol.script_pb2_grpc import FileTransferStub
 from ..protocol.script_pb2 import FilePath, ID, CID
 from .util import enc
@@ -20,7 +21,7 @@ class FileTransferService:
     in the p2p network
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Channel):
         self.stub = FileTransferStub(conn)
 
     async def publish_file(self, file_path: str) -> FileToken:

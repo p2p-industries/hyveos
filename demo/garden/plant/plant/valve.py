@@ -12,21 +12,25 @@ class ValveController:
     sensor: MoistureSensor
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
 
-    def __init__(self, moisture_sensor: MoistureSensor, channel: int = 1):
-        pin = [VALVE_1_PIN, VALVE_2_PIN, VALVE_3_PIN][channel - 1]
+    def __init__(self, moisture_sensor: MoistureSensor, channel: int):
+        pin = [VALVE_1_PIN, VALVE_2_PIN, VALVE_3_PIN][channel]
         self.valve = LED(pin)
         self.sensor = moisture_sensor
 
     async def open_until_satisfied(self):
-        print(f"[ML: {self.sensor.moisture}] Opening valve.")
+        print(f'[ML: {self.sensor.moisture:.2f} Hz] Opening valve.')
         if self.sensor.is_dry:
             self.valve.on()
 
+            i = 0
             while self.sensor.is_dry:
-                print(f"[ML: {self.sensor.moisture}] Valve remains open.")
-                await asyncio.sleep(0.10)
+                if i % 10 == 0:
+                    print(f'[ML: {self.sensor.moisture:.2f} Hz] Valve remains open.')
 
-            print(f"[ML: {self.sensor.moisture}] Closing valve.")
+                await asyncio.sleep(0.10)
+                i += 1
+
+            print(f'[ML: {self.sensor.moisture:.2f} Hz] Closing valve.')
 
             self.valve.off()
 

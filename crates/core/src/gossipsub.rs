@@ -49,7 +49,7 @@ pub struct Message {
 impl From<Message> for grpc::GossipSubMessage {
     fn from(message: Message) -> Self {
         Self {
-            data: message.data,
+            data: grpc::Data { data: message.data },
             topic: grpc::Topic {
                 topic: message.topic,
             },
@@ -60,7 +60,7 @@ impl From<Message> for grpc::GossipSubMessage {
 impl From<grpc::GossipSubMessage> for Message {
     fn from(message: grpc::GossipSubMessage) -> Self {
         Self {
-            data: message.data,
+            data: message.data.data,
             topic: message.topic.topic,
         }
     }

@@ -1,5 +1,7 @@
+from grpc.aio import Channel
 from ..protocol.script_pb2_grpc import GossipSubStub
 from ..protocol.script_pb2 import (
+    Data,
     GossipSubMessage,
     GossipSubRecvMessage,
     Topic,
@@ -13,7 +15,7 @@ class GossipSubService:
     Subscribing or Publishing into a Topic
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Channel):
         self.stub = GossipSubStub(conn)
 
     async def subscribe(self, topic: str) -> ManagedStream[GossipSubRecvMessage]:
@@ -51,7 +53,7 @@ class GossipSubService:
             ID of the sent message
         """
 
-        send_data = enc(data)
+        send_data = Data(data=enc(data))
 
         gossip_sub_message = GossipSubMessage(data=send_data, topic=Topic(topic=topic))
         gossip_sub_message_id = await self.stub.Publish(gossip_sub_message)

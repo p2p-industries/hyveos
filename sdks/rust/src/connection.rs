@@ -17,8 +17,8 @@ use crate::services::ScriptingService;
 use crate::{
     error::{Error, Result},
     services::{
-        DebugService, DhtService, DiscoveryService, FileTransferService, GossipSubService,
-        ReqRespService,
+        DbService, DebugService, DhtService, DiscoveryService, FileTransferService,
+        GossipSubService, ReqRespService,
     },
 };
 
@@ -85,6 +85,28 @@ impl P2PConnection {
                 Ok(P2PConnection { channel })
             })
             .await
+    }
+
+    /// Returns a handle to the database service.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use p2p_industries_sdk::P2PConnection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = P2PConnection::get().await.unwrap();
+    /// let mut db_service = connection.db();
+    /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
+    ///
+    /// let value = db_service.get("key").await.unwrap().unwrap();
+    /// assert_eq!(value, b"value");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn db(&self) -> DbService {
+        DbService::new(self)
     }
 
     /// Returns a handle to the debug service.

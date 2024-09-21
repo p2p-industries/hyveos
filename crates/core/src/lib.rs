@@ -23,6 +23,32 @@ pub mod grpc {
     tonic::include_proto!("script");
 }
 
+impl From<Vec<u8>> for grpc::Data {
+    fn from(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+}
+
+impl From<grpc::Data> for Vec<u8> {
+    fn from(data: grpc::Data) -> Self {
+        data.data
+    }
+}
+
+impl From<Option<Vec<u8>>> for grpc::OptionalData {
+    fn from(data: Option<Vec<u8>>) -> Self {
+        Self {
+            data: data.map(Into::into),
+        }
+    }
+}
+
+impl From<grpc::OptionalData> for Option<Vec<u8>> {
+    fn from(data: grpc::OptionalData) -> Self {
+        data.data.map(Into::into)
+    }
+}
+
 impl From<PeerId> for grpc::Peer {
     fn from(peer_id: PeerId) -> Self {
         Self {

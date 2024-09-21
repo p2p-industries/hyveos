@@ -1,5 +1,6 @@
+from grpc.aio import Channel
 from ..protocol.script_pb2_grpc import DHTStub
-from ..protocol.script_pb2 import DHTPutRecord, DHTKey, Topic, DHTGetRecord, Peer
+from ..protocol.script_pb2 import DHTRecord, DHTKey, Data, OptionalData, Topic, Peer
 from .stream import ManagedStream
 from .util import enc
 
@@ -9,7 +10,7 @@ class DHTService:
     Exposes the distributed hash table present in the p2p network
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Channel):
         self.stub = DHTStub(conn)
 
     async def put_record(self, topic: str, key: str | bytes, value: str) -> None:
@@ -17,12 +18,13 @@ class DHTService:
         Puts a record in the DHT table under a specific topic
         """
         await self.stub.PutRecord(
-            DHTPutRecord(
-                key=DHTKey(topic=Topic(topic=topic), key=enc(key)), value=enc(value)
+            DHTRecord(
+                key=DHTKey(topic=Topic(topic=topic), key=enc(key)),
+                value=Data(data=enc(value)),
             )
         )
 
-    async def get_record(self, topic: str, key: str | bytes) -> DHTGetRecord:
+    async def get_record(self, topic: str, key: str | bytes) -> OptionalData:
         """
         Retrieved a record in the DHT table under a specific topic
         """

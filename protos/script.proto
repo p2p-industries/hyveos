@@ -9,6 +9,14 @@ package script;
 
 message Empty {}
 
+message Data {
+  required bytes data = 1;
+}
+
+message OptionalData {
+  optional Data data = 1;
+}
+
 // Unique identifier in the form of a stringified ULID
 message ID {
   required string ulid = 1;
@@ -44,7 +52,7 @@ message OptionalTopicQuery {
 
 // A message with an optional topic
 message Message {
-  required bytes data = 1;
+  required Data data = 1;
   required OptionalTopic topic = 2;
 }
 
@@ -65,7 +73,7 @@ message RecvRequest {
 // A received response to a request or an error
 message Response {
   oneof response {
-    bytes data = 1;
+    Data data = 1;
     string error = 2;
   }
 }
@@ -104,7 +112,7 @@ message GossipSubMessageID {
 
 // A message for publishing in a gossipsub topic
 message GossipSubMessage {
-  required bytes data = 1;
+  required Data data = 1;
   required Topic topic = 2;
 }
 
@@ -123,15 +131,20 @@ message DHTKey {
 }
 
 // A record for putting in the DHT
-message DHTPutRecord {
+message DHTRecord {
   required DHTKey key = 1;
-  required bytes value = 2;
+  required Data value = 2;
 }
 
-// A record for getting from the DHT
-message DHTGetRecord {
-  // The value of the record will be empty if the key is not found
-  optional bytes value = 1;
+// A key-value pair for putting in the database
+message DBRecord {
+  required string key = 1;
+  required Data value = 2;
+}
+
+// A key for getting a value from the database
+message DBKey {
+  required string key = 1;
 }
 
 // A file path on the local filesystem
@@ -222,16 +235,24 @@ service GossipSub {
 
 service DHT {
   // Put a record in the DHT
-  rpc PutRecord(DHTPutRecord) returns (Empty) {}
+  rpc PutRecord(DHTRecord) returns (Empty) {}
 
   // Get a record from the DHT. The value of the record will be empty if the key is not found.
-  rpc GetRecord(DHTKey) returns (DHTGetRecord) {}
+  rpc GetRecord(DHTKey) returns (OptionalData) {}
 
   // Mark the current stack as a provider for a key in the DHT
   rpc Provide(DHTKey) returns (Empty) {}
 
   // Get the providers of a key in the DHT
   rpc GetProviders(DHTKey) returns (stream Peer) {}
+}
+
+service DB {
+  // Put a record into the key-value store and get the previous value if it exists
+  rpc Put(DBRecord) returns (OptionalData) {}
+
+  // Get a record from the key-value store
+  rpc Get(DBKey) returns (OptionalData) {}
 }
 
 service FileTransfer {

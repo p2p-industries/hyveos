@@ -1,3 +1,4 @@
+from grpc.aio import Channel
 from ..protocol.script_pb2_grpc import DiscoveryStub
 from ..protocol.script_pb2 import Peer, Empty, NeighbourEvent
 from .stream import ManagedStream
@@ -8,7 +9,7 @@ class DiscoveryService:
     Keeping track of neighbours
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Channel):
         self.stub = DiscoveryStub(conn)
         self.empty = Empty()
 

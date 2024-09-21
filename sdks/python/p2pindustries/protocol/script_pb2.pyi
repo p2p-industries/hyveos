@@ -9,6 +9,18 @@ class Empty(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
+class Data(_message.Message):
+    __slots__ = ("data",)
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    data: bytes
+    def __init__(self, data: _Optional[bytes] = ...) -> None: ...
+
+class OptionalData(_message.Message):
+    __slots__ = ("data",)
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    data: Data
+    def __init__(self, data: _Optional[_Union[Data, _Mapping]] = ...) -> None: ...
+
 class ID(_message.Message):
     __slots__ = ("ulid",)
     ULID_FIELD_NUMBER: _ClassVar[int]
@@ -51,9 +63,9 @@ class Message(_message.Message):
     __slots__ = ("data", "topic")
     DATA_FIELD_NUMBER: _ClassVar[int]
     TOPIC_FIELD_NUMBER: _ClassVar[int]
-    data: bytes
+    data: Data
     topic: OptionalTopic
-    def __init__(self, data: _Optional[bytes] = ..., topic: _Optional[_Union[OptionalTopic, _Mapping]] = ...) -> None: ...
+    def __init__(self, data: _Optional[_Union[Data, _Mapping]] = ..., topic: _Optional[_Union[OptionalTopic, _Mapping]] = ...) -> None: ...
 
 class SendRequest(_message.Message):
     __slots__ = ("peer", "msg")
@@ -77,9 +89,9 @@ class Response(_message.Message):
     __slots__ = ("data", "error")
     DATA_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
-    data: bytes
+    data: Data
     error: str
-    def __init__(self, data: _Optional[bytes] = ..., error: _Optional[str] = ...) -> None: ...
+    def __init__(self, data: _Optional[_Union[Data, _Mapping]] = ..., error: _Optional[str] = ...) -> None: ...
 
 class SendResponse(_message.Message):
     __slots__ = ("seq", "response")
@@ -123,9 +135,9 @@ class GossipSubMessage(_message.Message):
     __slots__ = ("data", "topic")
     DATA_FIELD_NUMBER: _ClassVar[int]
     TOPIC_FIELD_NUMBER: _ClassVar[int]
-    data: bytes
+    data: Data
     topic: Topic
-    def __init__(self, data: _Optional[bytes] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ...) -> None: ...
+    def __init__(self, data: _Optional[_Union[Data, _Mapping]] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ...) -> None: ...
 
 class GossipSubRecvMessage(_message.Message):
     __slots__ = ("propagation_source", "source", "msg", "msg_id")
@@ -147,19 +159,27 @@ class DHTKey(_message.Message):
     key: bytes
     def __init__(self, topic: _Optional[_Union[Topic, _Mapping]] = ..., key: _Optional[bytes] = ...) -> None: ...
 
-class DHTPutRecord(_message.Message):
+class DHTRecord(_message.Message):
     __slots__ = ("key", "value")
     KEY_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
     key: DHTKey
-    value: bytes
-    def __init__(self, key: _Optional[_Union[DHTKey, _Mapping]] = ..., value: _Optional[bytes] = ...) -> None: ...
+    value: Data
+    def __init__(self, key: _Optional[_Union[DHTKey, _Mapping]] = ..., value: _Optional[_Union[Data, _Mapping]] = ...) -> None: ...
 
-class DHTGetRecord(_message.Message):
-    __slots__ = ("value",)
+class DBRecord(_message.Message):
+    __slots__ = ("key", "value")
+    KEY_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
-    value: bytes
-    def __init__(self, value: _Optional[bytes] = ...) -> None: ...
+    key: str
+    value: Data
+    def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[Data, _Mapping]] = ...) -> None: ...
+
+class DBKey(_message.Message):
+    __slots__ = ("key",)
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
 
 class FilePath(_message.Message):
     __slots__ = ("path",)

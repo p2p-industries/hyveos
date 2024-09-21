@@ -437,13 +437,13 @@ class DHTStub(object):
         """
         self.PutRecord = channel.unary_unary(
                 '/script.DHT/PutRecord',
-                request_serializer=script__pb2.DHTPutRecord.SerializeToString,
+                request_serializer=script__pb2.DHTRecord.SerializeToString,
                 response_deserializer=script__pb2.Empty.FromString,
                 _registered_method=True)
         self.GetRecord = channel.unary_unary(
                 '/script.DHT/GetRecord',
                 request_serializer=script__pb2.DHTKey.SerializeToString,
-                response_deserializer=script__pb2.DHTGetRecord.FromString,
+                response_deserializer=script__pb2.OptionalData.FromString,
                 _registered_method=True)
         self.Provide = channel.unary_unary(
                 '/script.DHT/Provide',
@@ -493,13 +493,13 @@ def add_DHTServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'PutRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.PutRecord,
-                    request_deserializer=script__pb2.DHTPutRecord.FromString,
+                    request_deserializer=script__pb2.DHTRecord.FromString,
                     response_serializer=script__pb2.Empty.SerializeToString,
             ),
             'GetRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.GetRecord,
                     request_deserializer=script__pb2.DHTKey.FromString,
-                    response_serializer=script__pb2.DHTGetRecord.SerializeToString,
+                    response_serializer=script__pb2.OptionalData.SerializeToString,
             ),
             'Provide': grpc.unary_unary_rpc_method_handler(
                     servicer.Provide,
@@ -537,7 +537,7 @@ class DHT(object):
             request,
             target,
             '/script.DHT/PutRecord',
-            script__pb2.DHTPutRecord.SerializeToString,
+            script__pb2.DHTRecord.SerializeToString,
             script__pb2.Empty.FromString,
             options,
             channel_credentials,
@@ -565,7 +565,7 @@ class DHT(object):
             target,
             '/script.DHT/GetRecord',
             script__pb2.DHTKey.SerializeToString,
-            script__pb2.DHTGetRecord.FromString,
+            script__pb2.OptionalData.FromString,
             options,
             channel_credentials,
             insecure,
@@ -620,6 +620,123 @@ class DHT(object):
             '/script.DHT/GetProviders',
             script__pb2.DHTKey.SerializeToString,
             script__pb2.Peer.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class DBStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Put = channel.unary_unary(
+                '/script.DB/Put',
+                request_serializer=script__pb2.DBRecord.SerializeToString,
+                response_deserializer=script__pb2.OptionalData.FromString,
+                _registered_method=True)
+        self.Get = channel.unary_unary(
+                '/script.DB/Get',
+                request_serializer=script__pb2.DBKey.SerializeToString,
+                response_deserializer=script__pb2.OptionalData.FromString,
+                _registered_method=True)
+
+
+class DBServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Put(self, request, context):
+        """Put a record into the key-value store and get the previous value if it exists
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Get(self, request, context):
+        """Get a record from the key-value store
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_DBServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Put': grpc.unary_unary_rpc_method_handler(
+                    servicer.Put,
+                    request_deserializer=script__pb2.DBRecord.FromString,
+                    response_serializer=script__pb2.OptionalData.SerializeToString,
+            ),
+            'Get': grpc.unary_unary_rpc_method_handler(
+                    servicer.Get,
+                    request_deserializer=script__pb2.DBKey.FromString,
+                    response_serializer=script__pb2.OptionalData.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'script.DB', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.DB', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class DB(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Put(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.DB/Put',
+            script__pb2.DBRecord.SerializeToString,
+            script__pb2.OptionalData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Get(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.DB/Get',
+            script__pb2.DBKey.SerializeToString,
+            script__pb2.OptionalData.FromString,
             options,
             channel_credentials,
             insecure,

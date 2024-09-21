@@ -6,11 +6,13 @@ from gpiozero import PWMOutputDevice, OutputDevice
 from time import time
 
 from p2pindustries.protocol.script_pb2 import GossipSubRecvMessage
+from p2pindustries.services.gossip_sub import GossipSubService
+from p2pindustries.services.request_response import RequestResponseService
 
-FLOW_METER_PIN = int(os.environ["FLOW_METER_PIN"])
-PWM_PIN = int(os.environ["PWM_PIN"])
-FWD_PIN = int(os.environ["FWD_PIN"])
-REV_PIN = int(os.environ["REV_PIN"])
+FLOW_METER_PIN = int(os.environ['FLOW_METER_PIN'])
+PWM_PIN = int(os.environ['PWM_PIN'])
+FWD_PIN = int(os.environ['FWD_PIN'])
+REV_PIN = int(os.environ['REV_PIN'])
 
 
 OUR_TIME_DELTA = 60 * 2
@@ -88,9 +90,9 @@ class WaterClaims:
 
     def add_claim(self, msg: GossipSubRecvMessage):
         if msg.source.peer_id in self.claims:
-            self.claims[msg.source.peer_id] += loads(msg.msg.data)["claim"]
+            self.claims[msg.source.peer_id] += loads(msg.msg.data.data)['claim']
         else:
-            self.claims[msg.source.peer_id] = loads(msg.msg.data)["claim"]
+            self.claims[msg.source.peer_id] = loads(msg.msg.data.data)['claim']
 
         self.event.set()
 
@@ -105,33 +107,34 @@ class WaterClaims:
 
 
 async def discover_role_peer(dht, name):
-    async with dht.get_providers("identification", name) as providers:
+    async with dht.get_providers('identification', name) as providers:
         async for provider in providers:
             return provider.peer_id
 
 
-async def give_water(conn: P2PConnection, water_claims: WaterClaims, pump: Pump):
-    req_resp = conn.get_request_response_service()
+async def give_water(
+    req_resp: RequestResponseService, water_claims: WaterClaims, pump: Pump
+):
     while True:
         async with pump:
             async with water_claims:
                 for peer in water_claims.claims.keys():
-                    water_ready = dumps({"water_ready": True})
+                    water_ready = dumps({'water_ready': True})
                     try:
-                        print("Starting pump")
+                        print('Starting pump')
                         await pump.start()
                         response = await req_resp.send_request(
-                            peer, water_ready, "water"
+                            peer, water_ready, 'water'
                         )
                         pump.reduce()
                         if len(response.error) > 0:
-                            raise Exception(f"{peer}: {response.error}")
+                            raise Exception(f'{peer}: {response.error}')
                     except Exception as e:
-                        print(f"Error sending water to {peer}: {e}")
+                        print(f'Error sending water to {peer}: {e}')
                         continue
-                    response_data = loads(response.data)
-                    if not response_data["done"]:
-                        print(f"{peer} did not accept water")
+                    response_data = loads(response.data.data)
+                    if not response_data['done']:
+                        print(f'{peer} did not accept water')
 
                 water_claims.clear()
             await pump.stop()
@@ -140,28 +143,30 @@ async def give_water(conn: P2PConnection, water_claims: WaterClaims, pump: Pump)
         water_claims.event.clear()
 
 
-async def monitor_water_claims(conn: P2PConnection, water_claims: WaterClaims):
-    gos = conn.get_gossip_sub_service()
-    async with await gos.subscribe("watering_request") as messages:
+async def monitor_water_claims(gos: GossipSubService, water_claims: WaterClaims):
+    async with await gos.subscribe('watering_request') as messages:
         async for msg in messages:
             async with water_claims:
-                print(f"Received water claim from {msg.source}")
+                print(f'Received water claim from {msg.source}')
                 water_claims.add_claim(msg)
 
 
 async def main():
     async with P2PConnection() as conn:
+        gos = conn.get_gossip_sub_service()
+        req_resp = conn.get_request_response_service()
+
         water_claims = WaterClaims()
         pump = Pump()
 
         try:
             await asyncio.gather(
-                monitor_water_claims(conn, water_claims),
-                give_water(conn, water_claims, pump),
+                monitor_water_claims(gos, water_claims),
+                give_water(req_resp, water_claims, pump),
             )
         except Exception as e:
-            print(f"Error: {e}")
+            print(f'Error: {e}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())

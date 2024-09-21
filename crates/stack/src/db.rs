@@ -11,6 +11,8 @@ use redb::{
 const STARTUP_SCRIPTS_TABLE: TableDefinition<String, Vec<u16>> =
     TableDefinition::new("startup_scripts");
 
+const BRIDGE_TABLE: TableDefinition<String, Vec<u8>> = TableDefinition::new("bridge");
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
@@ -122,5 +124,33 @@ impl Client {
             .unwrap_or_else(PoisonError::into_inner)
             .begin_read()
             .map_err(Into::into)
+    }
+}
+
+impl bridge::DbClient for Client {
+    type Error = Error;
+
+    async fn put(&self, key: String, value: impl Into<Vec<u8>> + Send) -> Result<Option<Vec<u8>>> {
+        let write = self.write()?;
+
+        let old_value = write
+            .open_table(BRIDGE_TABLE)?
+            .insert(key, value.into())?
+            .map(|v| v.value().clone());
+        write.commit()?;
+
+        Ok(old_value)
+    }
+
+    async fn get(&self, key: String) -> Result<Option<Vec<u8>>> {
+        let read = self.read()?;
+        match read.open_table(BRIDGE_TABLE) {
+            Ok(table) => {
+                let value = table.get(key)?.map(|v| v.value().clone());
+                Ok(value)
+            }
+            Err(TableError::TableDoesNotExist(_)) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     }
 }

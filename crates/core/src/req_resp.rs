@@ -85,7 +85,7 @@ pub struct Request {
 impl From<Request> for grpc::Message {
     fn from(request: Request) -> Self {
         Self {
-            data: request.data,
+            data: grpc::Data { data: request.data },
             topic: grpc::OptionalTopic {
                 topic: request.topic.map(|topic| grpc::Topic { topic }),
             },
@@ -96,7 +96,7 @@ impl From<Request> for grpc::Message {
 impl From<grpc::Message> for Request {
     fn from(message: grpc::Message) -> Self {
         Self {
-            data: message.data,
+            data: message.data.data,
             topic: message.topic.topic.map(|topic| topic.topic),
         }
     }
@@ -163,7 +163,7 @@ impl From<Response> for grpc::Response {
     fn from(response: Response) -> Self {
         Self {
             response: Some(match response {
-                Response::Data(data) => grpc::response::Response::Data(data),
+                Response::Data(data) => grpc::response::Response::Data(grpc::Data { data }),
                 Response::Error(e) => grpc::response::Response::Error(e.to_string()),
             }),
         }
@@ -184,7 +184,7 @@ impl TryFrom<grpc::Response> for Response {
 
     fn try_from(response: grpc::Response) -> Result<Self> {
         Ok(match response.response.ok_or(Error::MissingResponse)? {
-            grpc::response::Response::Data(data) => Self::Data(data),
+            grpc::response::Response::Data(data) => Self::Data(data.data),
             grpc::response::Response::Error(e) => Self::Error(e.into()),
         })
     }

@@ -931,14 +931,16 @@ pub mod neigh {
         while let Some(Ok(event)) = stream.next().await {
             match event.as_ref() {
                 NeighbourEvent::Init(neighbours) => {
-                    println!("Resolved neighbours:");
+                    writeln!(printer, "Resolved neighbours:").expect("Failed to print");
                     for (peer_id, neighbours) in neighbours {
                         if let [neighbour] = &neighbours[..] {
-                            println!("  Peer {peer_id}: {}", neighbour.direct_addr);
+                            writeln!(printer, "  Peer {peer_id}: {}", neighbour.direct_addr)
+                                .expect("Failed to print");
                         } else {
-                            println!("  Peer {peer_id}:");
+                            writeln!(printer, "  Peer {peer_id}:").expect("Failed to print");
                             for neighbour in neighbours {
-                                println!("    - {}", neighbour.direct_addr);
+                                writeln!(printer, "    - {}", neighbour.direct_addr)
+                                    .expect("Failed to print");
                             }
                         }
                     }

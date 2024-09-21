@@ -2,7 +2,7 @@ use futures::{Stream, StreamExt as _, TryStreamExt as _};
 use libp2p_identity::PeerId;
 use p2p_industries_core::{
     dht::Key,
-    grpc::{dht_client::DhtClient, DhtKey, DhtPutRecord},
+    grpc::{dht_client::DhtClient, Data, DhtKey, DhtRecord},
 };
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
@@ -79,9 +79,9 @@ impl Service {
             key: key.into(),
         };
 
-        let request = DhtPutRecord {
+        let request = DhtRecord {
             key: key.into(),
-            value: value.into(),
+            value: Data { data: value.into() },
         };
 
         self.client
@@ -209,7 +209,7 @@ impl Service {
         self.client
             .get_record(DhtKey::from(key))
             .await
-            .map(|response| response.into_inner().value)
+            .map(|response| response.into_inner().data.map(|data| data.data))
             .map_err(Into::into)
     }
 

@@ -22,6 +22,18 @@ gpiozero = "^2.0.1"
 lgpio = "^0.2.2.0"
 setuptools = "^73.0.1"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.5"
+
+[tool.ruff]
+indent-width = 4
+target-version = 'py310'
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+line-ending = 'auto'
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

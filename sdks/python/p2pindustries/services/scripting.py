@@ -1,3 +1,4 @@
+from grpc.aio import Channel
 from ..protocol.script_pb2_grpc import ScriptingStub
 from ..protocol.script_pb2 import (
     ID,
@@ -19,7 +20,7 @@ class ScriptingService:
     Exposes methods for managing scripts running on nodes in the network
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn: Channel):
         self.stub = ScriptingStub(conn)
         self.empty = Empty()
 

@@ -7,6 +7,7 @@ use std::{
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
+    time::Duration,
 };
 
 use async_once_cell::OnceCell;
@@ -83,7 +84,8 @@ fn new_progress_bar(total: u64) -> ProgressBar {
 impl ContainerManager {
     /// Create a new container manager
     pub fn new() -> Result<Self, BollardError> {
-        let docker = bollard::Docker::connect_with_local_defaults()?;
+        let mut docker = bollard::Docker::connect_with_local_defaults()?;
+        docker.set_timeout(Duration::from_secs(300));
         Ok(Self { inner: docker })
     }
 
@@ -310,6 +312,7 @@ impl PulledImage<'_> {
             privileged: None,
             exposed_ports: None,
             env: HashMap::new(),
+            auto_remove: None,
         }
     }
 
@@ -335,6 +338,7 @@ impl PulledImage<'_> {
             privileged: None,
             exposed_ports: None,
             env: HashMap::new(),
+            auto_remove: None,
         }
     }
 
@@ -360,6 +364,7 @@ pub struct ContainerBuilder<'a, In = Empty, Out = Sink, Err = Sink> {
     privileged: Option<bool>,
     exposed_ports: Option<Vec<(u16, SocketAddr)>>,
     env: HashMap<String, String>,
+    auto_remove: Option<bool>,
 }
 
 impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
@@ -423,6 +428,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
+            auto_remove: self.auto_remove,
         }
     }
 
@@ -444,6 +450,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
+            auto_remove: self.auto_remove,
         }
     }
 
@@ -465,6 +472,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
             privileged: self.privileged,
             exposed_ports: self.exposed_ports,
             env: self.env,
+            auto_remove: self.auto_remove,
         }
     }
 
@@ -494,6 +502,11 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
         self.env.insert(key.into(), value.into());
         self
     }
+
+    pub fn auto_remove(mut self, auto_remove: bool) -> Self {
+        self.auto_remove = Some(auto_remove);
+        self
+    }
 }
 
 impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err>
@@ -518,6 +531,7 @@ where
             privileged,
             exposed_ports,
             env,
+            auto_remove,
         } = self;
 
         let (port_bindings, exposed_ports) = match exposed_ports.as_deref() {
@@ -607,6 +621,7 @@ where
             network_mode: network_mode.map(|m| m.as_str().to_string()),
             port_bindings,
             privileged,
+            auto_remove,
             ..Default::default()
         };
 

@@ -33,19 +33,16 @@ impl DhtServer {
 impl Dht for DhtServer {
     type GetProvidersStream = ServerStream<grpc::Peer>;
 
-    async fn put_record(
-        &self,
-        request: TonicRequest<grpc::DhtPutRecord>,
-    ) -> TonicResult<grpc::Empty> {
+    async fn put_record(&self, request: TonicRequest<grpc::DhtRecord>) -> TonicResult<grpc::Empty> {
         let record = request.into_inner();
 
         tracing::debug!(request=?record, "Received put_record request");
 
-        let grpc::DhtPutRecord { key, value } = record;
+        let grpc::DhtRecord { key, value } = record;
 
         self.client
             .kad()
-            .put_record(convert_key(key)?, value, None, Quorum::One)
+            .put_record(convert_key(key)?, value.into(), None, Quorum::One)
             .await
             .map(|_| TonicResponse::new(grpc::Empty {}))
             .map_err(|e| Status::internal(e.to_string()))
@@ -54,7 +51,7 @@ impl Dht for DhtServer {
     async fn get_record(
         &self,
         request: TonicRequest<grpc::DhtKey>,
-    ) -> TonicResult<grpc::DhtGetRecord> {
+    ) -> TonicResult<grpc::OptionalData> {
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received get_record request");
@@ -79,7 +76,7 @@ impl Dht for DhtServer {
             .transpose()
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(TonicResponse::new(grpc::DhtGetRecord { value }))
+        Ok(TonicResponse::new(value.into()))
     }
 
     async fn provide(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {

@@ -10,7 +10,7 @@ authors = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 grpcio = "^1.66.0"
 
 [tool.poetry.group.dev.dependencies]
