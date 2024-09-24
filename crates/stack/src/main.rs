@@ -8,7 +8,7 @@ use std::{
 };
 
 use bridge::ScriptingClient as _;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use dirs::{data_local_dir, runtime_dir};
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, multiaddr::Protocol, Multiaddr};
 use p2p_industries_core::gossipsub::ReceivedMessage;
@@ -18,7 +18,10 @@ use p2p_stack::{Client as P2PClient, FullActor};
 use scripting::ScriptManagementConfig;
 use serde::Deserialize;
 use tokio::task::JoinHandle;
-use tracing_subscriber::EnvFilter;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{
+    fmt::time::UtcTime, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
+};
 
 use crate::{
     command_line::{interaction_loop, prep_interaction},
@@ -39,6 +42,30 @@ fn default_store_directory() -> PathBuf {
     data_local_dir().unwrap_or_else(temp_dir).join(APP_NAME)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ValueEnum, Default)]
+pub enum LogFilter {
+    None,
+    Error,
+    Warn,
+    #[default]
+    Info,
+    Debug,
+    Trace,
+}
+
+impl From<LogFilter> for LevelFilter {
+    fn from(value: LogFilter) -> Self {
+        match value {
+            LogFilter::None => Self::OFF,
+            LogFilter::Error => Self::ERROR,
+            LogFilter::Warn => Self::WARN,
+            LogFilter::Info => Self::INFO,
+            LogFilter::Debug => Self::DEBUG,
+            LogFilter::Trace => Self::TRACE,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 struct Config {
@@ -54,6 +81,10 @@ struct Config {
     random_directory: bool,
     #[serde(default)]
     script_management: Option<ScriptManagementConfig>,
+    #[serde(default)]
+    log_dir: Option<PathBuf>,
+    #[serde(default)]
+    log_level: LogFilter,
 }
 
 impl Config {
@@ -84,8 +115,10 @@ impl Config {
     }
 }
 
+/// This is the entrypoint of the p2p-industries app.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
+#[command(version, about)]
 pub struct Opts {
     #[clap(long)]
     pub config_file: Option<PathBuf>,
@@ -117,6 +150,10 @@ pub struct Opts {
     pub clean: bool,
     #[clap(short, long)]
     pub vim: bool,
+    #[clap(short = 'o', long)]
+    pub log_dir: Option<PathBuf>,
+    #[clap(short = 'f', long)]
+    pub log_level: Option<LogFilter>,
 }
 
 #[cfg(not(feature = "batman"))]
@@ -199,6 +236,8 @@ async fn main() -> anyhow::Result<()> {
         script_management,
         clean,
         vim,
+        log_dir,
+        log_level,
     } = Opts::parse();
 
     let Config {
@@ -208,6 +247,8 @@ async fn main() -> anyhow::Result<()> {
         key_file: config_key_file,
         random_directory: config_random_directory,
         script_management: config_script_management,
+        log_dir: config_log_dir,
+        log_level: config_log_level,
     } = Config::load(config_file)?;
 
     let listen_addrs =
@@ -246,6 +287,9 @@ async fn main() -> anyhow::Result<()> {
         keypair
     };
 
+    let log_dir = log_dir.or(config_log_dir);
+    let log_level = log_level.unwrap_or(config_log_level);
+
     let random_directory = random_directory || config_random_directory;
     let script_management = script_management
         .or(config_script_management)
@@ -259,6 +303,8 @@ async fn main() -> anyhow::Result<()> {
         random_directory,
         script_management,
         clean,
+        log_dir,
+        log_level,
     };
 
     if io::stdin().is_terminal() && io::stdout().is_terminal() {
@@ -276,6 +322,8 @@ struct CommonArgs<Addrs> {
     random_directory: bool,
     script_management: ScriptManagementConfig,
     clean: bool,
+    log_dir: Option<PathBuf>,
+    log_level: LogFilter,
 }
 
 async fn main_tty(
@@ -382,6 +430,48 @@ struct Setup {
     ping_task: JoinHandle<()>,
 }
 
+macro_rules! create_logfile {
+    ($log_dir:ident, $log_level:ident) => {
+        tracing_subscriber::fmt::layer()
+            .with_timer(UtcTime::rfc_3339())
+            .with_ansi(false)
+            .with_writer(tracing_appender::rolling::minutely($log_dir, "stack.log"))
+            .with_filter(LevelFilter::from($log_level))
+    };
+}
+
+macro_rules! create_printer {
+    ($p:expr) => {
+        tracing_subscriber::fmt::layer()
+            .with_writer($p)
+            .with_filter(EnvFilter::from_default_env())
+    };
+}
+
+fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter, printer: &Option<SharedPrinter>) {
+    if let Some(log_dir) = log_dir {
+        if let Some(printer) = printer {
+            tracing_subscriber::registry()
+                .with(create_printer!(printer.clone()))
+                .with(create_logfile!(log_dir, log_level))
+                .init();
+        } else {
+            tracing_subscriber::registry()
+                .with(create_printer!(std::io::stdout))
+                .with(create_logfile!(log_dir, log_level))
+                .init();
+        }
+    } else if let Some(printer) = printer.as_ref() {
+        tracing_subscriber::registry()
+            .with(create_printer!(printer.clone()))
+            .init();
+    } else {
+        tracing_subscriber::registry()
+            .with(create_printer!(std::io::stdout))
+            .init();
+    }
+}
+
 impl Setup {
     async fn new(
         args: CommonArgs<impl Iterator<Item = Multiaddr>>,
@@ -395,15 +485,11 @@ impl Setup {
             random_directory,
             script_management,
             clean,
+            log_dir,
+            log_level,
         } = args;
 
-        let subscriber = tracing_subscriber::fmt().with_env_filter(EnvFilter::from_default_env());
-
-        if let Some(printer) = printer.as_ref() {
-            subscriber.with_writer(printer.clone()).init();
-        } else {
-            subscriber.init();
-        }
+        setup_logging(log_dir, log_level, &printer);
 
         #[cfg(feature = "console-subscriber")]
         console_subscriber::init();

@@ -40,16 +40,11 @@ use crate::{
 
 const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ValueEnum, Default)]
 pub enum ScriptManagementConfig {
     Allow,
+    #[default]
     Deny,
-}
-
-impl Default for ScriptManagementConfig {
-    fn default() -> Self {
-        Self::Deny
-    }
 }
 
 enum SelfCommand {

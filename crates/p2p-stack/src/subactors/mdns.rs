@@ -26,6 +26,7 @@ impl SubActor for Actor {
     ) -> Result<(), Self::EventError> {
         match event {
             mdns::Event::Discovered(peers) => peers.into_iter().for_each(|(peer_id, addr)| {
+                tracing::info!(?peer_id, ?addr, "Discovered Peer");
                 behaviour.kad.add_address(&peer_id, addr);
                 behaviour.gossipsub.add_explicit_peer(&peer_id);
             }),

@@ -408,6 +408,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), ret, err)]
     fn handle_swarm_event(
         &mut self,
         swarm_event: SwarmEvent<MyBehaviourEvent>,

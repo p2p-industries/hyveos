@@ -4,3 +4,5 @@
 # key-file = "/tmp/p2p-industries-stack/keypair"
 # random-directory = true
 # script-management = "deny"
+# log-dir = "/tmp/p2p-industries-stack/logs"
+# log-level = "info"

@@ -29,11 +29,14 @@
               eza
               fd
               ripgrep
-              rust-bin.stable.latest.default
+              rust-bin.nightly.latest.default
               rust-analyzer
               protobuf
               scc
               cargo-audit
+              docker-compose-language-service
+              dockerfile-language-server-nodejs
+              yaml-language-server
             ];
           };
       }
