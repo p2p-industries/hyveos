@@ -11,3 +11,12 @@ updates:
       - "umgefahren"
     schedule:
       interval: "weekly"
+    registries:
+      - id: "github-quic"
+        type: "git"
+        url: "ssh://git@github.com/p2p-industries/libp2p-quic.git"
+        ssh-key: "${{ secrets.GITSECRET }}"
+      - id: "github-stream"
+        type: "git"
+        url: "ssh://git@github.com/p2p-industries/libp2p-stream.git"
+        ssh-key: "${{ secrets.GIT_STREAM_SECRET }}"
