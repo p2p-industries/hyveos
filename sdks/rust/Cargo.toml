@@ -9,7 +9,7 @@ license = "MIT or Apache-2.0"
 async-once-cell = { workspace = true }
 derive-where = "1.2.7"
 futures = { workspace = true }
-hyper-util = { version = "0.1.7", features = ["tokio"] }
+hyper-util = { version = "0.1.9", features = ["tokio"] }
 libp2p-identity = { workspace = true, features = ["peerid"] }
 p2p-industries-core = { workspace = true }
 prost = { workspace = true }
