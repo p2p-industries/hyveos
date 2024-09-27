@@ -20,7 +20,7 @@ base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
 bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.18", features = ["derive"] }
 docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.30" }
 ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
