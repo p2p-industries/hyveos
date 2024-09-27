@@ -48,7 +48,7 @@ tarpc = { version = "0.34.0" }
 tokio = { version = "1.38" }
 tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
 tokio-util = { version = "0.7.11" }
-tonic = { version = "0.12.1" }
+tonic = { version = "0.12.2" }
 tracing = { version = "0.1.40" }
 ulid = { version = "1.1.2", features = ["serde"] }
 void = { version = "1.0.2" }
