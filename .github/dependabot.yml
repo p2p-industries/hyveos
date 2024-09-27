@@ -15,5 +15,7 @@ updates:
     directory: "/" # Location of package manifests
     assignees:
       - "umgefahren"
+    registries:
+      - github-quic-stream
     schedule:
       interval: "weekly"
