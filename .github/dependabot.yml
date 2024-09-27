@@ -4,6 +4,12 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
+registries:
+  github-quic:
+    type: git
+    url: https://github.com
+    username: umgefahren
+    key: ${{secrets.GH_ACCESS_TOKEN }}
 updates:
   - package-ecosystem: "cargo" # See documentation for possible values
     directory: "/" # Location of package manifests
@@ -11,12 +17,3 @@ updates:
       - "umgefahren"
     schedule:
       interval: "weekly"
-    registries:
-      - id: "github-quic"
-        type: "git"
-        url: "ssh://git@github.com/p2p-industries/libp2p-quic.git"
-        ssh-key: "${{ secrets.GITSECRET }}"
-      - id: "github-stream"
-        type: "git"
-        url: "ssh://git@github.com/p2p-industries/libp2p-stream.git"
-        ssh-key: "${{ secrets.GIT_STREAM_SECRET }}"
