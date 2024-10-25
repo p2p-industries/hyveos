@@ -1,19 +1,35 @@
 use std::{
     cmp::min,
     collections::{HashMap, HashSet, VecDeque},
+    time::Duration,
 };
 
 use futures::{Stream, StreamExt};
 use p2p_industries_sdk::{
-    services::{debug::MeshTopologyEvent, NeighbourEvent},
+    services::{
+        debug::{
+            MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType, RequestDebugEvent,
+            ResponseDebugEvent,
+        },
+        gossipsub::Message as GossipsubMessage,
+        req_resp::{Request, Response, ResponseError},
+        NeighbourEvent,
+    },
     PeerId,
 };
-use rand::{distributions::WeightedIndex, prelude::Distribution, seq::IteratorRandom, thread_rng};
+use rand::{
+    distributions::{Alphanumeric, WeightedIndex},
+    prelude::Distribution,
+    seq::IteratorRandom,
+    thread_rng, Rng,
+};
+use ulid::Ulid;
 
 #[derive(Debug, Default)]
 pub struct FakerOracle {
     links: HashMap<PeerId, HashSet<PeerId>>,
     queue: VecDeque<MeshTopologyEvent>,
+    unanswered_requests: Vec<(Ulid, PeerId)>,
 }
 
 impl FakerOracle {
@@ -109,14 +125,98 @@ impl FakerOracle {
             }
         }
     }
+
+    fn message(&mut self, sender: PeerId) -> MessageDebugEvent {
+        let message: String = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(thread_rng().gen_range(1..=100))
+            .map(char::from)
+            .collect();
+
+        let neighbours = self.links.get(&sender).unwrap();
+        if !neighbours.is_empty() && thread_rng().gen() {
+            let receiver = neighbours
+                .iter()
+                .choose(&mut thread_rng())
+                .copied()
+                .unwrap();
+
+            let req_id = Ulid::new();
+
+            self.unanswered_requests.push((req_id, receiver));
+
+            let topic = if thread_rng().gen_bool(0.9) {
+                Some(
+                    thread_rng()
+                        .sample_iter(&Alphanumeric)
+                        .take(thread_rng().gen_range(4..=10))
+                        .map(char::from)
+                        .collect(),
+                )
+            } else {
+                None
+            };
+
+            MessageDebugEvent {
+                sender,
+                event: MessageDebugEventType::Request(RequestDebugEvent {
+                    id: req_id,
+                    receiver,
+                    msg: Request {
+                        data: message.into_bytes(),
+                        topic,
+                    },
+                }),
+            }
+        } else {
+            let topic = thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(thread_rng().gen_range(4..=10))
+                .map(char::from)
+                .collect();
+
+            MessageDebugEvent {
+                sender,
+                event: MessageDebugEventType::GossipSub(GossipsubMessage {
+                    data: message.into_bytes(),
+                    topic,
+                }),
+            }
+        }
+    }
 }
 
 impl Iterator for FakerOracle {
-    type Item = MeshTopologyEvent;
+    type Item = Result<MeshTopologyEvent, MessageDebugEvent>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(event) = self.queue.pop_front() {
-            return Some(event);
+            return Some(Ok(event));
+        }
+
+        if thread_rng().gen() {
+            if !self.unanswered_requests.is_empty() && thread_rng().gen() {
+                let i = thread_rng().gen_range(0..self.unanswered_requests.len());
+                let (req_id, sender) = self.unanswered_requests.remove(i);
+
+                let response = if thread_rng().gen() {
+                    let message: String = thread_rng()
+                        .sample_iter(&Alphanumeric)
+                        .take(thread_rng().gen_range(1..=100))
+                        .map(char::from)
+                        .collect();
+                    Response::Data(message.into_bytes())
+                } else {
+                    Response::Error(ResponseError::Script("Some error message".to_string()))
+                };
+
+                return Some(Err(MessageDebugEvent {
+                    sender,
+                    event: MessageDebugEventType::Response(ResponseDebugEvent { req_id, response }),
+                }));
+            } else if let Some(sender) = self.links.keys().choose(&mut thread_rng()).copied() {
+                return Some(Err(self.message(sender)));
+            }
         }
 
         const TARGET_SIZE: usize = 100;
@@ -137,10 +237,15 @@ impl Iterator for FakerOracle {
     }
 }
 
-pub(crate) fn faker_oracle() -> impl Stream<Item = MeshTopologyEvent> + Unpin {
+pub(crate) fn faker_oracle(
+) -> impl Stream<Item = Result<MeshTopologyEvent, MessageDebugEvent>> + Unpin + Send {
     let oracle = FakerOracle::default();
     Box::pin(futures::stream::iter(oracle).then(|event| async move {
-        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+        let duration = {
+            let mut rng = thread_rng();
+            Duration::from_millis(rng.gen_range(100..=5000))
+        };
+        tokio::time::sleep(duration).await;
         event
     }))
 }

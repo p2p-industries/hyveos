@@ -6,11 +6,10 @@ use derive_where::derive_where;
 use futures::future;
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
 use libp2p_identity::PeerId;
-#[cfg(feature = "serde")]
-use p2p_industries_core::req_resp::ResponseError;
+pub use p2p_industries_core::req_resp::{Request, Response, ResponseError, TopicQuery};
 use p2p_industries_core::{
     grpc::{req_resp_client::ReqRespClient, OptionalTopicQuery, SendRequest, SendResponse},
-    req_resp::{InboundRequest as CoreInboundRequest, Request, Response, TopicQuery},
+    req_resp::InboundRequest as CoreInboundRequest,
 };
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

@@ -7,6 +7,5 @@ publish = { workspace = true }
 
 [dependencies]
 libc = "0.2.153"
-libp2p = { workspace = true }
-macaddress = { workspace = true }
+multiaddr = { workspace = true }
 thiserror = { workspace = true }

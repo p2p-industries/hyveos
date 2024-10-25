@@ -2,23 +2,32 @@ use std::collections::HashSet;
 
 use futures::stream::StreamExt as _;
 use libp2p::{gossipsub::IdentTopic, PeerId};
-use p2p_industries_core::{debug::MeshTopologyEvent, discovery, gossipsub::ReceivedMessage};
+use p2p_industries_core::{
+    debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType},
+    discovery,
+    gossipsub::ReceivedMessage,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio_stream::wrappers::BroadcastStream;
 
 use crate::{subactors::gossipsub::TopicHandle, Client, NeighbourEvent};
 
-const GOSSIPSUB_TOPIC: &str = "debug/neighbour_events";
+const GOSSIPSUB_TOPIC: &str = "debug/events";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum GossipsubMessage {
-    Subscribe(PeerId),
-    Unsubscribe(PeerId),
+    SubscribeNeighbours(PeerId),
+    UnsubscribeNeighbours(PeerId),
+    SubscribeMessages(PeerId),
+    UnsubscribeMessages(PeerId),
 }
 
 pub enum Command {
     SubscribeNeighbourEvents(oneshot::Sender<broadcast::Receiver<MeshTopologyEvent>>),
     UnsubscribeNeighbourEvents,
+    SubscribeMessageEvents(oneshot::Sender<broadcast::Receiver<MessageDebugEvent>>),
+    UnsubscribeMessageEvents,
 }
 
 pub struct DebugClient {
@@ -26,6 +35,7 @@ pub struct DebugClient {
     topic: TopicHandle,
     receiver: mpsc::Receiver<Command>,
     neighbour_event_subscribers: HashSet<PeerId>,
+    message_event_subscribers: HashSet<PeerId>,
 }
 
 impl DebugClient {
@@ -41,6 +51,7 @@ impl DebugClient {
                 topic,
                 receiver,
                 neighbour_event_subscribers: HashSet::new(),
+                message_event_subscribers: HashSet::new(),
             },
             sender,
         )
@@ -48,6 +59,10 @@ impl DebugClient {
 
     pub async fn run(mut self) {
         let mut neighbour_events = self.client.neighbours().subscribe().await.unwrap();
+        let mut req_resp_events =
+            BroadcastStream::new(self.client.req_resp().debug_subscribe().await.unwrap());
+        let mut gossipsub_events =
+            BroadcastStream::new(self.client.gossipsub().debug_subscribe().await.unwrap());
         let mut gossipsub_messages = self.topic.subscribe().await.unwrap();
 
         loop {
@@ -57,6 +72,12 @@ impl DebugClient {
                 }
                 Some(Ok(neighbour_event)) = neighbour_events.next() => {
                     self.handle_neighbour_event(neighbour_event.as_ref()).await;
+                }
+                Some(Ok(req_resp_event)) = req_resp_events.next() => {
+                    self.handle_message_event(req_resp_event).await;
+                }
+                Some(Ok(gossipsub_event)) = gossipsub_events.next() => {
+                    self.handle_message_event(gossipsub_event).await;
                 }
                 Ok(gossipsub_message) = gossipsub_messages.recv() => {
                     self.handle_gossipsub_message(&gossipsub_message).await;
@@ -79,9 +100,21 @@ impl DebugClient {
                     .unwrap();
                 sender.send(receiver).unwrap();
 
-                GossipsubMessage::Subscribe(peer_id)
+                GossipsubMessage::SubscribeNeighbours(peer_id)
             }
-            Command::UnsubscribeNeighbourEvents => GossipsubMessage::Unsubscribe(peer_id),
+            Command::UnsubscribeNeighbourEvents => GossipsubMessage::UnsubscribeNeighbours(peer_id),
+            Command::SubscribeMessageEvents(sender) => {
+                let receiver = self
+                    .client
+                    .debug()
+                    .subscribe_message_events()
+                    .await
+                    .unwrap();
+                sender.send(receiver).unwrap();
+
+                GossipsubMessage::SubscribeMessages(peer_id)
+            }
+            Command::UnsubscribeMessageEvents => GossipsubMessage::UnsubscribeMessages(peer_id),
         };
 
         let message = cbor4ii::serde::to_vec(Vec::new(), &message).unwrap();
@@ -104,10 +137,22 @@ impl DebugClient {
         }
     }
 
+    async fn handle_message_event(&mut self, event: MessageDebugEventType) {
+        if !self.message_event_subscribers.is_empty() {
+            for subscriber in &self.message_event_subscribers {
+                self.client
+                    .debug()
+                    .send_message_event(*subscriber, event.clone())
+                    .await
+                    .unwrap();
+            }
+        }
+    }
+
     async fn handle_gossipsub_message(&mut self, message: &ReceivedMessage) {
         if message.propagation_source != self.client.peer_id() {
             match cbor4ii::serde::from_slice(&message.message.data).unwrap() {
-                GossipsubMessage::Subscribe(peer_id) => {
+                GossipsubMessage::SubscribeNeighbours(peer_id) => {
                     let current_neighbours = self
                         .client
                         .neighbours()
@@ -128,8 +173,14 @@ impl DebugClient {
 
                     self.neighbour_event_subscribers.insert(peer_id);
                 }
-                GossipsubMessage::Unsubscribe(peer_id) => {
+                GossipsubMessage::UnsubscribeNeighbours(peer_id) => {
                     self.neighbour_event_subscribers.remove(&peer_id);
+                }
+                GossipsubMessage::SubscribeMessages(peer_id) => {
+                    self.message_event_subscribers.insert(peer_id);
+                }
+                GossipsubMessage::UnsubscribeMessages(peer_id) => {
+                    self.message_event_subscribers.remove(&peer_id);
                 }
             }
         }

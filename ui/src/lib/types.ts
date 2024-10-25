@@ -44,3 +44,22 @@ export interface EventData {
 export interface TopologyUpdateData {
   events: EventData[];
 }
+
+export type RequestResponse = {
+  type: 'req_resp';
+  receiver: string;
+  request: string;
+  response?: string;
+  topic?: string;
+};
+
+export type GossipsubMessage = {
+  type: 'gossipsub';
+  topic: string;
+  message: string;
+};
+
+export type Message = {
+  sender: string;
+  data: RequestResponse | GossipsubMessage;
+};

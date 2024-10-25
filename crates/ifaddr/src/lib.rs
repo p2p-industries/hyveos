@@ -2,18 +2,29 @@ use std::{
     borrow::Cow,
     fmt::Display,
     io,
-    net::{Ipv6Addr, SocketAddrV6},
+    net::{Ipv6Addr, SocketAddr, SocketAddrV6},
     str::FromStr,
+    sync::Arc,
 };
 
-use libp2p::{multiaddr::Protocol, Multiaddr};
-use macaddress::Eui64;
+use multiaddr::{Multiaddr, Protocol};
 
 pub fn if_name_to_index(name: impl Into<Vec<u8>>) -> io::Result<u32> {
     let ifname = std::ffi::CString::new(name)?;
     match unsafe { libc::if_nametoindex(ifname.as_ptr()) } {
         0 => Err(io::Error::last_os_error()),
         otherwise => Ok(otherwise),
+    }
+}
+
+pub fn if_index_to_name(name: u32) -> io::Result<String> {
+    let mut buffer = [0; libc::IF_NAMESIZE];
+    let maybe_name = unsafe { libc::if_indextoname(name, buffer.as_mut_ptr()) };
+    if maybe_name.is_null() {
+        Err(io::Error::last_os_error())
+    } else {
+        let cstr = unsafe { std::ffi::CStr::from_ptr(maybe_name) };
+        Ok(cstr.to_string_lossy().into_owned())
     }
 }
 
@@ -31,50 +42,71 @@ pub enum Error {
     InvalidMultiaddr,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct IfAddr {
     pub if_index: u32,
+    pub if_name: Arc<str>,
     pub addr: Ipv6Addr,
 }
 
 impl IfAddr {
-    pub fn with_port(&self, port: u16) -> std::net::SocketAddr {
-        SocketAddrV6::new(self.addr, port, 0, self.if_index).into()
+    pub fn new_with_index(addr: Ipv6Addr, if_index: u32) -> io::Result<Self> {
+        Ok(Self {
+            if_index,
+            if_name: if_index_to_name(if_index)?.into(),
+            addr,
+        })
+    }
+
+    pub fn new_with_name(addr: Ipv6Addr, if_name: impl AsRef<str>) -> io::Result<Self> {
+        let if_name = if_name.as_ref();
+
+        Ok(Self {
+            if_index: if_name_to_index(if_name)?,
+            if_name: if_name.into(),
+            addr,
+        })
+    }
+
+    pub fn with_port(&self, port: u16) -> io::Result<SocketAddr> {
+        Ok(SocketAddrV6::new(self.addr, port, 0, self.if_index).into())
+    }
+
+    pub fn to_multiaddr(&self, name: bool) -> Multiaddr {
+        let zone_str = if name {
+            Cow::Borrowed(self.if_name.as_ref())
+        } else {
+            Cow::from(self.if_index.to_string())
+        };
+
+        Multiaddr::empty()
+            .with(Protocol::Ip6(self.addr))
+            .with(Protocol::Ip6zone(zone_str))
+    }
+}
+
+impl Display for IfAddr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}%{}", self.addr, self.if_name)
     }
 }
 
 impl FromStr for IfAddr {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Error> {
         let mut parts = s.splitn(2, '%');
         let addr = parts.next().ok_or(Error::EmptyString)?;
-        let scope_id = parts.next().ok_or(Error::MissingScopeId)?;
+        let zone_str = parts.next().ok_or(Error::MissingScopeId)?;
 
         let addr = Ipv6Addr::from_str(addr).map_err(Error::from)?;
-        let if_index = scope_id
-            .parse()
-            .or_else(|_| if_name_to_index(scope_id))
-            .map_err(Error::from)?;
 
-        Ok(Self { if_index, addr })
-    }
-}
-
-impl Display for IfAddr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}%{}", self.addr, self.if_index)
-    }
-}
-
-impl From<IfAddr> for Multiaddr {
-    fn from(addr: IfAddr) -> Self {
-        let mac: Eui64 = addr.addr.into();
-
-        let mut bytes = [0; 10];
-        bytes[0..8].copy_from_slice(&mac.bytes());
-
-        Multiaddr::empty().with(Protocol::Onion(Cow::Owned(bytes), addr.if_index as u16))
+        if let Ok(index) = zone_str.parse() {
+            Self::new_with_index(addr, index)
+        } else {
+            Self::new_with_name(addr, zone_str)
+        }
+        .map_err(Into::into)
     }
 }
 
@@ -82,25 +114,22 @@ impl TryFrom<&Multiaddr> for IfAddr {
     type Error = Error;
 
     fn try_from(multiaddr: &Multiaddr) -> Result<Self, Self::Error> {
-        multiaddr
-            .iter()
-            .find_map(|segment| {
-                if let Protocol::Onion(bytes, if_index) = segment {
-                    let mut mac_bytes = [0; 8];
-                    mac_bytes.copy_from_slice(&bytes[..8]);
+        let mut iter = multiaddr.iter();
 
-                    let mac = Eui64::new(mac_bytes);
-                    let addr = Ipv6Addr::from(mac);
+        let Some(Protocol::Ip6(addr)) = iter.next() else {
+            return Err(Error::InvalidMultiaddr);
+        };
 
-                    Some(IfAddr {
-                        if_index: if_index as u32,
-                        addr,
-                    })
-                } else {
-                    None
-                }
-            })
-            .ok_or(Error::InvalidMultiaddr)
+        let Some(Protocol::Ip6zone(zone_str)) = iter.next() else {
+            return Err(Error::InvalidMultiaddr);
+        };
+
+        if let Ok(index) = zone_str.parse() {
+            Self::new_with_index(addr, index)
+        } else {
+            Self::new_with_name(addr, zone_str)
+        }
+        .map_err(Into::into)
     }
 }
 
@@ -108,6 +137,6 @@ impl TryFrom<Multiaddr> for IfAddr {
     type Error = Error;
 
     fn try_from(multiaddr: Multiaddr) -> Result<Self, Self::Error> {
-        TryFrom::try_from(&multiaddr)
+        IfAddr::try_from(&multiaddr)
     }
 }

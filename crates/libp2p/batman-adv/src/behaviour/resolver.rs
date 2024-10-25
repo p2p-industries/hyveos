@@ -64,12 +64,12 @@ impl NeighbourResolver {
             socket.set_reuse_address(true)?;
             socket.set_reuse_port(true)?;
             socket.set_nonblocking(true)?;
-            socket.bind(&if_addr.with_port(NEIGHBOUR_RESOLUTION_PORT).into())?;
+            socket.bind(&if_addr.with_port(NEIGHBOUR_RESOLUTION_PORT)?.into())?;
             UdpSocket::from_std(std::net::UdpSocket::from(socket))?
         };
 
         let send_socket = {
-            let socket = std::net::UdpSocket::bind(if_addr.with_port(0))?;
+            let socket = std::net::UdpSocket::bind(if_addr.with_port(0)?)?;
             socket.set_nonblocking(true)?;
             UdpSocket::from_std(socket)?
         };

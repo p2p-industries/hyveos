@@ -18,7 +18,7 @@ pub struct MyBehaviour {
     pub batman_neighbours: libp2p_batman_adv::Behaviour,
     pub ping: ping::Behaviour,
     pub identify: identify::Behaviour,
-    pub kad: kad::Behaviour<MemoryStore>,
+    pub kad: addr_filter::Behaviour<kad::Behaviour<MemoryStore>>,
     #[cfg(feature = "mdns")]
     pub mdns: libp2p::mdns::tokio::Behaviour,
     pub gossipsub: gossipsub::Behaviour,
@@ -43,7 +43,10 @@ impl MyBehaviour {
                 peer_id,
             ),
             ping: ping::Behaviour::default(),
-            kad: kad::Behaviour::new(peer_id, MemoryStore::new(peer_id)),
+            kad: addr_filter::Behaviour::new(kad::Behaviour::new(
+                peer_id,
+                MemoryStore::new(peer_id),
+            )),
             #[cfg(feature = "mdns")]
             mdns: libp2p::mdns::tokio::Behaviour::new(
                 libp2p::mdns::Config {

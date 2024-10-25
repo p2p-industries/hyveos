@@ -99,12 +99,6 @@ message NeighbourEvent {
   }
 }
 
-// A mesh topology event
-message MeshTopologyEvent {
-  required Peer peer = 1;
-  required NeighbourEvent event = 2;
-}
-
 // An ID of a message in gossipsub
 message GossipSubMessageID {
   required bytes id = 1;
@@ -156,6 +150,35 @@ message FilePath {
 message CID {
   required bytes hash = 1;
   required ID id = 2;
+}
+
+// A mesh topology event
+message MeshTopologyEvent {
+  required Peer peer = 1;
+  required NeighbourEvent event = 2;
+}
+
+// A request debug event
+message RequestDebugEvent {
+  required ID id = 1;
+  required Peer receiver = 2;
+  required Message msg = 3;
+}
+
+// A response debug event
+message ResponseDebugEvent {
+  required ID req_id = 1;
+  required Response response = 2;
+}
+
+// A message debug event
+message MessageDebugEvent {
+  required Peer sender = 1;
+  oneof event {
+    RequestDebugEvent req = 2;
+    ResponseDebugEvent res = 3;
+    GossipSubMessage gos = 4;
+  }
 }
 
 // A docker image
@@ -266,6 +289,9 @@ service FileTransfer {
 service Debug {
   // Subscribe to mesh topology events to get notified when the mesh topology changes
   rpc SubscribeMeshTopology(Empty) returns (stream MeshTopologyEvent) {}
+
+  // Subscribe to message debug events to get notified when messages are sent
+  rpc SubscribeMessages(Empty) returns (stream MessageDebugEvent) {}
 }
 
 service Scripting {

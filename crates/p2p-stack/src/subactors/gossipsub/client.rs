@@ -1,5 +1,8 @@
 use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
-use p2p_industries_core::gossipsub::{MessageId, ReceivedMessage};
+use p2p_industries_core::{
+    debug::MessageDebugEventType,
+    gossipsub::{MessageId, ReceivedMessage},
+};
 use tokio::sync::{broadcast, oneshot};
 
 use super::Command;
@@ -19,6 +22,17 @@ impl Client {
     pub fn get_topic(&self, topic: IdentTopic) -> TopicHandle {
         let commander = self.inner.clone();
         TopicHandle { commander, topic }
+    }
+
+    pub async fn debug_subscribe(
+        &self,
+    ) -> Result<broadcast::Receiver<MessageDebugEventType>, RequestError> {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .send(Command::DebugSubscribe(sender))
+            .await
+            .map_err(RequestError::Send)?;
+        receiver.await.map_err(RequestError::Oneshot)
     }
 }
 

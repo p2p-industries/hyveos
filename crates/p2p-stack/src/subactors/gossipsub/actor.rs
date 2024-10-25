@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
-use p2p_industries_core::gossipsub::{Message, MessageId, ReceivedMessage};
+use p2p_industries_core::{
+    debug::MessageDebugEventType,
+    gossipsub::{Message, MessageId, ReceivedMessage},
+};
 use tokio::sync::broadcast;
 
 use super::Command;
@@ -12,6 +15,7 @@ const CHANNEL_CAP: usize = 10;
 #[derive(Debug, Default)]
 pub struct Actor {
     topic_subscriptions: HashMap<TopicHash, (IdentTopic, broadcast::Sender<ReceivedMessage>)>,
+    debug_sender: Option<broadcast::Sender<MessageDebugEventType>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -53,20 +57,43 @@ impl SubActor for Actor {
                 topic,
                 data,
                 send_message_id,
-            } => send_message_id
-                .send(
-                    behaviour
-                        .gossipsub
-                        .publish(topic, data)
-                        .map(|id| MessageId(id.0)),
-                )
-                .map_err(CommandError::MessageIdFailed),
+            } => {
+                if let Some(debug_sender) = self.debug_sender.take() {
+                    if debug_sender
+                        .send(MessageDebugEventType::GossipSub(Message {
+                            data: data.clone(),
+                            topic: topic.to_string(),
+                        }))
+                        .is_ok()
+                    {
+                        // If there are still subscribers, put the sender back
+                        self.debug_sender = Some(debug_sender);
+                    }
+                }
+
+                send_message_id
+                    .send(
+                        behaviour
+                            .gossipsub
+                            .publish(topic, data)
+                            .map(|id| MessageId(id.0)),
+                    )
+                    .map_err(CommandError::MessageIdFailed)
+            }
             Command::Subscribe {
                 topic,
                 send_subscription,
             } => send_subscription
                 .send(self.get_sub(&mut behaviour.gossipsub, topic))
                 .map_err(CommandError::SubscriptionFailed),
+            Command::DebugSubscribe(sender) => {
+                let receiver = self
+                    .debug_sender
+                    .get_or_insert_with(|| broadcast::channel(5).0)
+                    .subscribe();
+                let _ = sender.send(receiver);
+                Ok(())
+            }
         }
     }
 

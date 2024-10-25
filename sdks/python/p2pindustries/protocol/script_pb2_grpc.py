@@ -879,6 +879,11 @@ class DebugStub(object):
                 request_serializer=script__pb2.Empty.SerializeToString,
                 response_deserializer=script__pb2.MeshTopologyEvent.FromString,
                 _registered_method=True)
+        self.SubscribeMessages = channel.unary_stream(
+                '/script.Debug/SubscribeMessages',
+                request_serializer=script__pb2.Empty.SerializeToString,
+                response_deserializer=script__pb2.MessageDebugEvent.FromString,
+                _registered_method=True)
 
 
 class DebugServicer(object):
@@ -891,6 +896,13 @@ class DebugServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SubscribeMessages(self, request, context):
+        """Subscribe to message debug events to get notified when messages are sent
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DebugServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -898,6 +910,11 @@ def add_DebugServicer_to_server(servicer, server):
                     servicer.SubscribeMeshTopology,
                     request_deserializer=script__pb2.Empty.FromString,
                     response_serializer=script__pb2.MeshTopologyEvent.SerializeToString,
+            ),
+            'SubscribeMessages': grpc.unary_stream_rpc_method_handler(
+                    servicer.SubscribeMessages,
+                    request_deserializer=script__pb2.Empty.FromString,
+                    response_serializer=script__pb2.MessageDebugEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -927,6 +944,33 @@ class Debug(object):
             '/script.Debug/SubscribeMeshTopology',
             script__pb2.Empty.SerializeToString,
             script__pb2.MeshTopologyEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SubscribeMessages(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/script.Debug/SubscribeMessages',
+            script__pb2.Empty.SerializeToString,
+            script__pb2.MessageDebugEvent.FromString,
             options,
             channel_credentials,
             insecure,

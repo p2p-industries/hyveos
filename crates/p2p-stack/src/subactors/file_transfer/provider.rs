@@ -147,7 +147,7 @@ impl StreamHandler {
         let file = framed_parts.write_buffer.as_mut().chain(file);
 
         let multi = indicatif::MultiProgress::new();
-        let file = multi
+        let mut file = multi
             .add(indicatif::ProgressBar::new(length))
             .with_prefix("File")
             .with_style(bar_style())
@@ -159,9 +159,10 @@ impl StreamHandler {
             .with_prefix("Network")
             .with_style(bar_style())
             .wrap_async_write(writer);
-        ack_writer(&mut reader, &mut writer, file).await?;
+        ack_writer(&mut reader, &mut writer, &mut file).await?;
 
-        let _ = multi.clear();
+        file.progress.finish();
+        writer.progress.finish();
 
         let mut framed = Framed::from_parts(framed_parts);
 

@@ -17,6 +17,7 @@ pin-project = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["time", "io-util", "macros", "sync"] }
 tokio-stream = { workspace = true }
+tokio-util = { workspace = true, features = ["io"]}
 
 
 [dev-dependencies]

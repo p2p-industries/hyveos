@@ -117,14 +117,6 @@ class NeighbourEvent(_message.Message):
     lost: Peer
     def __init__(self, init: _Optional[_Union[Peers, _Mapping]] = ..., discovered: _Optional[_Union[Peer, _Mapping]] = ..., lost: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
 
-class MeshTopologyEvent(_message.Message):
-    __slots__ = ("peer", "event")
-    PEER_FIELD_NUMBER: _ClassVar[int]
-    EVENT_FIELD_NUMBER: _ClassVar[int]
-    peer: Peer
-    event: NeighbourEvent
-    def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ..., event: _Optional[_Union[NeighbourEvent, _Mapping]] = ...) -> None: ...
-
 class GossipSubMessageID(_message.Message):
     __slots__ = ("id",)
     ID_FIELD_NUMBER: _ClassVar[int]
@@ -194,6 +186,44 @@ class CID(_message.Message):
     hash: bytes
     id: ID
     def __init__(self, hash: _Optional[bytes] = ..., id: _Optional[_Union[ID, _Mapping]] = ...) -> None: ...
+
+class MeshTopologyEvent(_message.Message):
+    __slots__ = ("peer", "event")
+    PEER_FIELD_NUMBER: _ClassVar[int]
+    EVENT_FIELD_NUMBER: _ClassVar[int]
+    peer: Peer
+    event: NeighbourEvent
+    def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ..., event: _Optional[_Union[NeighbourEvent, _Mapping]] = ...) -> None: ...
+
+class RequestDebugEvent(_message.Message):
+    __slots__ = ("id", "receiver", "msg")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    RECEIVER_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    id: ID
+    receiver: Peer
+    msg: Message
+    def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., receiver: _Optional[_Union[Peer, _Mapping]] = ..., msg: _Optional[_Union[Message, _Mapping]] = ...) -> None: ...
+
+class ResponseDebugEvent(_message.Message):
+    __slots__ = ("req_id", "response")
+    REQ_ID_FIELD_NUMBER: _ClassVar[int]
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    req_id: ID
+    response: Response
+    def __init__(self, req_id: _Optional[_Union[ID, _Mapping]] = ..., response: _Optional[_Union[Response, _Mapping]] = ...) -> None: ...
+
+class MessageDebugEvent(_message.Message):
+    __slots__ = ("sender", "req", "res", "gos")
+    SENDER_FIELD_NUMBER: _ClassVar[int]
+    REQ_FIELD_NUMBER: _ClassVar[int]
+    RES_FIELD_NUMBER: _ClassVar[int]
+    GOS_FIELD_NUMBER: _ClassVar[int]
+    sender: Peer
+    req: RequestDebugEvent
+    res: ResponseDebugEvent
+    gos: GossipSubMessage
+    def __init__(self, sender: _Optional[_Union[Peer, _Mapping]] = ..., req: _Optional[_Union[RequestDebugEvent, _Mapping]] = ..., res: _Optional[_Union[ResponseDebugEvent, _Mapping]] = ..., gos: _Optional[_Union[GossipSubMessage, _Mapping]] = ...) -> None: ...
 
 class DockerImage(_message.Message):
     __slots__ = ("name",)

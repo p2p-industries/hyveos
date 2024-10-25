@@ -1,5 +1,8 @@
 use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
-use p2p_industries_core::gossipsub::{MessageId, ReceivedMessage};
+use p2p_industries_core::{
+    debug::MessageDebugEventType,
+    gossipsub::{MessageId, ReceivedMessage},
+};
 use tokio::sync::{broadcast, oneshot};
 
 use crate::impl_from_special_command;
@@ -15,6 +18,7 @@ pub enum Command {
         send_subscription:
             oneshot::Sender<Result<broadcast::Receiver<ReceivedMessage>, SubscriptionError>>,
     },
+    DebugSubscribe(oneshot::Sender<broadcast::Receiver<MessageDebugEventType>>),
 }
 
 impl_from_special_command!(Gossipsub);

@@ -10,6 +10,7 @@ use std::{
 use bridge::ScriptingClient as _;
 use clap::{Parser, ValueEnum};
 use dirs::{data_local_dir, runtime_dir};
+use ifaddr::{if_name_to_index, IfAddr};
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, multiaddr::Protocol, Multiaddr};
 use p2p_industries_core::gossipsub::ReceivedMessage;
 #[cfg(feature = "batman")]
@@ -37,6 +38,8 @@ mod printer;
 mod scripting;
 
 const APP_NAME: &str = "p2p-industries-stack";
+
+const LISTEN_PORT: u16 = 39811;
 
 fn default_store_directory() -> PathBuf {
     data_local_dir().unwrap_or_else(temp_dir).join(APP_NAME)
@@ -71,6 +74,8 @@ impl From<LogFilter> for LevelFilter {
 struct Config {
     #[serde(default)]
     interfaces: Option<Vec<String>>,
+    #[serde(default)]
+    batman_interface: Option<String>,
     #[serde(default)]
     store_directory: Option<PathBuf>,
     #[serde(default)]
@@ -136,6 +141,18 @@ pub struct Opts {
         conflicts_with("listen_addrs")
     )]
     pub interfaces: Option<Vec<String>>,
+    #[clap(
+        long = "batman-address",
+        value_name = "ADDRESS",
+        conflicts_with("batman_interface")
+    )]
+    pub batman_addr: Option<ifaddr::IfAddr>,
+    #[clap(
+        long = "batman-interface",
+        value_name = "INTERFACE",
+        conflicts_with("batman_addr")
+    )]
+    pub batman_interface: Option<String>,
     #[clap(short, long)]
     pub store_directory: Option<PathBuf>,
     #[clap(long)]
@@ -178,7 +195,7 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
     use std::{collections::HashSet, time::Duration};
 
     use futures::TryStreamExt as _;
-    use ifaddr::{if_name_to_index, IfAddr};
+    use ifaddr::IfAddr;
     use ifwatcher::{IfEvent, IfWatcher};
 
     if let Some(mut interfaces) = interfaces
@@ -200,7 +217,7 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
 
                 if let IfEvent::Up(if_addr) = event {
                     if interfaces.remove(&if_addr.if_index) {
-                        listen_addrs.push(Multiaddr::from(if_addr));
+                        listen_addrs.push(if_addr.to_multiaddr(true));
                     }
                 }
             }
@@ -213,22 +230,25 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
         Ok(netdev::get_interfaces()
             .into_iter()
             .flat_map(|iface| {
-                iface.ipv6.into_iter().map(move |net| IfAddr {
-                    if_index: iface.index,
-                    addr: net.addr,
-                })
+                iface
+                    .ipv6
+                    .into_iter()
+                    .map(move |net| IfAddr::new_with_index(net.addr, iface.index))
             })
-            .map(Multiaddr::from)
-            .collect())
+            .map(|res| res.map(|if_addr| if_addr.to_multiaddr(true)))
+            .collect::<Result<_, _>>()?)
     }
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)]
 async fn main() -> anyhow::Result<()> {
     let Opts {
         config_file,
         listen_addrs,
         interfaces,
+        batman_addr,
+        batman_interface,
         store_directory,
         db_file,
         key_file,
@@ -242,6 +262,7 @@ async fn main() -> anyhow::Result<()> {
 
     let Config {
         interfaces: config_interfaces,
+        batman_interface: config_batman_interface,
         store_directory: config_store_directory,
         db_file: config_db_file,
         key_file: config_key_file,
@@ -251,16 +272,41 @@ async fn main() -> anyhow::Result<()> {
         log_level: config_log_level,
     } = Config::load(config_file)?;
 
-    let listen_addrs =
-        if let Some(addrs) = listen_addrs.map(|e| e.into_iter().map(Multiaddr::from).collect()) {
-            addrs
-        } else {
-            fallback_listen_addrs(interfaces.or(config_interfaces)).await?
-        };
-    println!("Listen addresses: {listen_addrs:?}");
+    let listen_addrs = if let Some(addrs) = listen_addrs.map(|e| {
+        e.into_iter()
+            .map(|if_addr| if_addr.to_multiaddr(true))
+            .collect()
+    }) {
+        addrs
+    } else {
+        fallback_listen_addrs(interfaces.or(config_interfaces)).await?
+    };
     let listen_addrs = listen_addrs
         .into_iter()
-        .map(|e| e.with(Protocol::Udp(0)).with(Protocol::QuicV1));
+        // .map(|a| a.with(Protocol::Udp(LISTEN_PORT)).with(Protocol::QuicV1))
+        .map(|a| a.with(Protocol::Tcp(LISTEN_PORT)))
+        .collect::<Vec<_>>();
+    println!("Listen addresses: {listen_addrs:?}");
+
+    let batman_addr = if let Some(addr) = batman_addr.map(|if_addr| if_addr.to_multiaddr(true)) {
+        listen_addrs
+            .iter()
+            .find(|a| a.iter().next() == addr.iter().next())
+            .cloned()
+            .expect("batman_addr not in listen_addrs")
+    } else {
+        let batman_interface = batman_interface
+            .or(config_batman_interface)
+            .unwrap_or("bat0".to_string());
+
+        let interface_index = if_name_to_index(batman_interface)?;
+
+        listen_addrs
+            .iter()
+            .find(|&a| IfAddr::try_from(a).is_ok_and(|if_addr| if_addr.if_index == interface_index))
+            .cloned()
+            .expect("batman_interface not in listen_addrs")
+    };
 
     let store_directory = store_directory
         .or(config_store_directory)
@@ -297,6 +343,7 @@ async fn main() -> anyhow::Result<()> {
 
     let args = CommonArgs {
         listen_addrs,
+        batman_addr,
         store_directory,
         db_file,
         keypair,
@@ -314,8 +361,9 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-struct CommonArgs<Addrs> {
-    listen_addrs: Addrs,
+struct CommonArgs {
+    listen_addrs: Vec<Multiaddr>,
+    batman_addr: Multiaddr,
     store_directory: PathBuf,
     db_file: PathBuf,
     keypair: Keypair,
@@ -326,10 +374,7 @@ struct CommonArgs<Addrs> {
     log_level: LogFilter,
 }
 
-async fn main_tty(
-    args: CommonArgs<impl Iterator<Item = Multiaddr>>,
-    vim: bool,
-) -> anyhow::Result<()> {
+async fn main_tty(args: CommonArgs, vim: bool) -> anyhow::Result<()> {
     let (rl, rl_printer, history_file) = prep_interaction(&args.store_directory, vim).await?;
 
     let Setup {
@@ -376,7 +421,7 @@ async fn main_tty(
     Ok(())
 }
 
-async fn main_alt(args: CommonArgs<impl Iterator<Item = Multiaddr>>) -> anyhow::Result<()> {
+async fn main_alt(args: CommonArgs) -> anyhow::Result<()> {
     let Setup {
         clients,
         actor_task,
@@ -473,12 +518,10 @@ fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter, printer: &Optio
 }
 
 impl Setup {
-    async fn new(
-        args: CommonArgs<impl Iterator<Item = Multiaddr>>,
-        printer: Option<SharedPrinter>,
-    ) -> anyhow::Result<Setup> {
+    async fn new(args: CommonArgs, printer: Option<SharedPrinter>) -> anyhow::Result<Setup> {
         let CommonArgs {
             listen_addrs,
+            batman_addr,
             store_directory,
             db_file,
             keypair,
@@ -514,7 +557,7 @@ impl Setup {
 
         let (p2p_client, mut actor) = FullActor::build(keypair);
 
-        actor.setup(listen_addrs);
+        actor.setup(listen_addrs.into_iter(), Some(batman_addr));
 
         let actor_task = tokio::spawn(async move {
             Box::pin(actor.drive()).await;

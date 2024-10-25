@@ -14,6 +14,7 @@ COPY crates/ifwatcher /app/build/crates/ifwatcher
 COPY crates/batman-neighbours-core /app/build/crates/batman-neighbours-core
 COPY crates/batman-neighbours-daemon /app/build/crates/batman-neighbours-daemon
 COPY crates/libp2p/batman-adv /app/build/crates/libp2p/batman-adv
+COPY crates/libp2p/addr-filter /app/build/crates/libp2p/addr-filter
 COPY endpoint/data-collector /app/build/endpoint/data-collector
 COPY protos /app/build/protos
 
@@ -37,7 +38,7 @@ ARG EXTRA_FEATURES
 
 WORKDIR /app/build/endpoint/ws-graph
 
-RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
+RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
@@ -51,14 +52,14 @@ COPY endpoint/ws-graph/src /app/build/endpoint/ws-graph/src
 RUN touch /app/build/endpoint/ws-graph/src/*
 
 WORKDIR /app/build/endpoint/ws-graph
-RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
+RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
     --mount=type=cache,target=/root/.cargo/registry/index \
     xx-cargo build -r -p ws-graph -F frontend,${EXTRA_FEATURES} --target-dir /app/build/target && \
     xx-verify /app/build/target/$(xx-cargo --print-target-triple)/release/ws-graph
-RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
+RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \

@@ -21,6 +21,7 @@ impl DebugServer {
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl Debug for DebugServer {
     type SubscribeMeshTopologyStream = ServerStream<grpc::MeshTopologyEvent>;
+    type SubscribeMessagesStream = ServerStream<grpc::MessageDebugEvent>;
 
     async fn subscribe_mesh_topology(
         &self,
@@ -49,6 +50,40 @@ impl Debug for DebugServer {
             tokio::spawn(async move {
                 let _ = command_sender
                     .send(DebugClientCommand::UnsubscribeNeighbourEvents)
+                    .await;
+            });
+        });
+
+        Ok(TonicResponse::new(Box::pin(drop_stream)))
+    }
+
+    async fn subscribe_messages(
+        &self,
+        _request: TonicRequest<grpc::Empty>,
+    ) -> TonicResult<Self::SubscribeMessagesStream> {
+        tracing::debug!("Received subscribe_messages request");
+
+        let command_sender = self.command_sender.clone();
+
+        let (sender, receiver) = oneshot::channel();
+
+        command_sender
+            .send(DebugClientCommand::SubscribeMessageEvents(sender))
+            .await
+            .map_err(|_| Status::internal("Failed to send command"))?;
+
+        let receiver = receiver
+            .await
+            .map_err(|_| Status::internal("Failed to receive response"))?;
+
+        let stream = BroadcastStream::new(receiver)
+            .map_ok(Into::into)
+            .map_err(|e| Status::internal(e.to_string()));
+
+        let drop_stream = DropStream::new(stream, move || {
+            tokio::spawn(async move {
+                let _ = command_sender
+                    .send(DebugClientCommand::UnsubscribeMessageEvents)
                     .await;
             });
         });

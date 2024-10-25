@@ -24,7 +24,7 @@
       {/each}
     </ul>
   </nav>
-  <main class="w-full">
+  <main class="grow">
     <slot />
   </main>
 </div>

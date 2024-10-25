@@ -19,11 +19,11 @@ class ValveController:
 
     async def open_until_satisfied(self):
         print(f'[ML: {self.sensor.moisture:.2f} Hz] Opening valve.')
-        if self.sensor.is_dry:
+        if self.sensor.moisture > self.sensor.threshold + 0.5:
             self.valve.on()
 
             i = 0
-            while self.sensor.is_dry:
+            while self.sensor.moisture > self.sensor.threshold - 0.5:
                 if i % 10 == 0:
                     print(f'[ML: {self.sensor.moisture:.2f} Hz] Valve remains open.')
 

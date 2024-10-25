@@ -13,7 +13,7 @@ use ifaddr::IfAddr;
 use ifwatcher::{IfEvent, IfWatcher};
 use itertools::Itertools as _;
 use libp2p::{
-    core::Endpoint,
+    core::{transport::PortUse, Endpoint},
     swarm::{
         dummy, ConnectionDenied, ConnectionId, FromSwarm, ListenAddresses, NetworkBehaviour,
         THandler, THandlerInEvent, THandlerOutEvent, ToSwarm,
@@ -270,7 +270,7 @@ impl ResolvingNeighboursBehaviour {
                     {
                         if let Some((_, sender, addr)) = self.neighbour_resolvers.get_mut(&if_index)
                         {
-                            let addr = *addr;
+                            let addr = addr.clone();
                             if let Some(discovered_neighbours) =
                                 match sender.try_send(discovered_neighbours) {
                                     Ok(()) => None,
@@ -364,11 +364,12 @@ impl ResolvingNeighboursBehaviour {
                     self.local_peer_id,
                     self.batman_addr.clone(),
                     direct_address,
-                    addr,
+                    addr.clone(),
                     self.resolved_neighbour_sender.clone(),
                 ) {
                     Ok((resolver, sender)) => {
-                        let (_, sender, _) = entry.insert((tokio::spawn(resolver), sender, addr));
+                        let (_, sender, _) =
+                            entry.insert((tokio::spawn(resolver), sender, addr.clone()));
 
                         let unresolved_neighbours = self
                             .neighbour_store
@@ -455,12 +456,13 @@ impl NetworkBehaviour for Behaviour {
         Ok(dummy::ConnectionHandler)
     }
 
+    #[tracing::instrument(skip(self))]
     fn handle_pending_outbound_connection(
         &mut self,
-        _connection_id: ConnectionId,
+        connection_id: ConnectionId,
         maybe_peer: Option<PeerId>,
-        _addresses: &[Multiaddr],
-        _effective_role: Endpoint,
+        addresses: &[Multiaddr],
+        effective_role: Endpoint,
     ) -> Result<Vec<Multiaddr>, ConnectionDenied> {
         tracing::info!(peer=?maybe_peer, "Handling pending outbound connection called");
         let (Some(peer_id), Some(store)) = (maybe_peer, self.get_neighbour_store()) else {
@@ -479,8 +481,10 @@ impl NetworkBehaviour for Behaviour {
 
         Ok(neighbours
             .values()
-            .map(|n| n.direct_addr.clone())
-            .chain(neighbours.values().next().map(|n| n.batman_addr.clone()))
+            .map(|n| &n.direct_addr)
+            .chain(neighbours.values().map(|n| &n.batman_addr).take(1))
+            .filter(|addr| addresses.iter().all(|a| addr != &a))
+            .cloned()
             .collect())
     }
 
@@ -490,6 +494,7 @@ impl NetworkBehaviour for Behaviour {
         _: PeerId,
         _: &Multiaddr,
         _: Endpoint,
+        _: PortUse,
     ) -> Result<THandler<Self>, ConnectionDenied> {
         Ok(dummy::ConnectionHandler)
     }

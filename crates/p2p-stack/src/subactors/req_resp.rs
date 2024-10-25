@@ -8,8 +8,13 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
-use p2p_industries_core::req_resp::{InboundRequest, Request, Response, ResponseError, TopicQuery};
-use tokio::sync::{mpsc, oneshot};
+use p2p_industries_core::{
+    debug::{MessageDebugEventType, RequestDebugEvent, ResponseDebugEvent},
+    req_resp::{self, InboundRequest, Response, ResponseError, TopicQuery},
+};
+use serde::{Deserialize, Serialize};
+use tokio::sync::{broadcast, mpsc, oneshot};
+use ulid::Ulid;
 
 use crate::{
     actor::SubActor,
@@ -20,6 +25,12 @@ use crate::{
 
 // TODO: lower timeout (requires changes to file_transfer actor)
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Request {
+    debug_id: Ulid,
+    req: req_resp::Request,
+}
 
 pub type Behaviour = cbor::Behaviour<Request, Response>;
 
@@ -36,7 +47,7 @@ pub struct SubscriptionId(u64);
 pub enum Command {
     Request {
         peer_id: PeerId,
-        req: Request,
+        req: req_resp::Request,
         sender: oneshot::Sender<Response>,
     },
     Subscribe {
@@ -48,17 +59,33 @@ pub enum Command {
         id: u64,
         response: Response,
     },
+    DebugSubscribe(oneshot::Sender<broadcast::Receiver<MessageDebugEventType>>),
 }
 
 impl_from_special_command!(ReqResp);
+
+type ForeignOrSelfResponseChannel =
+    Result<(Ulid, ResponseChannel<Response>), oneshot::Sender<Response>>;
 
 #[derive(Debug, Default)]
 pub struct Actor {
     peer_id: Option<PeerId>,
     response_senders: HashMap<OutboundRequestId, oneshot::Sender<Response>>,
     request_subscriptions: HashMap<u64, (Option<TopicQuery>, mpsc::Sender<InboundRequest>)>,
-    response_channels: HashMap<u64, Result<ResponseChannel<Response>, oneshot::Sender<Response>>>,
+    response_channels: HashMap<u64, ForeignOrSelfResponseChannel>,
     next_subscription_id: u64,
+    debug_sender: Option<broadcast::Sender<MessageDebugEventType>>,
+}
+
+impl Actor {
+    fn send_debug_event(&mut self, f: impl FnOnce() -> MessageDebugEventType) {
+        if let Some(debug_sender) = self.debug_sender.take() {
+            if debug_sender.send(f()).is_ok() {
+                // If there are still subscribers, put the sender back
+                self.debug_sender = Some(debug_sender);
+            }
+        }
+    }
 }
 
 impl SubActor for Actor {
@@ -119,8 +146,21 @@ impl SubActor for Actor {
                 }
 
                 tracing::debug!("Sending request to peer {peer_id}");
-                let id = behaviour.req_resp.send_request(&peer_id, req);
-                self.response_senders.insert(id, sender);
+
+                let debug_id = Ulid::new();
+
+                self.send_debug_event(|| {
+                    MessageDebugEventType::Request(RequestDebugEvent {
+                        id: debug_id,
+                        receiver: peer_id,
+                        msg: req.clone(),
+                    })
+                });
+
+                let req = Request { debug_id, req };
+
+                let outbound_id = behaviour.req_resp.send_request(&peer_id, req);
+                self.response_senders.insert(outbound_id, sender);
             }
             Command::Subscribe { query, sender } => {
                 let id = self.next_subscription_id;
@@ -137,8 +177,16 @@ impl SubActor for Actor {
                 self.request_subscriptions.remove(&id.0);
             }
             Command::Respond { id, response } => match self.response_channels.remove(&id) {
-                Some(Ok(channel)) => {
+                Some(Ok((debug_id, channel))) => {
                     tracing::debug!("Responding to request with id {id}");
+
+                    self.send_debug_event(|| {
+                        MessageDebugEventType::Response(ResponseDebugEvent {
+                            req_id: debug_id,
+                            response: response.clone(),
+                        })
+                    });
+
                     let _ = behaviour.req_resp.send_response(channel, response);
                 }
                 Some(Err(sender)) => {
@@ -149,6 +197,13 @@ impl SubActor for Actor {
                     tracing::warn!("Response with id {id} not found");
                 }
             },
+            Command::DebugSubscribe(sender) => {
+                let receiver = self
+                    .debug_sender
+                    .get_or_insert_with(|| broadcast::channel(5).0)
+                    .subscribe();
+                let _ = sender.send(receiver);
+            }
         }
 
         Ok(())
@@ -163,7 +218,7 @@ impl SubActor for Actor {
             Event::Message { peer, message } => match message {
                 Message::Request {
                     request_id,
-                    request: req,
+                    request: Request { debug_id, req },
                     channel,
                 } => {
                     // This is safe because InboundRequestId is a newtype around u64
@@ -192,9 +247,17 @@ impl SubActor for Actor {
                     }
 
                     if sent_to_subscriber {
-                        self.response_channels.insert(id, Ok(channel));
+                        self.response_channels.insert(id, Ok((debug_id, channel)));
                     } else {
                         let response = Response::Error(ResponseError::TopicNotSubscribed(topic));
+
+                        self.send_debug_event(|| {
+                            MessageDebugEventType::Response(ResponseDebugEvent {
+                                req_id: debug_id,
+                                response: response.clone(),
+                            })
+                        });
+
                         let _ = behaviour.req_resp.send_response(channel, response);
                     }
                 }
@@ -231,7 +294,7 @@ impl Client {
     pub async fn send_request(
         &self,
         peer_id: PeerId,
-        req: Request,
+        req: req_resp::Request,
     ) -> Result<Response, RequestError> {
         let (sender, receiver) = oneshot::channel();
         self.inner
@@ -273,5 +336,16 @@ impl Client {
             .send(Command::Respond { id, response })
             .await
             .map_err(RequestError::Send)
+    }
+
+    pub async fn debug_subscribe(
+        &self,
+    ) -> Result<broadcast::Receiver<MessageDebugEventType>, RequestError> {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .send(Command::DebugSubscribe(sender))
+            .await
+            .map_err(RequestError::Send)?;
+        receiver.await.map_err(RequestError::Oneshot)
     }
 }

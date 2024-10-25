@@ -27,10 +27,13 @@ libp2p = { workspace = true, features = [
     "serde",
     "request-response",
     "cbor",
+    "quic",
+    "noise",
+    "yamux",
+    "tcp"
 ] }
 libp2p-batman-adv = { workspace = true, optional = true }
-libp2p-stream = { workspace = true }
-libp2p-quic = { version = "0.10.2", git = "ssh://git@github.com/p2p-industries/libp2p-quic.git", rev = "a977b79242091a338e7ccc411f5878b8c5fccce6", features = ["tokio"]}
+libp2p-stream = { version = "0.2.0-alpha", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "ca52f43f4f3e07529c219dcd47ee915388bba789" }
 p2p-industries-core = { workspace = true, features = ["serde", "scripting"] }
 pin-project = { workspace = true }
 rand = { workspace = true }
@@ -49,6 +52,7 @@ tokio-util = { workspace = true, features = ["compat"] }
 tracing = { workspace = true }
 ulid = { workspace = true }
 void = { workspace = true }
+addr-filter = { workspace = true }
 
 [features]
 batman = ["dep:libp2p-batman-adv", "dep:cbor4ii"]

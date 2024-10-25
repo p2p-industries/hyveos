@@ -130,7 +130,7 @@ async def main():
             write_to_prometheus(
                 gos,
                 f'moisture_{i}_{my_peer_id}',
-                lambda: 1.0 / plant.moisture_sensor.moisture,
+                lambda: plant.moisture_sensor.moisture,
                 MetricType.GAUGE,
             )
             for i, plant in enumerate(plants, start=1)

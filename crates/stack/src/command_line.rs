@@ -986,6 +986,8 @@ pub mod neigh {
                 if neighbours.is_empty() {
                     println!("No resolved neighbours");
                 } else {
+                    let mut neighbours = neighbours.into_iter().collect::<Vec<_>>();
+                    neighbours.sort_by_key(|(peer_id, _)| *peer_id);
                     println!("Resolved neighbours:");
                     for (peer_id, neighbours) in neighbours {
                         if let [neighbour] = &neighbours[..] {

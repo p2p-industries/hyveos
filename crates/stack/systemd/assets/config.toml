@@ -1,4 +1,5 @@
 # interfaces = ["bat0", "wlan0"]
+# batman-interface = "bat0"
 # store-directory = "/tmp/p2p-industries-stack"
 # db-file = "/tmp/p2p-industries-stack/db"
 # key-file = "/tmp/p2p-industries-stack/keypair"

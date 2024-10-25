@@ -20,7 +20,7 @@ use netlink_proto::{
 };
 use rtnetlink::constants::RTMGRP_IPV6_IFADDR;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IfEvent {
     Up(IfAddr),
     Down(IfAddr),
@@ -81,40 +81,51 @@ impl IfWatcher {
             }
             let message =
                 ready!(self.messages.poll_next_unpin(cx)).ok_or_else(Self::socket_err)??;
-            match message {
+            if let Err(e) = match message {
                 RouteNetlinkMessage::NewAddress(msg) => self.add_address(msg),
                 RouteNetlinkMessage::DelAddress(msg) => self.rem_address(msg),
-                _ => {}
+                _ => Ok(()),
+            } {
+                return Poll::Ready(Err(e));
             }
         }
     }
 
-    fn add_address(&mut self, msg: AddressMessage) {
+    fn add_address(&mut self, msg: AddressMessage) -> io::Result<()> {
         for addr in Self::iter_addrs(msg) {
-            if self.addrs.insert(addr) {
+            let addr = addr?;
+            if !self.addrs.contains(&addr) {
+                self.addrs.insert(addr.clone());
                 self.queue.push_back(IfEvent::Up(addr));
             }
         }
+
+        Ok(())
     }
 
-    fn rem_address(&mut self, msg: AddressMessage) {
+    fn rem_address(&mut self, msg: AddressMessage) -> io::Result<()> {
         for addr in Self::iter_addrs(msg) {
+            let addr = addr?;
             if self.addrs.remove(&addr) {
                 self.queue.push_back(IfEvent::Down(addr));
             }
         }
+
+        Ok(())
     }
 
     fn socket_err() -> io::Error {
         io::Error::new(io::ErrorKind::BrokenPipe, "rtnetlink socket closed")
     }
 
-    fn iter_addrs(msg: AddressMessage) -> impl Iterator<Item = IfAddr> {
+    fn iter_addrs(msg: AddressMessage) -> impl Iterator<Item = io::Result<IfAddr>> {
         let if_index = msg.header.index;
         msg.attributes
             .into_iter()
             .filter_map(move |attr| match attr {
-                AddressAttribute::Address(IpAddr::V6(addr)) => Some(IfAddr { if_index, addr }),
+                AddressAttribute::Address(IpAddr::V6(addr)) => {
+                    Some(IfAddr::new_with_index(addr, if_index))
+                }
                 _ => None,
             })
     }

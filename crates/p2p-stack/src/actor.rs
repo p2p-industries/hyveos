@@ -2,13 +2,11 @@ use std::{error::Error, marker::PhantomData, time::Duration};
 
 use futures::stream::StreamExt as _;
 use libp2p::{
-    core::{muxing::StreamMuxerBox, Transport as _},
     identity::Keypair,
     kad::Mode,
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, Swarm, SwarmBuilder,
 };
-use libp2p_quic::{tokio::Transport as QuicTransport, Config as QuicConfig};
 use tokio::sync::mpsc;
 
 #[cfg(feature = "location")]
@@ -343,11 +341,13 @@ where
     pub fn build(keypair: Keypair) -> (Client, Self) {
         let swarm = SwarmBuilder::with_existing_identity(keypair)
             .with_tokio()
-            .with_other_transport(|keypair| {
-                QuicTransport::new(QuicConfig::new(keypair))
-                    .map(|(peer_id, muxer), _| (peer_id, StreamMuxerBox::new(muxer)))
-            })
-            .expect("Failed to build quic transport")
+            .with_tcp(
+                libp2p::tcp::Config::default(),
+                libp2p::noise::Config::new,
+                libp2p::yamux::Config::default,
+            )
+            .expect("Failed to create transport")
+            // .with_quic()
             .with_behaviour(MyBehaviour::new)
             .expect("Failed to build swarm")
             .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
@@ -377,7 +377,14 @@ where
         )
     }
 
-    pub fn setup(&mut self, listen_addrs: impl Iterator<Item = Multiaddr>) {
+    pub fn setup(
+        &mut self,
+        listen_addrs: impl Iterator<Item = Multiaddr>,
+        batman_addr: Option<Multiaddr>,
+    ) {
+        if let Some(batman_addr) = batman_addr {
+            self.swarm.behaviour_mut().kad.with_whitelist(batman_addr);
+        }
         self.swarm.behaviour_mut().kad.set_mode(Some(Mode::Server));
         for addr in listen_addrs {
             tracing::info!("Listening on: {addr:?}");

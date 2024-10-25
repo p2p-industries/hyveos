@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "crates/libp2p/batman-adv", "endpoint/data-collector", "endpoint/ws-graph", "sdks/rust"]
+members = ["crates/*", "crates/libp2p/batman-adv", "crates/libp2p/addr-filter", "endpoint/data-collector", "endpoint/ws-graph", "sdks/rust"]
 exclude = ["crates/libp2p"]
 default-members = [
     "crates/batman-neighbours-daemon",
@@ -26,11 +26,11 @@ futures = { version = "0.3.30" }
 ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
 ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
 indicatif = { version = "0.17.8", features = ["tokio"] }
-libp2p = { version = "0.53.2", features = ["tokio"] }
+libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "ca52f43f4f3e07529c219dcd47ee915388bba789", features = ["tokio"]}
 libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
-libp2p-identity = { version = "0.2.9" }
-libp2p-stream = { version = "0.1.0-alpha.1" }
+libp2p-identity = { version = "0.2.9" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
+multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
 p2p-industries-core = { version = "0.1.0", path = "crates/core" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
@@ -52,6 +52,7 @@ tonic = { version = "0.12.2" }
 tracing = { version = "0.1.40" }
 ulid = { version = "1.1.2", features = ["serde"] }
 void = { version = "1.0.2" }
+addr-filter = { path = "crates/libp2p/addr-filter" }
 
 [profile.perf]
 inherits = "release"

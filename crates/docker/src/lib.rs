@@ -39,6 +39,7 @@ use tokio::{
     task::JoinHandle,
 };
 use tokio_stream::StreamExt;
+use tokio_util::io::StreamReader;
 
 pub type Error = BollardError;
 
@@ -265,10 +266,15 @@ impl PulledImage<'_> {
     }
 
     pub async fn export(&self, compression: Compression) -> Result<Bytes, BollardError> {
-        let mut exporter = self
-            .docker
-            .export_image(&self.image)
-            .map(|e| e.map_err(|e| BollardError::from(io::Error::new(io::ErrorKind::Other, e))));
+        fn bar_style() -> indicatif::ProgressStyle {
+            indicatif::ProgressStyle::default_bar()
+                .template("{spinner} {message} {prefix:<10}: {wide_bar:.cyan/blue} {decimal_bytes:>10}/{decimal_total_bytes:<10} ({decimal_bytes_per_sec:^10.red}) {elapsed} → {eta}")
+                .expect("Invalid template")
+                .progress_chars("▰▲▱")
+                .tick_chars("⣾⣽⣻⢿⡿⣟⣯⣷")
+        }
+
+        let mut exporter = self.docker.export_image(&self.image);
         let mut archive = Vec::new();
         let mut compressor = match compression {
             Compression::None => FlexCompressor::None(&mut archive),
@@ -277,9 +283,22 @@ impl PulledImage<'_> {
                 async_compression::tokio::write::ZstdEncoder::new(&mut archive),
             ),
         };
-        while let Some(m) = exporter.next().await {
-            let chunk = m?;
-            compressor.write_all(&chunk[..]).await?;
+        if let Some(total_size) = self.inspect().await?.size {
+            let mut exporter = ProgressBar::new(total_size as u64)
+                .with_prefix("Exporting")
+                .with_style(bar_style())
+                .wrap_async_read(StreamReader::new(
+                    exporter.map_err(|e| io::Error::new(io::ErrorKind::Other, e)),
+                ));
+
+            tokio::io::copy(&mut exporter, &mut compressor).await?;
+
+            exporter.progress.finish();
+        } else {
+            while let Some(m) = exporter.next().await {
+                let chunk = m?;
+                compressor.write_all(&chunk[..]).await?;
+            }
         }
         compressor.flush().await?;
         Ok(Bytes::from(archive))

@@ -3,8 +3,9 @@ use futures::future;
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
 #[cfg(feature = "serde")]
 use libp2p_identity::PeerId;
+pub use p2p_industries_core::gossipsub::Message;
 use p2p_industries_core::{
-    gossipsub::{Message, MessageId, ReceivedMessage},
+    gossipsub::{MessageId, ReceivedMessage},
     grpc::{gossip_sub_client::GossipSubClient, GossipSubMessage, Topic},
 };
 #[cfg(feature = "serde")]
