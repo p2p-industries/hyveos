@@ -60,7 +60,7 @@ impl io::Write for Printer {
 
 pub struct MutexGuardWriter<'a>(MutexGuard<'a, Printer>);
 
-impl<'a> io::Write for MutexGuardWriter<'a> {
+impl io::Write for MutexGuardWriter<'_> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.write(buf)

@@ -494,7 +494,7 @@ struct ExecutionManager<'a> {
     shared_printer: Option<SharedPrinter>,
 }
 
-impl<'a> ExecutionManager<'a> {
+impl ExecutionManager<'_> {
     async fn fetch_root_fs(&self, cid: Cid) -> Result<Bytes, ExecutionError> {
         let path = self.client.file_transfer().get_cid(cid).await?;
         let mut file = BufReader::new(File::open(&path).await?);

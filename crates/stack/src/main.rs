@@ -493,7 +493,7 @@ macro_rules! create_printer {
     };
 }
 
-fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter, printer: &Option<SharedPrinter>) {
+fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter, printer: Option<&SharedPrinter>) {
     if let Some(log_dir) = log_dir {
         if let Some(printer) = printer {
             tracing_subscriber::registry()
@@ -506,7 +506,7 @@ fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter, printer: &Optio
                 .with(create_logfile!(log_dir, log_level))
                 .init();
         }
-    } else if let Some(printer) = printer.as_ref() {
+    } else if let Some(printer) = printer {
         tracing_subscriber::registry()
             .with(create_printer!(printer.clone()))
             .init();
@@ -532,7 +532,7 @@ impl Setup {
             log_level,
         } = args;
 
-        setup_logging(log_dir, log_level, &printer);
+        setup_logging(log_dir, log_level, printer.as_ref());
 
         #[cfg(feature = "console-subscriber")]
         console_subscriber::init();

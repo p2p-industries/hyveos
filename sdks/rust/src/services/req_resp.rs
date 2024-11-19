@@ -59,7 +59,7 @@ pub struct InboundRequestHandle<'a> {
     phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> InboundRequestHandle<'a> {
+impl InboundRequestHandle<'_> {
     fn new(id: u64, service: Service) -> Self {
         Self {
             id,
@@ -205,7 +205,7 @@ pub struct TypedInboundRequestHandle<'a, Service, Resp> {
 }
 
 #[cfg(feature = "serde")]
-impl<'a, Service, Resp> TypedInboundRequestHandle<'a, Service, Resp>
+impl<Service, Resp> TypedInboundRequestHandle<'_, Service, Resp>
 where
     Service: TypedService<Resp = Resp>,
     Resp: Serialize + DeserializeOwned,
