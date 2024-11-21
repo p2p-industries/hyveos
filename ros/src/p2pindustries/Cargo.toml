@@ -13,7 +13,7 @@ ifaddr = { path = "../../../crates/ifaddr" }
 ifwatcher = { path = "../../../crates/ifwatcher" }
 macaddress = { path = "../../../crates/macaddress" }
 p2p-industries-core = { path = "../../../crates/core" }
-p2p-stack = { path = "../../../crates/p2p-stack" }
+p2p-stack = { path = "../../../crates/p2p-stack", features = ["batman"] }
 
 anyhow = "1.0.93"
 clap = { version = "4.5.21", features = ["derive"] }
