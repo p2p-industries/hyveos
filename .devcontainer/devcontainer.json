@@ -1,0 +1,32 @@
+{
+    "name": "P2P Industries ROS 2 Development Container",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "workspaceFolder": "/home/p2p-industries/ros",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/p2p-industries,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer"
+            ]
+        }
+    },
+    "containerEnv": {
+        "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
+        "ROS_DOMAIN_ID": "42",
+        "WAYLAND_DISPLAY": "${env:WAYLAND_DISPLAY}",
+        "XDG_RUNTIME_DIR": "/tmp",
+        "QT_QPA_PLATFORM": "wayland"
+    },
+    "runArgs": [
+        "--net=host",
+        "--pid=host",
+        "--ipc=host"
+    ],
+    "mounts": [
+        "source=${env:XDG_RUNTIME_DIR}/${env:WAYLAND_DISPLAY},target=/tmp/${env:WAYLAND_DISPLAY},type=bind",
+        "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "rosdep update && rosdep install --from-paths src --ignore-src -y"
+}

@@ -1,0 +1,24 @@
+[submodule "ros/src/ros2_rust"]
+	path = ros/src/ros2_rust
+	url = https://github.com/ros2-rust/ros2_rust.git
+[submodule "ros/src/ros2/common_interfaces"]
+	path = ros/src/ros2/common_interfaces
+	url = https://github.com/ros2/common_interfaces.git
+[submodule "ros/src/ros2/example_interfaces"]
+	path = ros/src/ros2/example_interfaces
+	url = https://github.com/ros2/example_interfaces.git
+[submodule "ros/src/ros2/rcl_interfaces"]
+	path = ros/src/ros2/rcl_interfaces
+	url = https://github.com/ros2/rcl_interfaces.git
+[submodule "ros/src/ros2/test_interface_files"]
+	path = ros/src/ros2/test_interface_files
+	url = https://github.com/ros2/test_interface_files.git
+[submodule "ros/src/ros2/rosidl_core"]
+	path = ros/src/ros2/rosidl_core
+	url = https://github.com/ros2/rosidl_core.git
+[submodule "ros/src/ros2/rosidl_defaults"]
+	path = ros/src/ros2/rosidl_defaults
+	url = https://github.com/ros2/rosidl_defaults.git
+[submodule "ros/src/ros2/unique_identifier_msgs"]
+	path = ros/src/ros2/unique_identifier_msgs
+	url = https://github.com/ros2/unique_identifier_msgs.git

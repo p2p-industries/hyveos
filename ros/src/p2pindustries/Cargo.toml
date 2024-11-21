@@ -1,0 +1,36 @@
+[package]
+name = "p2pindustries"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rclrs = "*"
+std_msgs = "*"
+rosidl_runtime_rs = "*"
+p2pindustries_msgs = "*"
+
+ifaddr = { path = "../../../crates/ifaddr" }
+ifwatcher = { path = "../../../crates/ifwatcher" }
+macaddress = { path = "../../../crates/macaddress" }
+p2p-industries-core = { path = "../../../crates/core" }
+p2p-stack = { path = "../../../crates/p2p-stack" }
+
+anyhow = "1.0.93"
+clap = { version = "4.5.21", features = ["derive"] }
+dirs = "5.0.1"
+futures = "0.3.31"
+libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "ca52f43f4f3e07529c219dcd47ee915388bba789", features = [
+    "tokio",
+    "identify",
+    "kad",
+    "gossipsub",
+] }
+netdev = "0.31.0"
+pin-project = "1.1.7"
+serde = "1.0.215"
+tokio = { version = "1.41.1", features = ["rt-multi-thread"] }
+toml = "0.8.19"
+tracing = "0.1.40"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "time"] }
+ulid = "1.1.3"

@@ -1,0 +1,21 @@
+<package format="3">
+  <name>p2pindustries</name>
+  <version>0.1.0</version>
+  <description>P2P Industries ROS package</description>
+  <maintainer email="josef@walterzollerpiano.com">Josef Zoller</maintainer>
+  <license>TODO</license>
+
+  <build_depend>rclrs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>rosidl_runtime_rs</build_depend>
+  <build_depend>p2pindustries_msgs</build_depend>
+
+  <exec_depend>rclrs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>rosidl_runtime_rs</exec_depend>
+  <exec_depend>p2pindustries_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_cargo</build_type>
+  </export>
+</package>
