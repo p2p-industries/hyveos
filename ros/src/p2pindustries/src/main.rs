@@ -46,7 +46,7 @@ impl P2PBridgeNode {
         context: &rclrs::Context,
         command_sender: mpsc::UnboundedSender<GossipSubCommand>,
     ) -> anyhow::Result<Self> {
-        let node = rclrs::Node::new(context, "p2p-bridge")?;
+        let node = rclrs::Node::new(context, "p2p_bridge")?;
 
         let _send_subscription =
             node.create_subscription("p2pindustries_send", rclrs::QOS_PROFILE_DEFAULT, {
