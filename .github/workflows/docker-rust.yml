@@ -75,7 +75,7 @@ jobs:
 
       - name: Build and push ${{ matrix.name }}
         id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        uses: useblacksmith/build-push-action@v1
         with:
           build-args: ${{toJSON(matrix.arg) }}
           context: ${{ matrix.context }}
@@ -84,8 +84,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
           platforms: linux/amd64,linux/aarch64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1

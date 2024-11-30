@@ -67,15 +67,13 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        uses: useblacksmith/build-push-action@v1
         with:
           context: sdks/python/
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
           platforms: linux/amd64,linux/aarch64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
@@ -137,7 +135,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        uses: useblacksmith/build-push-action@v1
         with:
           context: ${{ matrix.context }}
           push: true
@@ -145,8 +143,6 @@ jobs:
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
           platforms: linux/amd64,linux/aarch64
           build-args: BRANCH=${{ github.event_name == 'pull_request' && env.PR_NAME || 'main' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
