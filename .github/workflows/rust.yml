@@ -49,10 +49,9 @@ jobs:
       - uses: r7kamura/rust-problem-matchers@9fe7ca9f6550e5d6358e179d451cc25ea6b54f98 # v1.5.0
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
 
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+      - uses: useblacksmith/rust-cache@v3
         with:
           key: ${{ matrix.crate }}--${{ matrix.target }}
-          cache-provider: buildjet
 
       - name: Run complete check
         run: cargo check --package "$CRATE" --all-features --target "$TARGET" --tests
@@ -104,7 +103,7 @@ jobs:
 
       - uses: r7kamura/rust-problem-matchers@9fe7ca9f6550e5d6358e179d451cc25ea6b54f98 # v1.5.0
 
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+      - uses: useblacksmith/rust-cache@v3
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
@@ -135,7 +134,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+      - uses: useblacksmith/rust-cache@v3
       - run: cargo metadata --locked --format-version=1 > /dev/null
 
   gather_crates:
