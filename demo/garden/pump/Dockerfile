@@ -1,6 +1,6 @@
 ARG BRANCH=main
 
-FROM ghcr.io/p2p-industries/mvp-base-python:${BRANCH}
+FROM ghcr.io/p2p-industries/hyveos-base-python:${BRANCH}
 
 WORKDIR /app/demo/garden/pump
 
