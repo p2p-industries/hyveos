@@ -103,7 +103,7 @@ jobs:
         with:
           targets: ${{ matrix.target.target }}
 
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+      - uses: useblacksmith/rust-cache@v3
         with:
           key: ${{ matrix.target.target }}--${{ matrix.crate.name }}
 
