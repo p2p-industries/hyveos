@@ -4,18 +4,11 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
-registries:
-  github-quic-stream:
-    type: git
-    url: https://github.com
-    username: umgefahren
-    password: ${{secrets.GH_ACCESS_TOKEN }}
 updates:
   - package-ecosystem: "cargo" # See documentation for possible values
     directory: "/" # Location of package manifests
     assignees:
       - "umgefahren"
-    registries:
-      - github-quic-stream
+      - "Zollerboy1"
     schedule:
       interval: "weekly"
