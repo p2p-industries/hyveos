@@ -35,12 +35,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
-
       - name: Install cross compile linker
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
         uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
@@ -103,12 +97,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
-
       - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
           toolchain: stable
@@ -131,12 +119,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
-
       - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
           toolchain: stable
@@ -153,12 +135,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
-
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
       - run: cargo metadata --locked --format-version=1 > /dev/null
 
@@ -169,12 +145,6 @@ jobs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
 
       - id: cargo-metadata
         run: |
@@ -187,12 +157,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
 
       - uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12
         with:
