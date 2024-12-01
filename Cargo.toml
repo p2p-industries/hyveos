@@ -14,7 +14,7 @@ publish = false
 
 [workspace.dependencies]
 async-compression = { version = "0.4.10" }
-async-once-cell = { version = "0.5.3" }
+async-once-cell = { version = "0.5.4" }
 anyhow = { version = "1.0.82" }
 base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
