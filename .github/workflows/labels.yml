@@ -8,7 +8,7 @@ on:
 
 jobs:
   label_issues:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
