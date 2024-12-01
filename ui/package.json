@@ -15,7 +15,7 @@
     "@sveltejs/adapter-auto": "^3.0.0",
     "@sveltejs/adapter-static": "^3.0.4",
     "@sveltejs/enhanced-img": "^0.3.3",
-    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/kit": "^2.8.3",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@types/d3": "^7.4.3",
     "@types/eslint": "^8.56.0",
