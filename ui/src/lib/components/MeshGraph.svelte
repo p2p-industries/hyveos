@@ -15,8 +15,8 @@
   type SimulationLink = SimulationLinkDatum<SimulationNode> & { label: string };
   type SimulationGraph = { nodes: SimulationNode[]; links: SimulationLink[] };
 
-  let svg: SVGSVGElement = $state();
-  let container: HTMLDivElement = $state();
+  let svg: SVGSVGElement | undefined = $state();
+  let container: HTMLDivElement | undefined = $state();
 
   let focusedNode: Node | null = null;
 
@@ -32,6 +32,9 @@
 
     constructor(simuGraph: SimulationGraph) {
       this.simuGraph = simuGraph;
+      if (!container || !svg) {
+        throw new Error('Container or SVG element is not available');
+      }
       const { width, height } = container.getBoundingClientRect();
       this.width = width;
       this.height = height;
@@ -183,6 +186,9 @@
     }
 
     resize() {
+      if (!container) {
+        return;
+      }
       const { width, height } = container.getBoundingClientRect();
       this.width = width;
       this.height = height;
@@ -195,14 +201,14 @@
     }
   }
 
-  let simulator: Simulator = $state();
+  let simulator: Simulator = $state(new Simulator({ nodes: [], links: [] }));
 
   onMount(() => {
     simulator = new Simulator({ nodes: [], links: [] });
     graph.subscribe((newGraph) => {
       simulator.update(newGraph);
     });
-    container.addEventListener('click', () => {
+    container?.addEventListener('click', () => {
       simulator.handleBackgroundClick();
     });
   });

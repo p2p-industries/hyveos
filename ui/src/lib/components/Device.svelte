@@ -24,7 +24,7 @@
         class="w-4 h-4 rounded-full bg-error tooltip tooltip-left"
         role="status"
         data-tip={error}
-></div>
+      ></div>
     {/if}
   </summary>
   <div class="flex justify-center overflow-x-auto space-x-4 py-2">
