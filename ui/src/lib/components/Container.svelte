@@ -1,13 +1,14 @@
 <script lang="ts">
   import ServiceIcon from './ServiceIcon.svelte';
 
-  type Status = 'running' | 'stopped';
   interface Props {
     name: string;
-    status: Status;
+    status: 'running' | 'stopped';
   }
 
   let { name, status }: Props = $props();
+
+  let isRunning = $derived(status === 'running');
 </script>
 
 <div class="card bg-base-100 w-fit shadow-lg hover:shadow-xl">
@@ -19,7 +20,7 @@
 
   <div class="card-body">
     <h2 class="card-title">{name}</h2>
-    <div class={`font-semibold ${status === 'running' ? 'text-green-500' : 'text-red-500'}`}>
+    <div class="font-semibold" class:text-green-500={isRunning} class:text-red-500={!isRunning}>
       {status}
     </div>
   </div>
