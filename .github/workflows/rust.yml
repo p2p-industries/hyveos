@@ -106,12 +106,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      
+      - name: Run clippy without all features
+        run: cargo clippy --no-default-features -- -D warnings
 
       - name: Run clippy with all features
         run: cargo clippy --all-features -- -D warnings
-
-      - name: Run clippy without all features
-        run: cargo clippy --no-default-features -- -D warnings
 
   rustfmt:
     runs-on: ubuntu-latest
