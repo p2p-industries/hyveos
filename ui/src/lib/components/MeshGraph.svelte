@@ -201,15 +201,15 @@
     }
   }
 
-  let simulator: Simulator = $state(new Simulator({ nodes: [], links: [] }));
+  let simulator: Simulator | undefined = $state();
 
   onMount(() => {
     simulator = new Simulator({ nodes: [], links: [] });
     graph.subscribe((newGraph) => {
-      simulator.update(newGraph);
+      simulator!.update(newGraph);
     });
     container?.addEventListener('click', () => {
-      simulator.handleBackgroundClick();
+      simulator!.handleBackgroundClick();
     });
   });
 </script>
