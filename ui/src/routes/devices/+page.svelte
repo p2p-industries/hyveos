@@ -4,13 +4,17 @@
   import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
   import type { PageData } from './$types';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+  }
 
-  $: devices = data.devices;
+  let { data }: Props = $props();
+
+  let devices = $derived(data.devices);
 
   let allSelected = false;
-  let showDeployDialog = false;
-  let dockerImageInput = '';
+  let showDeployDialog = $state(false);
+  let dockerImageInput = $state('');
 
   function toggleAllCheckboxes() {
     allSelected = !allSelected;
@@ -35,24 +39,24 @@
   <div class="flex flex-col space-y-2">
     <div class="flex items-center justify-between p-2 border-b-2">
       <div class="flex items-center">
-        <input type="checkbox" on:click={toggleAllCheckboxes} />
+        <input type="checkbox" onclick={toggleAllCheckboxes} />
         <span class="ml-2 font-medium">Devices</span>
       </div>
       <div class="flex items-center space-x-4">
         <button
           class="text-gray-700 hover:text-gray-900 border rounded px-2 py-1"
-          on:click={() => handleAction('Stop')}
+          onclick={() => handleAction('Stop')}
         >
           <FontAwesomeIcon icon={faStop} />
         </button>
         <div class="relative">
           <div class="flex border rounded px-2 py-1 space-x-3">
-            <button class="text-gray-700 hover:text-gray-900" on:click={() => handleDeploy()}>
+            <button class="text-gray-700 hover:text-gray-900" onclick={() => handleDeploy()}>
               <FontAwesomeIcon icon={faPlay} />
             </button>
             <button
               class="text-gray-700 hover:text-gray-900"
-              on:click={() => (showDeployDialog = !showDeployDialog)}
+              onclick={() => (showDeployDialog = !showDeployDialog)}
             >
               <FontAwesomeIcon icon={faChevronDown} />
             </button>

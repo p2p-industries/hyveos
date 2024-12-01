@@ -2,8 +2,12 @@
   import ServiceIcon from './ServiceIcon.svelte';
 
   type Status = 'running' | 'stopped';
-  export let name: string;
-  export let status: Status;
+  interface Props {
+    name: string;
+    status: Status;
+  }
+
+  let { name, status }: Props = $props();
 </script>
 
 <div class="card bg-base-100 w-fit shadow-lg hover:shadow-xl">

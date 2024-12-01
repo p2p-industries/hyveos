@@ -5,14 +5,18 @@
   import type { Node, Graph } from '$lib/types';
   import { onMount } from 'svelte';
 
-  export let graph: Readable<Graph>;
+  interface Props {
+    graph: Readable<Graph>;
+  }
+
+  let { graph }: Props = $props();
 
   type SimulationNode = Node & SimulationNodeDatum & { label: string };
   type SimulationLink = SimulationLinkDatum<SimulationNode> & { label: string };
   type SimulationGraph = { nodes: SimulationNode[]; links: SimulationLink[] };
 
-  let svg: SVGSVGElement;
-  let container: HTMLDivElement;
+  let svg: SVGSVGElement = $state();
+  let container: HTMLDivElement = $state();
 
   let focusedNode: Node | null = null;
 
@@ -191,7 +195,7 @@
     }
   }
 
-  let simulator: Simulator;
+  let simulator: Simulator = $state();
 
   onMount(() => {
     simulator = new Simulator({ nodes: [], links: [] });
@@ -205,7 +209,7 @@
 </script>
 
 <svelte:window
-  on:resize={() => {
+  onresize={() => {
     if (simulator) {
       simulator.resize();
     }
@@ -219,7 +223,7 @@
   <!-- A floating button -->
   <button
     class="btn absolute bottom-5 left-5 btn-accent"
-    on:click={() => {
+    onclick={() => {
       if (simulator) {
         simulator.redrawGraph();
       }
