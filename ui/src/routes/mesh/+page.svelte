@@ -20,8 +20,6 @@
     links: z.array(WsLink)
   });
 
-  type WsExportGraph = z.infer<typeof WsExportGraph>;
-
   let allPeerIds: Map<string, number> = new Map();
 
   function getLabel(peerId: string): string {
