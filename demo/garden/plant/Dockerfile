@@ -1,6 +1,6 @@
 ARG BRANCH=main
 
-FROM ghcr.io/p2p-industries/mvp-base-python:${BRANCH}
+FROM ghcr.io/p2p-industries/hyveos-base-python:${BRANCH}
 
 RUN apt-get update
 RUN apt-get install --yes build-essential

@@ -5,14 +5,18 @@
   import type { Node, Graph } from '$lib/types';
   import { onMount } from 'svelte';
 
-  export let graph: Readable<Graph>;
+  interface Props {
+    graph: Readable<Graph>;
+  }
+
+  let { graph }: Props = $props();
 
   type SimulationNode = Node & SimulationNodeDatum & { label: string };
   type SimulationLink = SimulationLinkDatum<SimulationNode> & { label: string };
   type SimulationGraph = { nodes: SimulationNode[]; links: SimulationLink[] };
 
-  let svg: SVGSVGElement;
-  let container: HTMLDivElement;
+  let svg: SVGSVGElement | undefined = $state();
+  let container: HTMLDivElement | undefined = $state();
 
   let focusedNode: Node | null = null;
 
@@ -28,6 +32,9 @@
 
     constructor(simuGraph: SimulationGraph) {
       this.simuGraph = simuGraph;
+      if (!container || !svg) {
+        throw new Error('Container or SVG element is not available');
+      }
       const { width, height } = container.getBoundingClientRect();
       this.width = width;
       this.height = height;
@@ -179,6 +186,9 @@
     }
 
     resize() {
+      if (!container) {
+        return;
+      }
       const { width, height } = container.getBoundingClientRect();
       this.width = width;
       this.height = height;
@@ -191,21 +201,21 @@
     }
   }
 
-  let simulator: Simulator;
+  let simulator: Simulator | undefined = $state();
 
   onMount(() => {
     simulator = new Simulator({ nodes: [], links: [] });
     graph.subscribe((newGraph) => {
-      simulator.update(newGraph);
+      simulator!.update(newGraph);
     });
-    container.addEventListener('click', () => {
-      simulator.handleBackgroundClick();
+    container?.addEventListener('click', () => {
+      simulator!.handleBackgroundClick();
     });
   });
 </script>
 
 <svelte:window
-  on:resize={() => {
+  onresize={() => {
     if (simulator) {
       simulator.resize();
     }
@@ -219,7 +229,7 @@
   <!-- A floating button -->
   <button
     class="btn absolute bottom-5 left-5 btn-accent"
-    on:click={() => {
+    onclick={() => {
       if (simulator) {
         simulator.redrawGraph();
       }

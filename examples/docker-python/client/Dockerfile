@@ -1,4 +1,4 @@
-FROM ghcr.io/p2p-industries/mvp-base-python:main
+FROM ghcr.io/p2p-industries/hyveos-base-python:main
 
 COPY ./pyproject.toml /app/client/pyproject.toml
 

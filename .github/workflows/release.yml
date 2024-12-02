@@ -57,12 +57,6 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
-
       - id: cargo-metadata
         run: |
           DEBIAN_PACKAGES=$(cargo metadata --no-deps --format-version=1 | jq -c '[.packages[] | select(.metadata.deb) | {name, version, deb_name: (.metadata.deb.name // .name)}]')
@@ -70,7 +64,7 @@ jobs:
 
   build-debian:
     name: Build debian package ${{ matrix.crate.deb_name }} for ${{ matrix.target.arch }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
       - extract-debian-packages
@@ -94,12 +88,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387
-        with:
-          ssh-private-key: |
-            ${{ secrets.GITSECRET }}
-            ${{ secrets.GIT_STREAM_SECRET }}
-
       - uses: taiki-e/cache-cargo-install-action@caa6f48d18d42462f9c30df89e2b4f71a42b7c2c
         with:
           tool: cargo-deb
@@ -115,7 +103,7 @@ jobs:
         with:
           targets: ${{ matrix.target.target }}
 
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+      - uses: useblacksmith/rust-cache@v3
         with:
           key: ${{ matrix.target.target }}--${{ matrix.crate.name }}
 
