@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" {...$$props}>
+<script lang="ts">
+  interface Props {
+    [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+
+  let { ...props }: Props = $props();
+</script>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" {...props}>
   <defs>
     <linearGradient id="logosApache0" x1="16.363%" x2="159.99%" y1="63.905%" y2="20.213%">
       <stop offset="0%" stop-color="#f69923" />

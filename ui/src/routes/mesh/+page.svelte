@@ -20,8 +20,6 @@
     links: z.array(WsLink)
   });
 
-  type WsExportGraph = z.infer<typeof WsExportGraph>;
-
   let allPeerIds: Map<string, number> = new Map();
 
   function getLabel(peerId: string): string {
@@ -37,7 +35,7 @@
 
   let unansweredRequests: Map<string, number> = new Map();
 
-  let messages: Message[] = [];
+  let messages: Message[] = $state([]);
 
   onMount(() => {
     const graphWsUrl = new URL($page.url.toString());
