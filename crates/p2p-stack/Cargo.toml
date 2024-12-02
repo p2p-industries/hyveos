@@ -7,7 +7,7 @@ publish = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
-async-once-cell = "0.5.3"
+async-once-cell = "0.5.4"
 asynchronous-codec = { version = "0.7.0", features = ["cbor"] }
 base64-simd = "0.8.0"
 bytes = { workspace = true }
