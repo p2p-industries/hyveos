@@ -87,7 +87,7 @@ jobs:
 
   clippy:
     name: Run clippy
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -103,18 +103,18 @@ jobs:
 
       - uses: r7kamura/rust-problem-matchers@9fe7ca9f6550e5d6358e179d451cc25ea6b54f98 # v1.5.0
 
-      - uses: useblacksmith/rust-cache@v3
+      - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      
+      - name: Run clippy without all features
+        run: cargo clippy --no-default-features -- -D warnings
 
       - name: Run clippy with all features
         run: cargo clippy --all-features -- -D warnings
 
-      - name: Run clippy without all features
-        run: cargo clippy --no-default-features -- -D warnings
-
   rustfmt:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -130,16 +130,16 @@ jobs:
 
   ensure-lockfile-uptodate:
     name: Ensure that `Cargo.lock` is up-to-date
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: useblacksmith/rust-cache@v3
+      - uses: Swatinem/rust-cache@v2
       - run: cargo metadata --locked --format-version=1 > /dev/null
 
   gather_crates:
     name: Gather crates
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
@@ -153,7 +153,7 @@ jobs:
   cargo-deny:
     name: Enforce dependency licenses and advisories
     needs: ensure-lockfile-uptodate
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
