@@ -8,7 +8,7 @@ publish = { workspace = true }
 [dependencies]
 async-compression = { workspace = true, optional = true, features = ["tokio"] }
 async-once-cell = { workspace = true }
-bollard = "0.17.1"
+bollard = "0.18.1"
 bytes = { workspace = true }
 futures = { workspace = true }
 indicatif = { workspace = true }
