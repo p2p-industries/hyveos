@@ -283,8 +283,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let listen_addrs = listen_addrs
         .into_iter()
-        // .map(|a| a.with(Protocol::Udp(LISTEN_PORT)).with(Protocol::QuicV1))
-        .map(|a| a.with(Protocol::Tcp(LISTEN_PORT)))
+        .map(|a| a.with(Protocol::Udp(LISTEN_PORT)).with(Protocol::QuicV1))
         .collect::<Vec<_>>();
     println!("Listen addresses: {listen_addrs:?}");
 
