@@ -3,7 +3,11 @@
   import Redis from '$lib/components/icons/Redis.svelte';
   import PostgreSql from '$lib/components/icons/PostgreSQL.svelte';
   import Apache from '$lib/components/icons/Apache.svelte';
-  export let name: string;
+  interface Props {
+    name: string;
+  }
+
+  let { name }: Props = $props();
 </script>
 
 {#if name.startsWith('nginx')}
