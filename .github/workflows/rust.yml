@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     name: Test ${{ matrix.crate }} on ${{ matrix.target }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: gather_crates
     strategy:
@@ -49,7 +49,7 @@ jobs:
       - uses: r7kamura/rust-problem-matchers@9fe7ca9f6550e5d6358e179d451cc25ea6b54f98 # v1.5.0
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
 
-      - uses: useblacksmith/rust-cache@v3
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.crate }}--${{ matrix.target }}
 
