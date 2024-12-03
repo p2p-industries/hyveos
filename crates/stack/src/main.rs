@@ -233,7 +233,7 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
                 iface
                     .ipv6
                     .into_iter()
-                    .map(move |net| IfAddr::new_with_index(net.addr, iface.index))
+                    .map(move |net| IfAddr::new_with_index(net.addr(), iface.index))
             })
             .map(|res| res.map(|if_addr| if_addr.to_multiaddr(true)))
             .collect::<Result<_, _>>()?)
