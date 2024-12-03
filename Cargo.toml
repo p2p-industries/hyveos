@@ -35,7 +35,7 @@ netlink-packet-core = { version = "0.7.0" }
 p2p-industries-core = { version = "0.1.0", path = "crates/core" }
 p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
 p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
-pin-project = { version = "1.1.5" }
+pin-project = { version = "1.1.7" }
 prost = "0.13"
 rand = { version = "0.8.5" }
 regex = { version = "1.11.1", default-features = false, features = [
