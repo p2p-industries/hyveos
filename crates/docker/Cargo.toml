@@ -8,7 +8,7 @@ publish = { workspace = true }
 [dependencies]
 async-compression = { workspace = true, optional = true, features = ["tokio"] }
 async-once-cell = { workspace = true }
-bollard = "0.17.1"
+bollard = "0.18.1"
 bytes = { workspace = true }
 futures = { workspace = true }
 indicatif = { workspace = true }
@@ -22,7 +22,7 @@ tokio-util = { workspace = true, features = ["io"]}
 
 [dev-dependencies]
 once_cell = "1.20.1"
-tempfile = "3.10.1"
+tempfile = "3.14.0"
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [features]

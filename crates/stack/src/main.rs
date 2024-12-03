@@ -233,7 +233,7 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
                 iface
                     .ipv6
                     .into_iter()
-                    .map(move |net| IfAddr::new_with_index(net.addr, iface.index))
+                    .map(move |net| IfAddr::new_with_index(net.addr(), iface.index))
             })
             .map(|res| res.map(|if_addr| if_addr.to_multiaddr(true)))
             .collect::<Result<_, _>>()?)
@@ -283,8 +283,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let listen_addrs = listen_addrs
         .into_iter()
-        // .map(|a| a.with(Protocol::Udp(LISTEN_PORT)).with(Protocol::QuicV1))
-        .map(|a| a.with(Protocol::Tcp(LISTEN_PORT)))
+        .map(|a| a.with(Protocol::Udp(LISTEN_PORT)).with(Protocol::QuicV1))
         .collect::<Vec<_>>();
     println!("Listen addresses: {listen_addrs:?}");
 

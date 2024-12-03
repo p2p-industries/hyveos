@@ -341,13 +341,7 @@ where
     pub fn build(keypair: Keypair) -> (Client, Self) {
         let swarm = SwarmBuilder::with_existing_identity(keypair)
             .with_tokio()
-            .with_tcp(
-                libp2p::tcp::Config::default(),
-                libp2p::noise::Config::new,
-                libp2p::yamux::Config::default,
-            )
-            .expect("Failed to create transport")
-            // .with_quic()
+            .with_quic()
             .with_behaviour(MyBehaviour::new)
             .expect("Failed to build swarm")
             .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))

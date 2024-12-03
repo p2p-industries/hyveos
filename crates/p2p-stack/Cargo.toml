@@ -28,9 +28,6 @@ libp2p = { workspace = true, features = [
     "request-response",
     "cbor",
     "quic",
-    "noise",
-    "yamux",
-    "tcp"
 ] }
 libp2p-batman-adv = { workspace = true, optional = true }
 libp2p-stream = { version = "0.2.0-alpha", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "ca52f43f4f3e07529c219dcd47ee915388bba789" }
