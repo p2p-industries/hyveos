@@ -12,7 +12,7 @@ Add the P2P Industries APT repo and install the prerequisites (B.A.T.M.A.N.-adv 
 ```bash
 wget -qO - https://apt.p2p.industries/key.gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/p2p-industries.gpg
 echo "deb https://apt.p2p.industries /" | sudo tee /etc/apt/sources.list.d/p2p-industries.list
-sudo apt update && sudo apt upgrade
+sudo apt update && sudo apt upgrade -y
 sudo apt install -y batctl
 curl -sSL https://get.docker.com | sh
 ```
