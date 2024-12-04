@@ -64,7 +64,7 @@ jobs:
 
   build-debian:
     name: Build debian package ${{ matrix.crate.deb_name }} for ${{ matrix.target.arch }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
       - extract-debian-packages
@@ -103,7 +103,7 @@ jobs:
         with:
           targets: ${{ matrix.target.target }}
 
-      - uses: useblacksmith/rust-cache@v3
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target.target }}--${{ matrix.crate.name }}
 
