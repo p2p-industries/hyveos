@@ -26,9 +26,9 @@ futures = { version = "0.3.31" }
 ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
 ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
 indicatif = { version = "0.17.8", features = ["tokio"] }
-libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "ca52f43f4f3e07529c219dcd47ee915388bba789", features = ["tokio"]}
+libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c", features = ["tokio"]}
 libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
-libp2p-identity = { version = "0.2.9" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
+libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
@@ -44,7 +44,7 @@ regex = { version = "1.11.1", default-features = false, features = [
 ] }
 serde = { version = "1.0.215", features = ["derive", "rc"] }
 thiserror = { version = "1" }
-tarpc = { version = "0.34.0" }
+tarpc = "0.35.0"
 tokio = { version = "1.38" }
 tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
 tokio-util = { version = "0.7.11" }
