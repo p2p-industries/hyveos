@@ -120,13 +120,8 @@ jobs:
           echo "Revision number: $rev"
           echo "rev=$rev" >> $GITHUB_ENV
 
-      - name: Build debian binary
-        if: ${{ matrix.target.arch != 'arm64' }}
+      - name: Build debian package
         run: cargo deb -p ${{ matrix.crate.name }} --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
-
-      - name: Build Raspbian binary
-        if: ${{ matrix.target.arch == 'arm64' }}
-        run: cargo deb -p ${{ matrix.crate.name }} --variant raspbian --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
 
       - name: Upload artifacts
         id: upload-artifact

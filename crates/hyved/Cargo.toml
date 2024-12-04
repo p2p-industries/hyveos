@@ -1,0 +1,60 @@
+[package]
+name = "hyved"
+version = "0.1.0"
+edition = "2021"
+authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
+rust-version = { workspace = true }
+publish = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+dirs = "5.0.1"
+futures = { workspace = true }
+ifaddr = { workspace = true }
+ifwatcher = { workspace = true, optional = true }
+libp2p = { workspace = true, features = ["identify"] }
+netdev = { version = "0.31.0", optional = true }
+rustyline = { version = "14.0.0", features = ["derive"] }
+serde = { workspace = true }
+stack = { workspace = true, features = ["clap", "serde"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+toml = "0.8.13"
+tracing = { workspace = true }
+
+[features]
+batman = ["stack/batman", "dep:ifwatcher", "dep:netdev"]
+console-subscriber = ["stack/console-subscriber"]
+mdns = ["stack/mdns"]
+
+[package.metadata.deb]
+name = "hyved"
+features = ["batman"]
+depends = "batman-neighbours-daemon, docker-ce, iproute2, net-tools, wpasupplicant"
+assets = [
+    [
+        "target/release/hyved",
+        "usr/bin/hyved",
+        "755",
+    ],
+    [
+        "systemd/assets/config.toml",
+        "/usr/lib/hyved/",
+        "644",
+    ],
+    [
+        "systemd/assets/network-manager-disable-batman-interfaces.conf",
+        "/etc/NetworkManager/conf.d/disable-batman-interfaces.conf",
+        "644",
+    ],
+    [
+        "systemd/assets/wpa_supplicant-wlan0.conf",
+        "/etc/wpa_supplicant/",
+        "600",
+    ],
+]
+maintainer-scripts = "systemd/debian/"
+systemd-units = [
+    { unit-name = "hyved", enable = true },
+    { unit-name = "hyveos-batman", enable = false },
+]

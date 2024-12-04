@@ -1,0 +1,39 @@
+#!/bin/sh
+
+BATMAN_NEIGHBOURS_GROUP="batman-neighbours"
+DOCKER_GROUP="docker"
+HYVEOS_USER="hyveos"
+DAEMON_NAME="hyved"
+
+create_user() {
+    if id ${HYVEOS_USER} >/dev/null 2>&1; then
+        return 0
+    fi
+    adduser --system --home /home/${HYVEOS_USER} --group ${HYVEOS_USER}
+    adduser ${HYVEOS_USER} ${BATMAN_NEIGHBOURS_GROUP}
+    adduser ${HYVEOS_USER} ${DOCKER_GROUP}
+}
+
+copy_config() {
+    if [ ! -f /etc/${DAEMON_NAME}/config.toml ]; then
+        mkdir -p /etc/${DAEMON_NAME}
+        chmod 755 /etc/${DAEMON_NAME}
+        cp /usr/lib/${DAEMON_NAME}/config.toml /etc/${DAEMON_NAME}/config.toml
+        chmod 644 /etc/${DAEMON_NAME}/config.toml
+    fi
+}
+
+reload_network_manager() {
+    type nmcli > /dev/null 2>&1 || return 0
+    nmcli general reload
+}
+
+case "$1" in
+configure)
+    create_user
+    copy_config
+    reload_network_manager
+    ;;
+esac
+
+#DEBHELPER#
