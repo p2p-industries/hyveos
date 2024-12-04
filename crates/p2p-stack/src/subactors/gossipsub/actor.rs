@@ -162,7 +162,7 @@ impl Actor {
         for (topic, sender) in self.topic_subscriptions.values() {
             if sender.receiver_count() == 0 {
                 tracing::info!("Unsubscribing from topic: {:?}", topic);
-                if !behaviour.unsubscribe(topic)? {
+                if !behaviour.unsubscribe(topic) {
                     tracing::warn!("There existed a sender but no subscription on the behviour. Inconsistency error.");
                 }
             }

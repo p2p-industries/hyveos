@@ -30,7 +30,7 @@ libp2p = { workspace = true, features = [
     "quic",
 ] }
 libp2p-batman-adv = { workspace = true, optional = true }
-libp2p-stream = { version = "0.2.0-alpha", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "ca52f43f4f3e07529c219dcd47ee915388bba789" }
+libp2p-stream = { version = "0.2.0-alpha", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c" }
 p2p-industries-core = { workspace = true, features = ["serde", "scripting"] }
 pin-project = { workspace = true }
 rand = { workspace = true }
