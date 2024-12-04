@@ -1,0 +1,9 @@
+# interfaces = ["bat0", "wlan0"]
+# batman-interface = "bat0"
+# store-directory = "/tmp/hyved"
+# db-file = "/tmp/hyved/db"
+# key-file = "/tmp/hyved/keypair"
+# random-directory = true
+# script-management = "deny"
+# log-dir = "/tmp/hyved/logs"
+# log-level = "info"

@@ -42,13 +42,13 @@ impl Service {
     /// Subscribes to neighbour events.
     ///
     /// Returns a stream of neighbour events. The stream will emit an event whenever the local
-    /// stack detects a change in the set of neighbours. The stream is guaranteed to emit an
+    /// runtime detects a change in the set of neighbours. The stream is guaranteed to emit an
     /// [`NeighbourEvent::Init`] directly after subscribing and only [`NeighbourEvent::Discovered`]
     /// and [`NeighbourEvent::Lost`] events afterwards.
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the events, as well as data conversion errors.
     ///
     /// # Example
@@ -84,7 +84,7 @@ impl Service {
             .map_err(Into::into)
     }
 
-    /// Returns the peer ID of the local stack.
+    /// Returns the peer ID of the local runtime.
     ///
     /// # Errors
     ///

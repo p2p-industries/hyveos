@@ -65,11 +65,11 @@ jobs:
         run: cargo test --package "$CRATE" --all-features --target "$TARGET"
 
       - name: Run batman no mdns check
-        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'stack' }}
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'hyved' }}
         run: cargo check --package "$CRATE" -F batman --target "$TARGET" --tests
 
       - name: Run batman no mdns test
-        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'stack' }}
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'hyved' }}
         run: cargo test --package "$CRATE" -F batman --target "$TARGET"
 
       - name: Check if we compile without any features activated
@@ -107,7 +107,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      
+
       - name: Run clippy without all features
         run: cargo clippy --no-default-features -- -D warnings
 

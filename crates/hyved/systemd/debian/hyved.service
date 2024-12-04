@@ -1,13 +1,13 @@
 [Unit]
-Description=P2P Industries Stack
+Description=HyveOS Daemon
 Requires=batman-neighbours-daemon.service
 After=batman-neighbours-daemon.service
 
 [Service]
-ExecStart=/usr/bin/p2p-industries-stack
+ExecStart=/usr/bin/hyved
 Type=exec
 Restart=on-failure
-User=p2p-industries
+User=hyveos
 
 [Install]
 WantedBy=multi-user.target

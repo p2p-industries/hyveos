@@ -1,9 +1,16 @@
 [workspace]
-members = ["crates/*", "crates/libp2p/batman-adv", "crates/libp2p/addr-filter", "endpoint/data-collector", "endpoint/ws-graph", "sdks/rust"]
+members = [
+    "crates/*",
+    "crates/libp2p/batman-adv",
+    "crates/libp2p/addr-filter",
+    "endpoint/data-collector",
+    "endpoint/ws-graph",
+    "sdks/rust",
+]
 exclude = ["crates/libp2p"]
 default-members = [
     "crates/batman-neighbours-daemon",
-    "crates/stack",
+    "crates/hyved",
     "sdks/rust",
 ]
 resolver = "2"
@@ -26,7 +33,9 @@ futures = { version = "0.3.31" }
 ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
 ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
 indicatif = { version = "0.17.8", features = ["tokio"] }
-libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c", features = ["tokio"]}
+libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c", features = [
+    "tokio",
+] }
 libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
@@ -43,6 +52,7 @@ regex = { version = "1.11.1", default-features = false, features = [
     "std",
 ] }
 serde = { version = "1.0.215", features = ["derive", "rc"] }
+runtime = { version = "0.1.0", path = "crates/runtime" }
 thiserror = { version = "1" }
 tarpc = "0.35.0"
 tokio = { version = "1.38" }

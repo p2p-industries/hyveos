@@ -1,0 +1,38 @@
+[package]
+name = "runtime"
+version = "0.1.0"
+edition = "2021"
+authors = [
+    "Josef Zoller <josef@walterzollerpiano.com>",
+    "Hannes Furmans <info@umgefahren.xyz>",
+]
+rust-version = { workspace = true }
+publish = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+bridge = { workspace = true }
+bytes = { workspace = true }
+clap = { workspace = true, optional = true }
+console-subscriber = { version = "0.4.0", optional = true }
+docker = { workspace = true, features = ["zstd"] }
+futures = { workspace = true }
+libp2p = { workspace = true, features = ["identify", "gossipsub"] }
+pin-project = { workspace = true }
+p2p-industries-core = { workspace = true }
+p2p-stack = { workspace = true }
+redb = "2.1.1"
+serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "time"] }
+ulid = { workspace = true }
+
+[features]
+batman = ["bridge/batman", "p2p-stack/batman"]
+clap = ["dep:clap"]
+console-subscriber = ["dep:console-subscriber"]
+mdns = ["p2p-stack/mdns"]
+serde = ["dep:serde"]

@@ -13,7 +13,6 @@ use std::{
 use bridge::DebugCommandSender;
 use bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
-use clap::ValueEnum;
 use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
     future::{try_maybe_done, OptionFuture, TryMaybeDone},
@@ -23,7 +22,6 @@ use futures::{
 use libp2p::PeerId;
 use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
 use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
-use serde::Deserialize;
 use tokio::{
     fs::{metadata, File},
     io::{stderr, stdout, AsyncReadExt as _, AsyncWriteExt as _, BufReader},
@@ -35,12 +33,13 @@ use ulid::Ulid;
 use crate::{
     db::{self, Client as DbClient},
     future_map::FutureMap,
-    printer::SharedPrinter,
 };
 
 const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ValueEnum, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum ScriptManagementConfig {
     Allow,
     #[default]
@@ -75,7 +74,6 @@ pub struct ScriptingManagerBuilder {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     script_management: ScriptManagementConfig,
-    shared_printer: Option<SharedPrinter>,
 }
 
 impl ScriptingManagerBuilder {
@@ -95,13 +93,7 @@ impl ScriptingManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             script_management,
-            shared_printer: None,
         }
-    }
-
-    pub fn with_printer(mut self, printer: SharedPrinter) -> Self {
-        self.shared_printer = Some(printer);
-        self
     }
 
     pub fn build(self) -> (ScriptingManager, ScriptingClient) {
@@ -113,7 +105,6 @@ impl ScriptingManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             script_management,
-            shared_printer,
         } = self;
         let (self_command_sender, self_command_receiver) = mpsc::channel(1);
 
@@ -137,7 +128,6 @@ impl ScriptingManagerBuilder {
                 #[cfg(feature = "batman")]
                 debug_command_sender,
                 scripting_client,
-                shared_printer,
                 container_handles: FutureMap::new(),
             }
         };
@@ -156,7 +146,6 @@ pub struct ScriptingManager {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     scripting_client: Option<ScriptingClient>,
-    shared_printer: Option<SharedPrinter>,
     container_handles: FutureMap<Ulid, ContainerHandle>,
 }
 
@@ -170,7 +159,6 @@ impl ScriptingManager {
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
             scripting_client: self.scripting_client.clone(),
-            shared_printer: self.shared_printer.clone(),
         }
     }
 
@@ -491,7 +479,6 @@ struct ExecutionManager<'a> {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     scripting_client: Option<ScriptingClient>,
-    shared_printer: Option<SharedPrinter>,
 }
 
 impl ExecutionManager<'_> {
@@ -540,7 +527,7 @@ impl ExecutionManager<'_> {
             )
             .await?;
 
-            Self::exec_with_bridge(bridge, image, ports, self.shared_printer).await
+            Self::exec_with_bridge(bridge, image, ports).await
         } else {
             let bridge = Bridge::new(
                 self.client,
@@ -552,7 +539,7 @@ impl ExecutionManager<'_> {
             )
             .await?;
 
-            Self::exec_with_bridge(bridge, image, ports, self.shared_printer).await
+            Self::exec_with_bridge(bridge, image, ports).await
         }
     }
 
@@ -560,7 +547,6 @@ impl ExecutionManager<'_> {
         bridge: Bridge<DbClient, impl bridge::ScriptingClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
-        shared_printer: Option<SharedPrinter>,
     ) -> Result<ContainerHandle, ExecutionError> {
         let Bridge {
             client,
@@ -606,25 +592,16 @@ impl ExecutionManager<'_> {
             .privileged(true) // Unfortunate hack for now
             .env("P2P_INDUSTRIES_SHARED_DIR", CONTAINER_SHARED_DIR)
             .env("P2P_INDUSTRIES_BRIDGE_SOCKET", CONTAINER_BRIDGE_SOCKET)
-            .auto_remove(true);
+            .auto_remove(true)
+            .stdout(Box::new(stdout()) as Box<_>)
+            .stderr(Box::new(stderr()) as Box<_>)
+            .enable_stream();
 
         for port in ports {
             let ip4socket = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port);
             container_builder = container_builder.expose_port(port, ip4socket.into());
             let ip6socket = SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, port, 0, 0);
             container_builder = container_builder.expose_port(port, ip6socket.into());
-        }
-
-        if let Some(shared_printer) = shared_printer {
-            container_builder = container_builder
-                .stdout(Box::new(shared_printer.clone()) as Box<_>)
-                .stderr(Box::new(shared_printer) as Box<_>)
-                .enable_stream();
-        } else {
-            container_builder = container_builder
-                .stdout(Box::new(stdout()) as Box<_>)
-                .stderr(Box::new(stderr()) as Box<_>)
-                .enable_stream();
         }
 
         let running_container = container_builder.run().await?.into_owned();

@@ -305,7 +305,7 @@ impl Service {
             .map_err(Into::into)
     }
 
-    /// Marks the local stack as a provider for a key in the DHT.
+    /// Marks the local runtime as a provider for a key in the DHT.
     ///
     /// # Errors
     ///
@@ -349,7 +349,7 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion errors.
     ///
     /// # Example

@@ -244,7 +244,7 @@ service Discovery {
   // Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
   rpc SubscribeEvents(Empty) returns (stream NeighbourEvent) {}
 
-  // Get the peer id of the current stack
+  // Get the peer id of the current runtime
   rpc GetOwnId(Empty) returns (Peer) {}
 }
 
@@ -263,7 +263,7 @@ service DHT {
   // Get a record from the DHT. The value of the record will be empty if the key is not found.
   rpc GetRecord(DHTKey) returns (OptionalData) {}
 
-  // Mark the current stack as a provider for a key in the DHT
+  // Mark the current runtime as a provider for a key in the DHT
   rpc Provide(DHTKey) returns (Empty) {}
 
   // Get the providers of a key in the DHT
@@ -279,10 +279,10 @@ service DB {
 }
 
 service FileTransfer {
-  // Publish a file in the stack and get the cid of the file
+  // Publish a file in the runtime and get the cid of the file
   rpc PublishFile(FilePath) returns (CID) {}
 
-  // Request a file with a cid from the stack
+  // Request a file with a cid from the runtime
   rpc GetFile(CID) returns (FilePath) {}
 }
 

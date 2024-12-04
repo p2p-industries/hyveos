@@ -17,18 +17,44 @@ sudo apt install -y batctl
 curl -sSL https://get.docker.com | sh
 ```
 
-Now you can install the P2P Industries stack:
+Now you can install `hyved` (the HyveOS daemon):
 
 ```bash
-sudo apt install -y p2p-industries-stack
+sudo apt install -y hyved
 ```
 
-To run it at boot, you need to enable a few services:
+Before you can run `hyved`, you need to configure it.
+You can do this by editing `/etc/hyved/config.toml`, which should at least configure the network interfaces (using the `interfaces` key) and which of these interfaces is the B.A.T.M.A.N.-adv virtual interface (using the `batman-interface` key).
+In the following example, `wlan0` is the wireless interface used for the B.A.T.M.A.N.-adv mesh, and `bat0` is the B.A.T.M.A.N.-adv virtual interface:
+
+```toml
+interfaces = ["bat0", "wlan0"]
+batman-interface = "bat0"
+```
+
+These interfaces are assumed for the rest of this installation guide.
+
+Before running `hyved` you need to setup its prerequisites. The easiest way to do this is to use the provided systemd services:
+
+```bash
+sudo systemctl start docker
+sudo systemctl start wpa_supplicant@wlan0
+sudo systemctl start hyveos-batman@wlan0
+sudo systemctl start batman-neighbours-daemon
+```
+
+Now you can start `hyved`:
+
+```bash
+sudo systemctl start hyved
+```
+
+To run it at boot, you can enable the systemd services:
 
 ```bash
 sudo systemctl enable --now docker
-sudo systemctl enable --now batman-neighbours-daemon
 sudo systemctl enable --now wpa_supplicant@wlan0
-sudo systemctl enable --now p2p-industries-batman@wlan0
-sudo systemctl enable --now p2p-industries-stack
+sudo systemctl enable --now hyveos-batman@wlan0
+sudo systemctl enable --now batman-neighbours-daemon
+sudo systemctl enable --now hyved
 ```

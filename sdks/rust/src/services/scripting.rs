@@ -166,7 +166,7 @@ impl Config {
         self
     }
 
-    /// Sets the script to be persistent, meaning it will be restarted when the stack is restarted.
+    /// Sets the script to be persistent, meaning it will be restarted when the runtime is restarted.
     ///
     /// # Example
     ///

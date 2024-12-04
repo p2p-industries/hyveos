@@ -23,7 +23,7 @@ If applicable, add screenshots to help explain your problem.
 
 - SDK version (Rust or Python)
 - ROS extension version (if applicable)
-- Stack version (if applicable)
+- `hyved` version (if applicable)
 
 **Additional context**
 Add any other context about the problem here.

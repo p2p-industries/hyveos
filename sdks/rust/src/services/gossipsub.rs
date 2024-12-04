@@ -63,7 +63,7 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion errors.
     ///
     /// # Example
@@ -118,7 +118,7 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion and deserialization errors.
     ///
     /// # Example
@@ -185,7 +185,7 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion and deserialization errors.
     ///
     /// # Example
