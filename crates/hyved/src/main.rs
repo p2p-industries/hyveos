@@ -10,8 +10,8 @@ use libp2p::{
     identity::Keypair,
     multiaddr::{Multiaddr, Protocol},
 };
+use runtime::{LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use serde::Deserialize;
-use stack::{LogFilter, ScriptManagementConfig, Stack, StackArgs};
 
 const DAEMON_NAME: &str = "hyved";
 
@@ -292,7 +292,7 @@ async fn main() -> anyhow::Result<()> {
         .or(config_script_management)
         .unwrap_or_default();
 
-    let args = StackArgs {
+    let args = RuntimeArgs {
         listen_addrs,
         batman_addr,
         store_directory,
@@ -306,5 +306,5 @@ async fn main() -> anyhow::Result<()> {
         log_level,
     };
 
-    Stack::new(args).await?.run().await
+    Runtime::new(args).await?.run().await
 }

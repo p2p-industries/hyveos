@@ -5,10 +5,10 @@
 
 //! # P2P Industries SDK
 //!
-//! This crate provides a high-level API for interacting with the P2P Industries stack.
+//! This crate provides a high-level API for interacting with the P2P Industries runtime.
 //!
 //! > **Note**: This crate will only work properly when running inside a docker container, started
-//! > by the P2P Industries stack.
+//! > by the P2P Industries runtime.
 //!
 //! ## Crate Features
 //!

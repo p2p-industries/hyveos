@@ -61,7 +61,7 @@ pub struct Clients {
     pub scripting_client: ScriptingClient,
 }
 
-pub struct StackArgs {
+pub struct RuntimeArgs {
     pub listen_addrs: Vec<Multiaddr>,
     pub batman_addr: Multiaddr,
     pub store_directory: PathBuf,
@@ -75,7 +75,7 @@ pub struct StackArgs {
     pub log_level: LogFilter,
 }
 
-pub struct Stack {
+pub struct Runtime {
     clients: Clients,
     actor_task: JoinHandle<()>,
     file_provider_task: JoinHandle<()>,
@@ -90,7 +90,7 @@ macro_rules! create_logfile {
         tracing_subscriber::fmt::layer()
             .with_timer(UtcTime::rfc_3339())
             .with_ansi(false)
-            .with_writer(tracing_appender::rolling::minutely($log_dir, "stack.log"))
+            .with_writer(tracing_appender::rolling::minutely($log_dir, "runtime.log"))
             .with_filter(LevelFilter::from($log_level))
     };
 }
@@ -112,14 +112,14 @@ fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter) {
     }
 }
 
-impl Stack {
-    /// Create a new stack that will listen on the given addresses
+impl Runtime {
+    /// Create a new runtime that will listen on the given addresses
     ///
     /// # Errors
     ///
     /// TODO: Document errors
-    pub async fn new(args: StackArgs) -> anyhow::Result<Stack> {
-        let StackArgs {
+    pub async fn new(args: RuntimeArgs) -> anyhow::Result<Runtime> {
+        let RuntimeArgs {
             listen_addrs,
             batman_addr,
             store_directory,
@@ -219,7 +219,7 @@ impl Stack {
         })
     }
 
-    /// Run the stack until the p2p actor stops
+    /// Run the runtime until the p2p actor stops
     ///
     /// # Errors
     ///
@@ -228,9 +228,9 @@ impl Stack {
         self.run_with(|_, _| future::ready(Ok(()))).await
     }
 
-    /// Run the stack and the given future in parallel
+    /// Run the runtime and the given future in parallel
     ///
-    /// The stack will stop when the given future aborts the stack or the p2p actor stops
+    /// The runtime will stop when the p2p actor stops or is aborted by the given future
     ///
     /// # Errors
     ///

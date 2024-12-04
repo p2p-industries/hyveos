@@ -224,7 +224,7 @@ class DiscoveryServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetOwnId(self, request, context):
-        """Get the peer id of the current stack
+        """Get the peer id of the current runtime
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -475,7 +475,7 @@ class DHTServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Provide(self, request, context):
-        """Mark the current stack as a provider for a key in the DHT
+        """Mark the current runtime as a provider for a key in the DHT
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -773,14 +773,14 @@ class FileTransferServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def PublishFile(self, request, context):
-        """Publish a file in the stack and get the cid of the file
+        """Publish a file in the runtime and get the cid of the file
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetFile(self, request, context):
-        """Request a file with a cid from the stack
+        """Request a file with a cid from the runtime
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
