@@ -19,8 +19,8 @@ use futures::{
     stream::{FuturesUnordered, StreamExt as _, TryStreamExt as _},
     FutureExt as _,
 };
+use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
 use libp2p::PeerId;
-use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
 use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use tokio::{
     fs::{metadata, File},

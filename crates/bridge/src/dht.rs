@@ -2,11 +2,11 @@ use futures::{
     future,
     stream::{self, StreamExt as _, TryStreamExt as _},
 };
-use libp2p::kad::{GetProvidersOk, GetRecordOk, Quorum, RecordKey};
-use p2p_industries_core::{
+use hyveos_core::{
     dht::Key as DhtKey,
     grpc::{self, dht_server::Dht},
 };
+use libp2p::kad::{GetProvidersOk, GetRecordOk, Quorum, RecordKey};
 use p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 

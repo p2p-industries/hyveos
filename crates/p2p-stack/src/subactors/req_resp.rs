@@ -1,5 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
+use hyveos_core::{
+    debug::{MessageDebugEventType, RequestDebugEvent, ResponseDebugEvent},
+    req_resp::{self, InboundRequest, Response, ResponseError, TopicQuery},
+};
 use libp2p::{
     request_response::{
         cbor, Config, Event, InboundRequestId, Message, OutboundRequestId, ProtocolSupport,
@@ -7,10 +11,6 @@ use libp2p::{
     },
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
-};
-use p2p_industries_core::{
-    debug::{MessageDebugEventType, RequestDebugEvent, ResponseDebugEvent},
-    req_resp::{self, InboundRequest, Response, ResponseError, TopicQuery},
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, mpsc, oneshot};

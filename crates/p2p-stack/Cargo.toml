@@ -15,6 +15,7 @@ cbor4ii = { version = "0.3.2", optional = true }
 dashmap = "6.0.1"
 docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
+hyveos-core = { workspace = true, features = ["serde", "scripting"] }
 indicatif = { workspace = true }
 libp2p = { workspace = true, features = [
     "tokio",
@@ -31,7 +32,6 @@ libp2p = { workspace = true, features = [
 ] }
 libp2p-batman-adv = { workspace = true, optional = true }
 libp2p-stream = { version = "0.2.0-alpha", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c" }
-p2p-industries-core = { workspace = true, features = ["serde", "scripting"] }
 pin-project = { workspace = true }
 rand = { workspace = true }
 sha2 = { version = "0.10.8", features = ["asm"] }

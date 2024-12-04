@@ -72,7 +72,7 @@ impl Config {
     }
 }
 
-/// This is the entrypoint of the p2p-industries app.
+/// This daemon starts the HyveOS runtime.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 #[command(version, about)]

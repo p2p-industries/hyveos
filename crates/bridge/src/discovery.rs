@@ -1,8 +1,8 @@
 #[cfg(feature = "batman")]
 use futures::stream::TryStreamExt as _;
 #[cfg(feature = "batman")]
-use p2p_industries_core::discovery::NeighbourEvent;
-use p2p_industries_core::grpc::{self, discovery_server::Discovery};
+use hyveos_core::discovery::NeighbourEvent;
+use hyveos_core::grpc::{self, discovery_server::Discovery};
 use p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 

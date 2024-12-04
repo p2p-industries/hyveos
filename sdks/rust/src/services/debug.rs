@@ -1,11 +1,11 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-pub use p2p_industries_core::debug::{
+pub use hyveos_core::debug::{
     MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType, RequestDebugEvent,
     ResponseDebugEvent,
 };
 #[cfg(docsrs)]
-use p2p_industries_core::discovery::NeighbourEvent;
-use p2p_industries_core::grpc::{debug_client::DebugClient, Empty};
+use hyveos_core::discovery::NeighbourEvent;
+use hyveos_core::grpc::{debug_client::DebugClient, Empty};
 use tonic::transport::Channel;
 
 use crate::{connection::P2PConnection, error::Result};
@@ -19,7 +19,7 @@ use crate::{connection::P2PConnection, error::Result};
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -62,7 +62,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -105,7 +105,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use const_format::concatcp;
-use p2p_industries_core::grpc::{self, file_transfer_server::FileTransfer};
+use hyveos_core::grpc::{self, file_transfer_server::FileTransfer};
 use p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 

@@ -1,6 +1,6 @@
 use drop_stream::DropStream;
 use futures::TryStreamExt as _;
-use p2p_industries_core::grpc::{self, debug_server::Debug};
+use hyveos_core::grpc::{self, debug_server::Debug};
 use p2p_stack::DebugClientCommand;
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::BroadcastStream;

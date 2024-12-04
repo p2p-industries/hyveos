@@ -1,11 +1,11 @@
-use libp2p_identity::PeerId;
-use p2p_industries_core::{
+use hyveos_core::{
     grpc::{
         scripting_client::ScriptingClient, DeployScriptRequest, DockerImage, DockerScript, Empty,
         ListRunningScriptsRequest, StopScriptRequest,
     },
     scripting::RunningScript,
 };
+use libp2p_identity::PeerId;
 use tonic::transport::Channel;
 use ulid::Ulid;
 
@@ -18,7 +18,7 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+/// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -51,7 +51,7 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -82,7 +82,7 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -109,7 +109,7 @@ impl Config {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -145,7 +145,7 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -171,7 +171,7 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -201,7 +201,7 @@ impl Config {
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+/// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -240,7 +240,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -291,7 +291,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -336,7 +336,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -377,7 +377,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {

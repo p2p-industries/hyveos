@@ -1,4 +1,4 @@
-use p2p_industries_core::grpc::{db_client::DbClient, DbKey, DbRecord};
+use hyveos_core::grpc::{db_client::DbClient, DbKey, DbRecord};
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
@@ -13,7 +13,7 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -48,7 +48,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -91,7 +91,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -136,7 +136,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -181,7 +181,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -215,7 +215,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -257,7 +257,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]

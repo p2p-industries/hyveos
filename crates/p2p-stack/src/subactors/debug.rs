@@ -1,11 +1,11 @@
+use hyveos_core::{
+    debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType},
+    discovery::NeighbourEvent,
+};
 use libp2p::{
     request_response::{cbor, Config, Event, Message as CborMessage, ProtocolSupport},
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
-};
-use p2p_industries_core::{
-    debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType},
-    discovery::NeighbourEvent,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, oneshot};

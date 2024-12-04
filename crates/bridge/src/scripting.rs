@@ -1,8 +1,8 @@
-use libp2p::PeerId;
-use p2p_industries_core::{
+use hyveos_core::{
     grpc::{self, scripting_server::Scripting},
     scripting::RunningScript,
 };
+use libp2p::PeerId;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 use ulid::Ulid;
 

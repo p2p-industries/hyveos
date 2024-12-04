@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use p2p_industries_core::{
+use hyveos_core::{
     file_transfer::Cid,
     grpc::{self, file_transfer_client::FileTransferClient, FilePath},
 };
@@ -61,7 +61,7 @@ impl PathExt for Path {
 /// ```no_run
 /// use std::path::Path;
 ///
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -103,7 +103,7 @@ impl Service {
     /// ```no_run
     /// use std::path::Path;
     ///
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -160,8 +160,8 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_core::file_transfer::Cid;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_core::file_transfer::Cid;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {

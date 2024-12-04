@@ -537,8 +537,8 @@ dependencies = [
  "const_format",
  "drop-stream",
  "futures",
+ "hyveos-core",
  "libp2p",
- "p2p-industries-core",
  "p2p-stack",
  "prost",
  "regex",
@@ -905,7 +905,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
- "p2p-industries-sdk",
+ "hyveos-sdk",
  "prometheus",
  "serde",
  "serde_json",
@@ -1759,6 +1759,44 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+]
+
+[[package]]
+name = "hyveos-core"
+version = "0.1.0"
+dependencies = [
+ "hex_fmt",
+ "libp2p-identity",
+ "prost",
+ "regex",
+ "serde",
+ "thiserror 1.0.69",
+ "tonic",
+ "tonic-build",
+ "ulid",
+]
+
+[[package]]
+name = "hyveos-sdk"
+version = "0.1.0"
+dependencies = [
+ "async-once-cell",
+ "derive-where",
+ "futures",
+ "hyper-util",
+ "hyveos-core",
+ "hyveos-sdk",
+ "libp2p-identity",
+ "prost",
+ "serde",
+ "serde_cbor",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tonic",
+ "tower 0.5.1",
+ "tracing",
+ "ulid",
 ]
 
 [[package]]
@@ -3025,44 +3063,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
-name = "p2p-industries-core"
-version = "0.1.0"
-dependencies = [
- "hex_fmt",
- "libp2p-identity",
- "prost",
- "regex",
- "serde",
- "thiserror 1.0.69",
- "tonic",
- "tonic-build",
- "ulid",
-]
-
-[[package]]
-name = "p2p-industries-sdk"
-version = "0.1.0"
-dependencies = [
- "async-once-cell",
- "derive-where",
- "futures",
- "hyper-util",
- "libp2p-identity",
- "p2p-industries-core",
- "p2p-industries-sdk",
- "prost",
- "serde",
- "serde_cbor",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
- "tonic",
- "tower 0.5.1",
- "tracing",
- "ulid",
-]
-
-[[package]]
 name = "p2p-stack"
 version = "0.1.0"
 dependencies = [
@@ -3076,11 +3076,11 @@ dependencies = [
  "dashmap",
  "docker",
  "futures",
+ "hyveos-core",
  "indicatif",
  "libp2p",
  "libp2p-batman-adv",
  "libp2p-stream",
- "p2p-industries-core",
  "pin-project",
  "rand",
  "serde",
@@ -3646,8 +3646,8 @@ dependencies = [
  "console-subscriber",
  "docker",
  "futures",
+ "hyveos-core",
  "libp2p",
- "p2p-industries-core",
  "p2p-stack",
  "pin-project",
  "redb",
@@ -5095,8 +5095,8 @@ dependencies = [
  "anyhow",
  "axum",
  "futures",
+ "hyveos-sdk",
  "libp2p-identity",
- "p2p-industries-sdk",
  "rand",
  "serde",
  "serde_json",

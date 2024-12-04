@@ -31,7 +31,7 @@ static CONNECTION: OnceCell<P2PConnection> = OnceCell::new();
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -56,7 +56,7 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -92,7 +92,7 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -115,7 +115,7 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -138,7 +138,7 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -163,7 +163,7 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -186,7 +186,7 @@ impl P2PConnection {
     /// ```no_run
     /// use std::path::Path;
     ///
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -211,7 +211,7 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -233,7 +233,7 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -269,7 +269,7 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -322,7 +322,7 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -374,7 +374,7 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {

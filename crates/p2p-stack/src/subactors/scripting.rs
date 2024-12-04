@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use docker::Compression;
+use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
 use libp2p::{
     request_response::{
         cbor, Config, InboundRequestId, Message, OutboundRequestId, ProtocolSupport,
@@ -9,7 +10,6 @@ use libp2p::{
     swarm::NetworkBehaviour,
     PeerId, StreamProtocol,
 };
-use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot};
 use ulid::Ulid;

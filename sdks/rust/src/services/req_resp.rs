@@ -5,12 +5,12 @@ use derive_where::derive_where;
 #[cfg(feature = "serde")]
 use futures::future;
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-use libp2p_identity::PeerId;
-pub use p2p_industries_core::req_resp::{Request, Response, ResponseError, TopicQuery};
-use p2p_industries_core::{
+pub use hyveos_core::req_resp::{Request, Response, ResponseError, TopicQuery};
+use hyveos_core::{
     grpc::{req_resp_client::ReqRespClient, OptionalTopicQuery, SendRequest, SendResponse},
     req_resp::InboundRequest as CoreInboundRequest,
 };
+use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tonic::transport::Channel;
@@ -35,7 +35,7 @@ pub struct InboundRequest<T> {
 ///
 /// ```no_run
 /// use futures::TryStreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -78,7 +78,7 @@ impl InboundRequestHandle<'_> {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -110,7 +110,7 @@ impl InboundRequestHandle<'_> {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -166,7 +166,7 @@ pub trait TypedService {
 ///
 /// ```no_run
 /// use futures::TryStreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Serialize, Deserialize)]
@@ -228,7 +228,7 @@ where
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -271,7 +271,7 @@ where
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -309,7 +309,7 @@ where
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -359,7 +359,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -422,7 +422,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -503,7 +503,7 @@ impl Service {
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Serialize, Deserialize)]
@@ -582,7 +582,7 @@ where
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -650,7 +650,7 @@ where
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -753,7 +753,7 @@ where
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Serialize, Deserialize)]
@@ -832,7 +832,7 @@ where
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -900,7 +900,7 @@ where
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]

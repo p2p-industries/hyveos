@@ -19,7 +19,7 @@ docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
 libp2p = { workspace = true, features = ["identify", "gossipsub"] }
 pin-project = { workspace = true }
-p2p-industries-core = { workspace = true }
+hyveos-core = { workspace = true }
 p2p-stack = { workspace = true }
 redb = "2.1.1"
 serde = { workspace = true, optional = true }

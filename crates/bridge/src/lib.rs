@@ -4,7 +4,7 @@
 use std::{io, path::PathBuf, pin::Pin};
 
 use futures::stream::Stream;
-use p2p_industries_core::grpc;
+use hyveos_core::grpc;
 use p2p_stack::Client;
 #[cfg(feature = "batman")]
 use p2p_stack::DebugClientCommand;

@@ -4,11 +4,11 @@ use futures::{
     stream::{self, Chain, Iter},
     Stream, StreamExt as _,
 };
+use hyveos_core::discovery::NeighbourEvent;
 use libp2p::PeerId;
 use libp2p_batman_adv::{
     Event as BatmanEvent, ReadOnlyNeighbourStore, ResolvedNeighbour, UnresolvedNeighbour,
 };
-use p2p_industries_core::discovery::NeighbourEvent;
 use tokio::sync::{broadcast, oneshot};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
