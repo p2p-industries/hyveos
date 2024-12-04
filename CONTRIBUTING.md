@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-## Requirements
+## Build Requirements
 
 You need to have `protoc` installed.
 
@@ -40,7 +40,7 @@ If you are interested take a look at open issues or contribute to existing PRs. 
 - Linus Mierhöfer (linus@p2p.industries) @Lxixnxuxs
 - Lukas Ego (lukas@p2p.industries) @lk-eg
 
-## Code of Contact
+## Code of Conduct
 
 TODO!
 
