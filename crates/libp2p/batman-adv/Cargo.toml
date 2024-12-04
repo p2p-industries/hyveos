@@ -30,4 +30,3 @@ tokio = { workspace = true, features = ["rt", "macros"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
-void = { workspace = true }
