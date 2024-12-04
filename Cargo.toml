@@ -1,6 +1,6 @@
 [workspace]
 members = ["crates/*", "crates/libp2p/batman-adv", "crates/libp2p/addr-filter", "endpoint/data-collector", "endpoint/ws-graph", "sdks/rust"]
-exclude = ["crates/libp2p"]
+exclude = ["crates/libp2p", "ros"]
 default-members = [
     "crates/batman-neighbours-daemon",
     "crates/stack",
