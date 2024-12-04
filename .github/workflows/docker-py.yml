@@ -26,7 +26,7 @@ concurrency:
 jobs:
   build-base-image:
     name: Build and Push base image
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: useblacksmith/build-push-action@v1
+        uses: docker/build-push-action@v6
         with:
           context: sdks/python/
           push: true
@@ -84,7 +84,7 @@ jobs:
 
   build-garden-image:
     name: Build and push garden images
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     needs: build-base-image
 
     permissions:
@@ -135,7 +135,7 @@ jobs:
 
       - name: Build and push
         id: push
-        uses: useblacksmith/build-push-action@v1
+        uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           push: true
