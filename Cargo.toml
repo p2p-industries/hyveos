@@ -28,7 +28,7 @@ batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-c
 hyveos-bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
 clap = { version = "4.5.18", features = ["derive"] }
-docker = { version = "0.1.0", path = "crates/docker" }
+hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
 hyveos-sdk = { version = "0.1.0", path = "sdks/rust" }

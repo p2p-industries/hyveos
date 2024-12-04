@@ -13,7 +13,7 @@ base64-simd = "0.8.0"
 bytes = { workspace = true }
 cbor4ii = { version = "0.3.2", optional = true }
 dashmap = "6.0.1"
-docker = { workspace = true, features = ["zstd"] }
+hyveos-docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
 hyveos-core = { workspace = true, features = ["serde", "scripting"] }
 indicatif = { workspace = true }

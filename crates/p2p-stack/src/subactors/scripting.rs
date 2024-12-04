@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
-use docker::Compression;
 use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
+use hyveos_docker::Compression;
 use libp2p::{
     request_response::{
         cbor, Config, InboundRequestId, Message, OutboundRequestId, ProtocolSupport,

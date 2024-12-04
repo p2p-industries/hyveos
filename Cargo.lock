@@ -1016,26 +1016,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "docker"
-version = "0.1.0"
-dependencies = [
- "async-compression",
- "async-once-cell",
- "bollard",
- "bytes",
- "futures",
- "indicatif",
- "lazy-regex",
- "once_cell",
- "pin-project",
- "serde",
- "tempfile",
- "tokio",
- "tokio-stream",
- "tokio-util",
-]
-
-[[package]]
 name = "drop-stream"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1774,6 +1754,26 @@ dependencies = [
  "tonic",
  "tonic-build",
  "ulid",
+]
+
+[[package]]
+name = "hyveos-docker"
+version = "0.1.0"
+dependencies = [
+ "async-compression",
+ "async-once-cell",
+ "bollard",
+ "bytes",
+ "futures",
+ "indicatif",
+ "lazy-regex",
+ "once_cell",
+ "pin-project",
+ "serde",
+ "tempfile",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]
@@ -3074,9 +3074,9 @@ dependencies = [
  "bytes",
  "cbor4ii",
  "dashmap",
- "docker",
  "futures",
  "hyveos-core",
+ "hyveos-docker",
  "indicatif",
  "libp2p",
  "libp2p-batman-adv",
@@ -3643,10 +3643,10 @@ dependencies = [
  "bytes",
  "clap",
  "console-subscriber",
- "docker",
  "futures",
  "hyveos-bridge",
  "hyveos-core",
+ "hyveos-docker",
  "libp2p",
  "p2p-stack",
  "pin-project",

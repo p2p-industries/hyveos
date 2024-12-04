@@ -10,7 +10,6 @@ use std::{
 };
 
 use bytes::Bytes;
-use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
     future::{try_maybe_done, OptionFuture, TryMaybeDone},
     stream::{FuturesUnordered, StreamExt as _, TryStreamExt as _},
@@ -20,6 +19,7 @@ use futures::{
 use hyveos_bridge::DebugCommandSender;
 use hyveos_bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
+use hyveos_docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use libp2p::PeerId;
 use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use tokio::{
@@ -377,7 +377,7 @@ pub enum ExecutionError {
     #[error("Io error: `{0}`")]
     Io(#[from] std::io::Error),
     #[error("Docker error: `{0}`")]
-    Docker(#[from] docker::Error),
+    Docker(#[from] hyveos_docker::Error),
     #[error("Bridge error: `{0}`")]
     Bridge(#[from] BridgeError),
     #[error("Shared directory path is not a valid utf-8 string")]

@@ -140,7 +140,7 @@ impl ContainerManager {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let manager = docker::ContainerManager::new().unwrap();
+    /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let _ = image.remove().await;
     /// # }
@@ -254,7 +254,7 @@ impl PulledImage<'_> {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let manager = docker::ContainerManager::new().unwrap();
+    /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let _ = image.remove().await;
     /// # }
@@ -309,7 +309,7 @@ impl PulledImage<'_> {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let manager = docker::ContainerManager::new().unwrap();
+    /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let container = image.create_container().enable_stream().run().await.unwrap();
     /// # let stopped = container.stop().await.unwrap();
@@ -413,7 +413,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
     /// # use tokio::io::AsyncBufReadExt;
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let manager = docker::ContainerManager::new().unwrap();
+    /// # let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let (tx, rx) = tokio::io::duplex(4096);
     /// let container = image.create_container().cmd(vec!["echo", "hello"]).stdout(tx).enable_stream().run().await.unwrap();
@@ -820,7 +820,7 @@ impl<'a> RunningContainer<'a> {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let manager = docker::ContainerManager::new().unwrap();
+    /// # let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let container = image.create_container().enable_stream().run().await.unwrap();
     /// let stopped = container.stop().await.unwrap();
@@ -835,7 +835,7 @@ impl<'a> RunningContainer<'a> {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let manager = docker::ContainerManager::new().unwrap();
+    /// # let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let container = image.create_container().cmd(vec!["sh", "-c", "sleep 1500"]).run().await.unwrap();
     /// let stopped = container.kill().await.unwrap();
