@@ -9,9 +9,6 @@ use std::{
     task::{Context, Poll},
 };
 
-#[cfg(feature = "batman")]
-use bridge::DebugCommandSender;
-use bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
 use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
@@ -19,6 +16,9 @@ use futures::{
     stream::{FuturesUnordered, StreamExt as _, TryStreamExt as _},
     FutureExt as _,
 };
+#[cfg(feature = "batman")]
+use hyveos_bridge::DebugCommandSender;
+use hyveos_bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
 use libp2p::PeerId;
 use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
@@ -544,7 +544,7 @@ impl ExecutionManager<'_> {
     }
 
     async fn exec_with_bridge(
-        bridge: Bridge<DbClient, impl bridge::ScriptingClient>,
+        bridge: Bridge<DbClient, impl hyveos_bridge::ScriptingClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
@@ -694,7 +694,7 @@ impl ScriptingClient {
     }
 }
 
-impl bridge::ScriptingClient for ScriptingClient {
+impl hyveos_bridge::ScriptingClient for ScriptingClient {
     type Error = ExecutionError;
 
     async fn deploy_image(
@@ -831,7 +831,7 @@ impl bridge::ScriptingClient for ScriptingClient {
 
 struct ForbiddenScriptingClient;
 
-impl bridge::ScriptingClient for ForbiddenScriptingClient {
+impl hyveos_bridge::ScriptingClient for ForbiddenScriptingClient {
     type Error = String;
 
     async fn deploy_image(

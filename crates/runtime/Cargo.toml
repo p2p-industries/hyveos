@@ -11,7 +11,7 @@ publish = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
-bridge = { workspace = true }
+hyveos-bridge = { workspace = true }
 bytes = { workspace = true }
 clap = { workspace = true, optional = true }
 console-subscriber = { version = "0.4.0", optional = true }
@@ -31,7 +31,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "time"] }
 ulid = { workspace = true }
 
 [features]
-batman = ["bridge/batman", "p2p-stack/batman"]
+batman = ["hyveos-bridge/batman", "p2p-stack/batman"]
 clap = ["dep:clap"]
 console-subscriber = ["dep:console-subscriber"]
 mdns = ["p2p-stack/mdns"]

@@ -127,7 +127,7 @@ impl Client {
     }
 }
 
-impl bridge::DbClient for Client {
+impl hyveos_bridge::DbClient for Client {
     type Error = Error;
 
     async fn put(&self, key: String, value: impl Into<Vec<u8>> + Send) -> Result<Option<Vec<u8>>> {

@@ -6,8 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use bridge::ScriptingClient as _;
 use futures::{future, TryFutureExt as _};
+use hyveos_bridge::ScriptingClient as _;
 use hyveos_core::gossipsub::ReceivedMessage;
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
 #[cfg(feature = "batman")]

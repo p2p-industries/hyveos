@@ -531,28 +531,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bridge"
-version = "0.1.0"
-dependencies = [
- "const_format",
- "drop-stream",
- "futures",
- "hyveos-core",
- "libp2p",
- "p2p-stack",
- "prost",
- "regex",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tonic",
- "tracing",
- "trait-variant",
- "ulid",
-]
-
-[[package]]
 name = "brotli"
 version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1759,6 +1737,28 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+]
+
+[[package]]
+name = "hyveos-bridge"
+version = "0.1.0"
+dependencies = [
+ "const_format",
+ "drop-stream",
+ "futures",
+ "hyveos-core",
+ "libp2p",
+ "p2p-stack",
+ "prost",
+ "regex",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tonic",
+ "tracing",
+ "trait-variant",
+ "ulid",
 ]
 
 [[package]]
@@ -3640,12 +3640,12 @@ name = "runtime"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bridge",
  "bytes",
  "clap",
  "console-subscriber",
  "docker",
  "futures",
+ "hyveos-bridge",
  "hyveos-core",
  "libp2p",
  "p2p-stack",
