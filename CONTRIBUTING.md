@@ -16,7 +16,6 @@ brew install protobuf
 sudo apt install protobuf-compiler
 ```
 
-
 ## Use the CI
 
 We have a *lot* of CI. Use it as a self service platform to make progress on your own.
@@ -28,6 +27,8 @@ We like if you ask questions! It helps us to improve our product, the documentat
 ## Please contribute!
 
 This is open source because we want your contributions!
+
+Please file bug reports, feature requests, expanded and current use cases as well as documentation suggestions. All contributions are welcome and we look forward to hear from you!
 
 If you are interested take a look at open issues or contribute to existing PRs. Additionally you can also expand on existing documentation.
 
