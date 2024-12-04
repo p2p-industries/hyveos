@@ -518,9 +518,8 @@ impl NetworkBehaviour for Behaviour {
         &mut self,
         _: PeerId,
         _: ConnectionId,
-        ev: THandlerOutEvent<Self>,
+        _: THandlerOutEvent<Self>,
     ) {
-        void::unreachable(ev)
     }
 
     fn poll(

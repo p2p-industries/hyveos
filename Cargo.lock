@@ -2359,7 +2359,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
- "void",
 ]
 
 [[package]]
