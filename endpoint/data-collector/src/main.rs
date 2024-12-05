@@ -7,7 +7,7 @@ use futures::StreamExt;
 use http_body_util::Full;
 use hyper::{body::Bytes, server::conn::http1, service::service_fn, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
-use p2p_industries_sdk::P2PConnection;
+use hyveos_sdk::P2PConnection;
 use prometheus::{core::Collector, Encoder, TextEncoder};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;

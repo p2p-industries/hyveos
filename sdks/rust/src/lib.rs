@@ -19,7 +19,7 @@
 //!
 //! ```no_run
 //! use futures::StreamExt as _;
-//! use p2p_industries_sdk::P2PConnection;
+//! use hyveos_sdk::P2PConnection;
 //!
 //! #[tokio::main]
 //! async fn main() {

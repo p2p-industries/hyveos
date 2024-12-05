@@ -1,4 +1,4 @@
-use p2p_industries_core::grpc::{self, db_server::Db};
+use hyveos_core::grpc::{self, db_server::Db};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::TonicResult;

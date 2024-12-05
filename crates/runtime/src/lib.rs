@@ -6,13 +6,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use bridge::ScriptingClient as _;
 use futures::{future, TryFutureExt as _};
-use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
-use p2p_industries_core::gossipsub::ReceivedMessage;
+use hyveos_bridge::ScriptingClient as _;
+use hyveos_core::gossipsub::ReceivedMessage;
 #[cfg(feature = "batman")]
-use p2p_stack::DebugClient;
-use p2p_stack::{Client as P2PClient, FullActor};
+use hyveos_p2p_stack::DebugClient;
+use hyveos_p2p_stack::{Client as P2PClient, FullActor};
+use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
 pub use scripting::ScriptManagementConfig;
 use tokio::task::{AbortHandle, JoinHandle};
 use tracing::level_filters::LevelFilter;

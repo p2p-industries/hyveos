@@ -1,9 +1,9 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-use libp2p_identity::PeerId;
-use p2p_industries_core::{
+use hyveos_core::{
     dht::Key,
     grpc::{dht_client::DhtClient, Data, DhtKey, DhtRecord},
 };
+use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
@@ -18,7 +18,7 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -54,7 +54,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -100,7 +100,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -137,7 +137,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -176,7 +176,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -224,7 +224,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -270,7 +270,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -314,7 +314,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -356,7 +356,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {

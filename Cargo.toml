@@ -25,25 +25,25 @@ async-once-cell = { version = "0.5.4" }
 anyhow = { version = "1.0.82" }
 base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
-bridge = { version = "0.1.0", path = "crates/bridge" }
+hyveos-bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
 clap = { version = "4.5.18", features = ["derive"] }
-docker = { version = "0.1.0", path = "crates/docker" }
+hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
-ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
-ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
+hyveos-core = { version = "0.1.0", path = "crates/core" }
+hyveos-sdk = { version = "0.1.0", path = "sdks/rust" }
+hyveos-ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
+hyveos-ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
 indicatif = { version = "0.17.8", features = ["tokio"] }
 libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c", features = [
     "tokio",
 ] }
-libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
+hyveos-libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
-macaddress = { version = "0.1.0", path = "crates/macaddress" }
+hyveos-macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
-p2p-industries-core = { version = "0.1.0", path = "crates/core" }
-p2p-industries-sdk = { version = "0.1.0", path = "sdks/rust" }
-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
+hyveos-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
 pin-project = { version = "1.1.7" }
 prost = "0.13"
 rand = { version = "0.8.5" }
@@ -52,7 +52,7 @@ regex = { version = "1.11.1", default-features = false, features = [
     "std",
 ] }
 serde = { version = "1.0.215", features = ["derive", "rc"] }
-runtime = { version = "0.1.0", path = "crates/runtime" }
+hyveos-runtime = { version = "0.1.0", path = "crates/runtime" }
 thiserror = { version = "1" }
 tarpc = "0.35.0"
 tokio = { version = "1.38" }
@@ -62,7 +62,7 @@ tonic = { version = "0.12.2" }
 tracing = { version = "0.1.40" }
 ulid = { version = "1.1.2", features = ["serde"] }
 void = { version = "1.0.2" }
-addr-filter = { path = "crates/libp2p/addr-filter" }
+hyveos-libp2p-addr-filter = { path = "crates/libp2p/addr-filter" }
 
 [profile.perf]
 inherits = "release"

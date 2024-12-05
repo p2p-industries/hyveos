@@ -1,5 +1,5 @@
 [package]
-name = "p2p-stack"
+name = "hyveos-p2p-stack"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
@@ -13,8 +13,9 @@ base64-simd = "0.8.0"
 bytes = { workspace = true }
 cbor4ii = { version = "0.3.2", optional = true }
 dashmap = "6.0.1"
-docker = { workspace = true, features = ["zstd"] }
+hyveos-docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
+hyveos-core = { workspace = true, features = ["serde", "scripting"] }
 indicatif = { workspace = true }
 libp2p = { workspace = true, features = [
     "tokio",
@@ -28,9 +29,8 @@ libp2p = { workspace = true, features = [
     "cbor",
     "quic",
 ] }
-libp2p-batman-adv = { workspace = true, optional = true }
+hyveos-libp2p-batman-adv = { workspace = true, optional = true }
 libp2p-stream = { version = "0.2.0-alpha", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c" }
-p2p-industries-core = { workspace = true, features = ["serde", "scripting"] }
 pin-project = { workspace = true }
 rand = { workspace = true }
 sha2 = { version = "0.10.8", features = ["asm"] }
@@ -48,9 +48,9 @@ tokio-util = { workspace = true, features = ["compat"] }
 tracing = { workspace = true }
 ulid = { workspace = true }
 void = { workspace = true }
-addr-filter = { workspace = true }
+hyveos-libp2p-addr-filter = { workspace = true }
 
 [features]
-batman = ["dep:libp2p-batman-adv", "dep:cbor4ii"]
+batman = ["dep:hyveos-libp2p-batman-adv", "dep:cbor4ii"]
 location = []
 mdns = ["libp2p/mdns"]

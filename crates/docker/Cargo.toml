@@ -1,5 +1,5 @@
 [package]
-name = "docker"
+name = "hyveos-docker"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
@@ -17,7 +17,7 @@ pin-project = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["time", "io-util", "macros", "sync"] }
 tokio-stream = { workspace = true }
-tokio-util = { workspace = true, features = ["io"]}
+tokio-util = { workspace = true, features = ["io"] }
 
 
 [dev-dependencies]

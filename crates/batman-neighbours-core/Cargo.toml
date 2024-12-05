@@ -7,7 +7,7 @@ rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
-macaddress = { workspace = true }
+hyveos-macaddress = { workspace = true }
 serde = { workspace = true }
 tarpc = { workspace = true }
 thiserror = { workspace = true }

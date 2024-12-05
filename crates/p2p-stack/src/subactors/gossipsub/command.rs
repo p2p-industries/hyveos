@@ -1,8 +1,8 @@
-use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
-use p2p_industries_core::{
+use hyveos_core::{
     debug::MessageDebugEventType,
     gossipsub::{MessageId, ReceivedMessage},
 };
+use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
 use tokio::sync::{broadcast, oneshot};
 
 use crate::impl_from_special_command;

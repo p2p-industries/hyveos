@@ -5,7 +5,7 @@ use std::{
 };
 
 use futures::{Stream, StreamExt};
-use p2p_industries_sdk::{
+use hyveos_sdk::{
     services::{
         debug::{
             MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType, RequestDebugEvent,

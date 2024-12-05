@@ -25,7 +25,7 @@ impl Key {
     /// # Example
     ///
     /// ```
-    /// use p2p_industries_core::dht::Key;
+    /// use hyveos_core::dht::Key;
     ///
     /// let key = Key {
     ///    topic: "topic".to_string(),
@@ -61,7 +61,7 @@ impl Key {
     /// # Example
     ///
     /// ```
-    /// use p2p_industries_core::dht::Key;
+    /// use hyveos_core::dht::Key;
     ///
     /// let bytes = b"topic/key".to_vec();
     /// let key = Key::from_bytes(bytes).unwrap();
