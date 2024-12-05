@@ -4,7 +4,7 @@
 use std::{sync::Arc, time::Duration};
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
-use ifaddr::if_name_to_index;
+use hyveos_ifaddr::if_name_to_index;
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use thiserror::Error;

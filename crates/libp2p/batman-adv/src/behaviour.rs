@@ -9,8 +9,8 @@ use std::{
 
 use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServerClient, Error as BatmanError};
 use futures::{stream::StreamExt as _, Stream as _};
-use ifaddr::IfAddr;
-use ifwatcher::{IfEvent, IfWatcher};
+use hyveos_ifaddr::IfAddr;
+use hyveos_ifwatcher::{IfEvent, IfWatcher};
 use itertools::Itertools as _;
 use libp2p::{
     core::{transport::PortUse, Endpoint},

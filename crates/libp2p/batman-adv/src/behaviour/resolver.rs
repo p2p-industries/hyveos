@@ -9,7 +9,7 @@ use std::{
 
 use futures::SinkExt as _;
 use hashlink::{linked_hash_map::Entry, LinkedHashMap};
-use ifaddr::IfAddr;
+use hyveos_ifaddr::IfAddr;
 use libp2p::{Multiaddr, PeerId};
 use macaddress::MacAddress;
 use socket2::{Domain, Socket, Type};

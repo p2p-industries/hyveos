@@ -32,8 +32,8 @@ hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
 hyveos-sdk = { version = "0.1.0", path = "sdks/rust" }
-ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
-ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
+hyveos-ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
+hyveos-ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
 indicatif = { version = "0.17.8", features = ["tokio"] }
 libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c", features = [
     "tokio",

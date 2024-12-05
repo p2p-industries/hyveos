@@ -11,8 +11,8 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 dirs = "5.0.1"
 futures = { workspace = true }
-ifaddr = { workspace = true }
-ifwatcher = { workspace = true, optional = true }
+hyveos-ifaddr = { workspace = true }
+hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }
 netdev = { version = "0.31.0", optional = true }
 serde = { workspace = true }
@@ -22,7 +22,7 @@ toml = "0.8.13"
 tracing = { workspace = true }
 
 [features]
-batman = ["runtime/batman", "dep:ifwatcher", "dep:netdev"]
+batman = ["runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
 console-subscriber = ["runtime/console-subscriber"]
 mdns = ["runtime/mdns"]
 

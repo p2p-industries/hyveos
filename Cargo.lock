@@ -1708,8 +1708,8 @@ dependencies = [
  "clap",
  "dirs",
  "futures",
- "ifaddr",
- "ifwatcher",
+ "hyveos-ifaddr",
+ "hyveos-ifwatcher",
  "libp2p",
  "netdev",
  "runtime",
@@ -1774,6 +1774,27 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-util",
+]
+
+[[package]]
+name = "hyveos-ifaddr"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "multiaddr",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "hyveos-ifwatcher"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "hyveos-ifaddr",
+ "netlink-packet-core",
+ "netlink-packet-route 0.19.0",
+ "netlink-proto",
+ "rtnetlink 0.14.1",
 ]
 
 [[package]]
@@ -2005,27 +2026,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ifaddr"
-version = "0.1.0"
-dependencies = [
- "libc",
- "multiaddr",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "ifwatcher"
-version = "0.1.0"
-dependencies = [
- "futures",
- "ifaddr",
- "netlink-packet-core",
- "netlink-packet-route 0.19.0",
- "netlink-proto",
- "rtnetlink 0.14.1",
-]
-
-[[package]]
 name = "igd-next"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2225,8 +2225,8 @@ dependencies = [
  "bincode",
  "futures",
  "hashlink",
- "ifaddr",
- "ifwatcher",
+ "hyveos-ifaddr",
+ "hyveos-ifwatcher",
  "itertools",
  "libc",
  "libp2p",
