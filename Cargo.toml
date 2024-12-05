@@ -40,7 +40,7 @@ libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-lib
 ] }
 hyveos-libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
-macaddress = { version = "0.1.0", path = "crates/macaddress" }
+hyveos-macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
 hyveos-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }

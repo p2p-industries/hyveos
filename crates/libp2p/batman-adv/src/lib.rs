@@ -5,8 +5,8 @@ use std::{sync::Arc, time::Duration};
 
 use batman_neighbours_core::{BatmanNeighbour, Error as BatmanError};
 use hyveos_ifaddr::if_name_to_index;
+use hyveos_macaddress::MacAddress;
 use libp2p::{Multiaddr, PeerId};
-use macaddress::MacAddress;
 use thiserror::Error;
 
 pub use crate::behaviour::{store::ReadOnlyNeighbourStore, Behaviour, Event};

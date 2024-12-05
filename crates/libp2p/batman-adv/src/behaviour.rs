@@ -11,6 +11,7 @@ use batman_neighbours_core::{BatmanNeighbour, BatmanNeighboursServerClient, Erro
 use futures::{stream::StreamExt as _, Stream as _};
 use hyveos_ifaddr::IfAddr;
 use hyveos_ifwatcher::{IfEvent, IfWatcher};
+use hyveos_macaddress::MacAddress;
 use itertools::Itertools as _;
 use libp2p::{
     core::{transport::PortUse, Endpoint},
@@ -20,7 +21,6 @@ use libp2p::{
     },
     Multiaddr, PeerId,
 };
-use macaddress::MacAddress;
 use tarpc::{
     client::{self, RpcError},
     context,

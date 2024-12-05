@@ -10,8 +10,8 @@ use std::{
 use futures::SinkExt as _;
 use hashlink::{linked_hash_map::Entry, LinkedHashMap};
 use hyveos_ifaddr::IfAddr;
+use hyveos_macaddress::MacAddress;
 use libp2p::{Multiaddr, PeerId};
-use macaddress::MacAddress;
 use socket2::{Domain, Socket, Type};
 use tokio::{
     net::UdpSocket,
