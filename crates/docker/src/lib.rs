@@ -1002,53 +1002,34 @@ mod tests {
         io::{Read, Write as _},
     };
 
-    use once_cell::sync::Lazy;
     use tempfile::{tempdir, NamedTempFile};
     use tokio::{
         io::{AsyncBufReadExt, BufReader},
-        sync::{oneshot, Barrier},
+        sync::oneshot,
     };
 
     use crate::Compression;
 
-    #[cfg(feature = "zstd")]
-    const ZSTD_NUM: usize = 1;
-
-    #[cfg(not(feature = "zstd"))]
-    const ZSTD_NUM: usize = 0;
-
-    const TEST_NUM: usize = 10 + ZSTD_NUM;
-
-    static BARRIER: Lazy<Barrier> = Lazy::new(|| Barrier::new(TEST_NUM));
-
-    macro_rules! wait_before_remove {
-        ($image:ident) => {
-            BARRIER.wait().await;
-            let _ = $image.remove().await;
-        };
-    }
-
     #[tokio::test]
     async fn test_pull_image() {
         let manager = super::ContainerManager::new().unwrap();
-        let image = manager.pull_image("alpine:latest", true).await.unwrap();
-        wait_before_remove!(image);
+        let _image = manager.pull_image("alpine:latest", true).await.unwrap();
     }
 
     #[tokio::test]
     async fn test_create_and_stop_container() {
-        const IMAGE: &str = "redis:alpine";
+        const IMAGE: &str = "alpine:latest";
         let manager = super::ContainerManager::new().unwrap();
         let image = manager.pull_image(IMAGE, false).await.unwrap();
         let container = image
             .create_container()
             .enable_stream()
+            .cmd(vec!["sleep", "1000"])
             .run()
             .await
             .unwrap();
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1068,8 +1049,7 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
         drop(stdin_out);
         drop(stdout_out);
     }
@@ -1087,8 +1067,7 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.run_to_completion(None).await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1112,8 +1091,7 @@ mod tests {
         let line = rx.next_line().await.unwrap().unwrap();
         assert_eq!(line, "hello");
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1129,8 +1107,7 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.kill().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1163,8 +1140,7 @@ mod tests {
         stop_sender.send(false).unwrap();
 
         let stopped = handle.await.unwrap().unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1176,7 +1152,6 @@ mod tests {
             .import_image(archive, Compression::None)
             .await
             .unwrap();
-        wait_before_remove!(image);
     }
 
     #[tokio::test]
@@ -1189,7 +1164,6 @@ mod tests {
             .import_image(archive, Compression::Zstd)
             .await
             .unwrap();
-        wait_before_remove!(image);
     }
 
     #[tokio::test]
@@ -1217,8 +1191,7 @@ mod tests {
         let line = rx.next_line().await.unwrap().unwrap();
 
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
 
         assert_eq!(line, "Hello");
         drop(tempfile);
@@ -1242,8 +1215,7 @@ mod tests {
             .unwrap();
 
         let stopped = container.run_to_completion(None).await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
 
         let mut line = String::new();
         let mut file = File::open(path.clone() + "/file").unwrap();
