@@ -142,7 +142,6 @@ impl ContainerManager {
     /// # async fn main() {
     /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
-    /// # let _ = image.remove().await;
     /// # }
     ///
     /// ```
@@ -256,7 +255,6 @@ impl PulledImage<'_> {
     /// # async fn main() {
     /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
-    /// let _ = image.remove().await;
     /// # }
     pub async fn remove(self) -> Result<(), BollardError> {
         self.docker
@@ -313,8 +311,7 @@ impl PulledImage<'_> {
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let container = image.create_container().enable_stream().run().await.unwrap();
     /// # let stopped = container.stop().await.unwrap();
-    /// # let image = stopped.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped.remove().await.unwrap();
     /// # }
     pub fn create_container(&self) -> ContainerBuilder<'_> {
         ContainerBuilder {
@@ -421,8 +418,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
     /// let line = rx.next_line().await.unwrap().unwrap();
     /// assert_eq!(line, "hello");
     /// # let stopped_container = container.stop().await.unwrap();
-    /// # let image = stopped_container.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped_container.remove().await.unwrap();
     /// # }
     pub fn cmd(mut self, cmd: Vec<&str>) -> Self {
         self.cmd = Some(cmd.iter().map(|s| s.to_string()).collect());
@@ -824,8 +820,7 @@ impl<'a> RunningContainer<'a> {
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let container = image.create_container().enable_stream().run().await.unwrap();
     /// let stopped = container.stop().await.unwrap();
-    /// # let image = stopped.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped.remove().await.unwrap();
     /// # }
     pub async fn stop(self) -> Result<StoppedContainer<'a>, BollardError> {
         self.inner_stop(None).await
@@ -839,8 +834,7 @@ impl<'a> RunningContainer<'a> {
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let container = image.create_container().cmd(vec!["sh", "-c", "sleep 1500"]).run().await.unwrap();
     /// let stopped = container.kill().await.unwrap();
-    /// # let image = stopped.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped.remove().await.unwrap();
     /// # }
     pub async fn kill(self) -> Result<StoppedContainer<'a>, BollardError> {
         self.inner_stop(Some(0)).await
