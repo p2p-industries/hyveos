@@ -26,7 +26,7 @@ COPY poetry.lock pyproject.toml ./
 
 RUN poetry install --only main
 
-COPY hyveos-sdk ./hyveos-sdk
+COPY hyveos_sdk ./hyveos_sdk
 
 RUN poetry install --only main
 RUN poetry build
