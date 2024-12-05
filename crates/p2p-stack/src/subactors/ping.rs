@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use libp2p::{ping, PeerId};
+use libp2p::{request_response::cbor, PeerId};
 use tokio::sync::{broadcast, oneshot};
 
 use crate::{
@@ -10,39 +10,20 @@ use crate::{
     impl_from_special_command,
 };
 
-#[derive(Debug)]
-pub struct Actor {
-    sender: broadcast::Sender<Arc<Event>>,
-}
-
-impl Default for Actor {
-    fn default() -> Self {
-        let (sender, _) = broadcast::channel(10);
-        Self { sender }
-    }
-}
+#[derive(Debug, Default)]
+pub struct Actor {}
 
 #[derive(Debug)]
 pub enum Command {
-    Subscribe(oneshot::Sender<broadcast::Receiver<Arc<Event>>>),
+    Ping {
+        peer: PeerId,
+        resp_channel: oneshot::Sender<Result<Duration, String>>,
+    },
 }
+
+type Behaviour = cbor::Behaviour<u64, u64>;
 
 impl_from_special_command!(Ping);
-
-#[derive(Debug)]
-pub struct Event {
-    pub peer: PeerId,
-    pub result: Result<Duration, String>,
-}
-
-impl From<ping::Event> for Event {
-    fn from(event: ping::Event) -> Self {
-        Self {
-            peer: event.peer,
-            result: event.result.map_err(|e| e.to_string()),
-        }
-    }
-}
 
 impl SubActor for Actor {
     type Event = Event;

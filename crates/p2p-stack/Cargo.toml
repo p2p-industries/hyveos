@@ -21,7 +21,6 @@ libp2p = { workspace = true, features = [
     "identify",
     "kad",
     "gossipsub",
-    "ping",
     "macros",
     "ed25519",
     "serde",

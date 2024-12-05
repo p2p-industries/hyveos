@@ -16,7 +16,6 @@ use crate::subactors::{file_transfer, req_resp, round_trip, scripting};
 pub struct MyBehaviour {
     #[cfg(feature = "batman")]
     pub batman_neighbours: libp2p_batman_adv::Behaviour,
-    pub ping: ping::Behaviour,
     pub identify: identify::Behaviour,
     pub kad: addr_filter::Behaviour<kad::Behaviour<MemoryStore>>,
     #[cfg(feature = "mdns")]
@@ -42,7 +41,6 @@ impl MyBehaviour {
                 libp2p_batman_adv::Config::default(),
                 peer_id,
             ),
-            ping: ping::Behaviour::default(),
             kad: addr_filter::Behaviour::new(kad::Behaviour::new(
                 peer_id,
                 MemoryStore::new(peer_id),

@@ -2157,7 +2157,6 @@ dependencies = [
  "libp2p-kad",
  "libp2p-mdns",
  "libp2p-metrics",
- "libp2p-ping",
  "libp2p-quic",
  "libp2p-request-response",
  "libp2p-swarm",
@@ -2385,26 +2384,9 @@ dependencies = [
  "libp2p-identify",
  "libp2p-identity",
  "libp2p-kad",
- "libp2p-ping",
  "libp2p-swarm",
  "pin-project",
  "prometheus-client",
- "web-time",
-]
-
-[[package]]
-name = "libp2p-ping"
-version = "0.45.1"
-source = "git+https://github.com/p2p-industries/rust-libp2p.git?rev=d0ea971ccb4c85404454080df1363a5b42e1917c#d0ea971ccb4c85404454080df1363a5b42e1917c"
-dependencies = [
- "either",
- "futures",
- "futures-timer",
- "libp2p-core",
- "libp2p-identity",
- "libp2p-swarm",
- "rand",
- "tracing",
  "web-time",
 ]
 
