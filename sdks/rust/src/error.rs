@@ -29,7 +29,7 @@ pub enum Error {
     PeerId(#[from] libp2p_identity::ParseError),
     /// An error from the core library.
     #[error(transparent)]
-    Core(#[from] p2p_industries_core::Error),
+    Core(#[from] hyveos_core::Error),
     /// An environment variable was expected to be set, but it wasn't.
     #[error("Could not get {0}: {1}")]
     EnvVarMissing(&'static str, #[source] std::env::VarError),

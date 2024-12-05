@@ -5,7 +5,7 @@ use std::{
 
 use axum::{routing::get, Router};
 use futures::Stream;
-use p2p_industries_sdk::services::debug::{MeshTopologyEvent, MessageDebugEvent};
+use hyveos_sdk::services::debug::{MeshTopologyEvent, MessageDebugEvent};
 use tokio::sync::broadcast;
 use tower::ServiceBuilder;
 use tower_http::{compression::CompressionLayer, decompression::DecompressionLayer};
@@ -32,12 +32,12 @@ impl<E> Clone for AppState<E> {
 
 #[cfg(not(feature = "faker"))]
 async fn get_stream() -> anyhow::Result<(
-    impl Stream<Item = Result<MeshTopologyEvent, p2p_industries_sdk::Error>>,
-    broadcast::Receiver<Arc<Result<MessageDebugEvent, p2p_industries_sdk::Error>>>,
+    impl Stream<Item = Result<MeshTopologyEvent, hyveos_sdk::Error>>,
+    broadcast::Receiver<Arc<Result<MessageDebugEvent, hyveos_sdk::Error>>>,
 )> {
     use futures::stream::StreamExt as _;
 
-    let connection = p2p_industries_sdk::P2PConnection::get().await?;
+    let connection = hyveos_sdk::P2PConnection::get().await?;
 
     let (messages_sender, messages_receiver) = broadcast::channel(10);
 

@@ -8,7 +8,7 @@ use axum::{
     http::StatusCode,
     response::Response,
 };
-use p2p_industries_sdk::services::debug::MessageDebugEvent;
+use hyveos_sdk::services::debug::MessageDebugEvent;
 use serde::Serialize;
 use tokio::sync::broadcast;
 

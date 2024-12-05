@@ -9,19 +9,19 @@ use std::{
     task::{Context, Poll},
 };
 
-#[cfg(feature = "batman")]
-use bridge::DebugCommandSender;
-use bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use bytes::Bytes;
-use docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use futures::{
     future::{try_maybe_done, OptionFuture, TryMaybeDone},
     stream::{FuturesUnordered, StreamExt as _, TryStreamExt as _},
     FutureExt as _,
 };
+#[cfg(feature = "batman")]
+use hyveos_bridge::DebugCommandSender;
+use hyveos_bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
+use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
+use hyveos_docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
+use hyveos_p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use libp2p::PeerId;
-use p2p_industries_core::{file_transfer::Cid, scripting::RunningScript};
-use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use tokio::{
     fs::{metadata, File},
     io::{stderr, stdout, AsyncReadExt as _, AsyncWriteExt as _, BufReader},
@@ -377,7 +377,7 @@ pub enum ExecutionError {
     #[error("Io error: `{0}`")]
     Io(#[from] std::io::Error),
     #[error("Docker error: `{0}`")]
-    Docker(#[from] docker::Error),
+    Docker(#[from] hyveos_docker::Error),
     #[error("Bridge error: `{0}`")]
     Bridge(#[from] BridgeError),
     #[error("Shared directory path is not a valid utf-8 string")]
@@ -544,7 +544,7 @@ impl ExecutionManager<'_> {
     }
 
     async fn exec_with_bridge(
-        bridge: Bridge<DbClient, impl bridge::ScriptingClient>,
+        bridge: Bridge<DbClient, impl hyveos_bridge::ScriptingClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
@@ -694,7 +694,7 @@ impl ScriptingClient {
     }
 }
 
-impl bridge::ScriptingClient for ScriptingClient {
+impl hyveos_bridge::ScriptingClient for ScriptingClient {
     type Error = ExecutionError;
 
     async fn deploy_image(
@@ -831,7 +831,7 @@ impl bridge::ScriptingClient for ScriptingClient {
 
 struct ForbiddenScriptingClient;
 
-impl bridge::ScriptingClient for ForbiddenScriptingClient {
+impl hyveos_bridge::ScriptingClient for ForbiddenScriptingClient {
     type Error = String;
 
     async fn deploy_image(

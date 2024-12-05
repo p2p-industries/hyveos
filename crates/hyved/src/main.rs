@@ -5,12 +5,12 @@ use std::{
 
 use clap::Parser;
 use dirs::{data_local_dir, runtime_dir};
-use ifaddr::{if_name_to_index, IfAddr};
+use hyveos_ifaddr::{if_name_to_index, IfAddr};
+use hyveos_runtime::{LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use libp2p::{
     identity::Keypair,
     multiaddr::{Multiaddr, Protocol},
 };
-use runtime::{LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use serde::Deserialize;
 
 const DAEMON_NAME: &str = "hyved";
@@ -72,7 +72,7 @@ impl Config {
     }
 }
 
-/// This is the entrypoint of the p2p-industries app.
+/// This daemon starts the HyveOS runtime.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 #[command(version, about)]
@@ -85,7 +85,7 @@ pub struct Opts {
         value_name = "LISTEN_ADDRESS",
         conflicts_with("interfaces")
     )]
-    pub listen_addrs: Option<Vec<ifaddr::IfAddr>>,
+    pub listen_addrs: Option<Vec<hyveos_ifaddr::IfAddr>>,
     #[clap(
         short,
         long = "interface",
@@ -98,7 +98,7 @@ pub struct Opts {
         value_name = "ADDRESS",
         conflicts_with("batman_interface")
     )]
-    pub batman_addr: Option<ifaddr::IfAddr>,
+    pub batman_addr: Option<hyveos_ifaddr::IfAddr>,
     #[clap(
         long = "batman-interface",
         value_name = "INTERFACE",
@@ -145,7 +145,7 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
     use std::{collections::HashSet, time::Duration};
 
     use futures::TryStreamExt as _;
-    use ifwatcher::{IfEvent, IfWatcher};
+    use hyveos_ifwatcher::{IfEvent, IfWatcher};
 
     if let Some(mut interfaces) = interfaces
         .map(|i| {

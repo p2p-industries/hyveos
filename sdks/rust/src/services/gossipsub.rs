@@ -1,13 +1,13 @@
 #[cfg(feature = "serde")]
 use futures::future;
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-#[cfg(feature = "serde")]
-use libp2p_identity::PeerId;
-pub use p2p_industries_core::gossipsub::Message;
-use p2p_industries_core::{
+pub use hyveos_core::gossipsub::Message;
+use hyveos_core::{
     gossipsub::{MessageId, ReceivedMessage},
     grpc::{gossip_sub_client::GossipSubClient, GossipSubMessage, Topic},
 };
+#[cfg(feature = "serde")]
+use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
@@ -36,7 +36,7 @@ pub struct TypedMessage<T> {
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -70,7 +70,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -125,7 +125,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -192,7 +192,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -256,7 +256,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -298,7 +298,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -336,7 +336,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]

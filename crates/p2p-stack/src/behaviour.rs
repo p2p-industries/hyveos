@@ -15,10 +15,10 @@ use crate::subactors::{file_transfer, req_resp, round_trip, scripting};
 #[derive(NetworkBehaviour)]
 pub struct MyBehaviour {
     #[cfg(feature = "batman")]
-    pub batman_neighbours: libp2p_batman_adv::Behaviour,
+    pub batman_neighbours: hyveos_libp2p_batman_adv::Behaviour,
     pub ping: ping::Behaviour,
     pub identify: identify::Behaviour,
-    pub kad: addr_filter::Behaviour<kad::Behaviour<MemoryStore>>,
+    pub kad: hyveos_libp2p_addr_filter::Behaviour<kad::Behaviour<MemoryStore>>,
     #[cfg(feature = "mdns")]
     pub mdns: libp2p::mdns::tokio::Behaviour,
     pub gossipsub: gossipsub::Behaviour,
@@ -38,12 +38,12 @@ impl MyBehaviour {
         let peer_id = public.to_peer_id();
         Self {
             #[cfg(feature = "batman")]
-            batman_neighbours: libp2p_batman_adv::Behaviour::new(
-                libp2p_batman_adv::Config::default(),
+            batman_neighbours: hyveos_libp2p_batman_adv::Behaviour::new(
+                hyveos_libp2p_batman_adv::Config::default(),
                 peer_id,
             ),
             ping: ping::Behaviour::default(),
-            kad: addr_filter::Behaviour::new(kad::Behaviour::new(
+            kad: hyveos_libp2p_addr_filter::Behaviour::new(kad::Behaviour::new(
                 peer_id,
                 MemoryStore::new(peer_id),
             )),

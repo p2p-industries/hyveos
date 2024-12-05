@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
-use p2p_industries_core::{
+use hyveos_core::{
     debug::MessageDebugEventType,
     gossipsub::{Message, MessageId, ReceivedMessage},
 };
+use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
 use tokio::sync::broadcast;
 
 use super::Command;

@@ -1,9 +1,9 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-use libp2p_identity::PeerId;
-use p2p_industries_core::{
+use hyveos_core::{
     discovery::NeighbourEvent,
     grpc::{discovery_client::DiscoveryClient, Empty},
 };
+use libp2p_identity::PeerId;
 use tonic::transport::Channel;
 
 use crate::{connection::P2PConnection, error::Result};
@@ -16,7 +16,7 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::P2PConnection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -55,7 +55,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -93,7 +93,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::P2PConnection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {

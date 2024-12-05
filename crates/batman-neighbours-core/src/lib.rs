@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use macaddress::MacAddress;
+use hyveos_macaddress::MacAddress;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
