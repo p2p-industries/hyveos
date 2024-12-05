@@ -6,11 +6,11 @@ use std::{
 use clap::Parser;
 use dirs::{data_local_dir, runtime_dir};
 use hyveos_ifaddr::{if_name_to_index, IfAddr};
+use hyveos_runtime::{LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use libp2p::{
     identity::Keypair,
     multiaddr::{Multiaddr, Protocol},
 };
-use runtime::{LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use serde::Deserialize;
 
 const DAEMON_NAME: &str = "hyved";

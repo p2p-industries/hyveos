@@ -1702,9 +1702,9 @@ dependencies = [
  "futures",
  "hyveos-ifaddr",
  "hyveos-ifwatcher",
+ "hyveos-runtime",
  "libp2p",
  "netdev",
- "runtime",
  "serde",
  "tokio",
  "toml",
@@ -1852,6 +1852,31 @@ dependencies = [
  "tracing",
  "ulid",
  "void",
+]
+
+[[package]]
+name = "hyveos-runtime"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "clap",
+ "console-subscriber",
+ "futures",
+ "hyveos-bridge",
+ "hyveos-core",
+ "hyveos-docker",
+ "hyveos-p2p-stack",
+ "libp2p",
+ "pin-project",
+ "redb",
+ "serde",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "ulid",
 ]
 
 [[package]]
@@ -3633,31 +3658,6 @@ dependencies = [
  "nix 0.27.1",
  "thiserror 1.0.69",
  "tokio",
-]
-
-[[package]]
-name = "runtime"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytes",
- "clap",
- "console-subscriber",
- "futures",
- "hyveos-bridge",
- "hyveos-core",
- "hyveos-docker",
- "hyveos-p2p-stack",
- "libp2p",
- "pin-project",
- "redb",
- "serde",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "ulid",
 ]
 
 [[package]]

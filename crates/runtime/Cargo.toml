@@ -1,5 +1,5 @@
 [package]
-name = "runtime"
+name = "hyveos-runtime"
 version = "0.1.0"
 edition = "2021"
 authors = [

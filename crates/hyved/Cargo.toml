@@ -16,15 +16,15 @@ hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }
 netdev = { version = "0.31.0", optional = true }
 serde = { workspace = true }
-runtime = { workspace = true, features = ["clap", "serde"] }
+hyveos-runtime = { workspace = true, features = ["clap", "serde"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 toml = "0.8.13"
 tracing = { workspace = true }
 
 [features]
-batman = ["runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
-console-subscriber = ["runtime/console-subscriber"]
-mdns = ["runtime/mdns"]
+batman = ["hyveos-runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
+console-subscriber = ["hyveos-runtime/console-subscriber"]
+mdns = ["hyveos-runtime/mdns"]
 
 [package.metadata.deb]
 name = "hyved"
