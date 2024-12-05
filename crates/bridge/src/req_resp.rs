@@ -1,7 +1,7 @@
 use drop_stream::DropStream;
 use futures::StreamExt as _;
 use hyveos_core::grpc::{self, req_resp_server::ReqResp};
-use p2p_stack::Client;
+use hyveos_p2p_stack::Client;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 

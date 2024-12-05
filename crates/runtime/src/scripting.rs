@@ -20,8 +20,8 @@ use hyveos_bridge::DebugCommandSender;
 use hyveos_bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
 use hyveos_docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
+use hyveos_p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use libp2p::PeerId;
-use p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use tokio::{
     fs::{metadata, File},
     io::{stderr, stdout, AsyncReadExt as _, AsyncWriteExt as _, BufReader},

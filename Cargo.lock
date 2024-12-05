@@ -1719,8 +1719,8 @@ dependencies = [
  "drop-stream",
  "futures",
  "hyveos-core",
+ "hyveos-p2p-stack",
  "libp2p",
- "p2p-stack",
  "prost",
  "regex",
  "thiserror 1.0.69",
@@ -1820,6 +1820,38 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "hyveos-p2p-stack"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-once-cell",
+ "asynchronous-codec",
+ "base64-simd",
+ "bytes",
+ "cbor4ii",
+ "dashmap",
+ "futures",
+ "hyveos-core",
+ "hyveos-docker",
+ "hyveos-libp2p-addr-filter",
+ "hyveos-libp2p-batman-adv",
+ "indicatif",
+ "libp2p",
+ "libp2p-stream",
+ "pin-project",
+ "rand",
+ "serde",
+ "sha2",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+ "ulid",
+ "void",
 ]
 
 [[package]]
@@ -3063,38 +3095,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
-name = "p2p-stack"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-once-cell",
- "asynchronous-codec",
- "base64-simd",
- "bytes",
- "cbor4ii",
- "dashmap",
- "futures",
- "hyveos-core",
- "hyveos-docker",
- "hyveos-libp2p-addr-filter",
- "hyveos-libp2p-batman-adv",
- "indicatif",
- "libp2p",
- "libp2p-stream",
- "pin-project",
- "rand",
- "serde",
- "sha2",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tracing",
- "ulid",
- "void",
-]
-
-[[package]]
 name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3647,8 +3647,8 @@ dependencies = [
  "hyveos-bridge",
  "hyveos-core",
  "hyveos-docker",
+ "hyveos-p2p-stack",
  "libp2p",
- "p2p-stack",
  "pin-project",
  "redb",
  "serde",

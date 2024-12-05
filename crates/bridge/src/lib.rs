@@ -5,9 +5,9 @@ use std::{io, path::PathBuf, pin::Pin};
 
 use futures::stream::Stream;
 use hyveos_core::grpc;
-use p2p_stack::Client;
+use hyveos_p2p_stack::Client;
 #[cfg(feature = "batman")]
-use p2p_stack::DebugClientCommand;
+use hyveos_p2p_stack::DebugClientCommand;
 use tokio::net::UnixListener;
 #[cfg(feature = "batman")]
 use tokio::sync::mpsc;

@@ -3,7 +3,7 @@ use futures::stream::TryStreamExt as _;
 #[cfg(feature = "batman")]
 use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::grpc::{self, discovery_server::Discovery};
-use p2p_stack::Client;
+use hyveos_p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::{ServerStream, TonicResult};

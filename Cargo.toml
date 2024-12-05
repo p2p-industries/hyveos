@@ -43,7 +43,7 @@ libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace depen
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
+hyveos-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
 pin-project = { version = "1.1.7" }
 prost = "0.13"
 rand = { version = "0.8.5" }

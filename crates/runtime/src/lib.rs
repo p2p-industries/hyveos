@@ -9,10 +9,10 @@ use std::{
 use futures::{future, TryFutureExt as _};
 use hyveos_bridge::ScriptingClient as _;
 use hyveos_core::gossipsub::ReceivedMessage;
-use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
 #[cfg(feature = "batman")]
-use p2p_stack::DebugClient;
-use p2p_stack::{Client as P2PClient, FullActor};
+use hyveos_p2p_stack::DebugClient;
+use hyveos_p2p_stack::{Client as P2PClient, FullActor};
+use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
 pub use scripting::ScriptManagementConfig;
 use tokio::task::{AbortHandle, JoinHandle};
 use tracing::level_filters::LevelFilter;

@@ -1,7 +1,7 @@
 use futures::stream::TryStreamExt as _;
 use hyveos_core::grpc::{self, gossip_sub_server::GossipSub};
+use hyveos_p2p_stack::Client;
 use libp2p::gossipsub::IdentTopic;
-use p2p_stack::Client;
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 

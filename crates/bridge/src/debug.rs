@@ -1,7 +1,7 @@
 use drop_stream::DropStream;
 use futures::TryStreamExt as _;
 use hyveos_core::grpc::{self, debug_server::Debug};
-use p2p_stack::DebugClientCommand;
+use hyveos_p2p_stack::DebugClientCommand;
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
