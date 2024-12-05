@@ -1,13 +1,13 @@
 import asyncio
 import os
-from p2pindustries import P2PConnection
+from hyveos_sdk import P2PConnection
 from json import dumps, loads
 from gpiozero import PWMOutputDevice, OutputDevice
 from time import time
 
-from p2pindustries.protocol.script_pb2 import GossipSubRecvMessage
-from p2pindustries.services.gossip_sub import GossipSubService
-from p2pindustries.services.request_response import RequestResponseService
+from hyveos_sdk.protocol.script_pb2 import GossipSubRecvMessage
+from hyveos_sdk.services.gossip_sub import GossipSubService
+from hyveos_sdk.services.request_response import RequestResponseService
 
 FLOW_METER_PIN = int(os.environ['FLOW_METER_PIN'])
 PWM_PIN = int(os.environ['PWM_PIN'])

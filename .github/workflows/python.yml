@@ -51,18 +51,18 @@ jobs:
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
-        working-directory: sdks/python/p2pindustries
+        working-directory: sdks/python/hyveos-sdk
 
       - name: Check formatting is correct
-        working-directory: sdks/python/p2pindustries
+        working-directory: sdks/python/hyveos-sdk
         run: poetry run ruff format --check
 
       - name: Check linting is correct
-        working-directory: sdks/python/p2pindustries
+        working-directory: sdks/python/hyveos-sdk
         run: poetry run ruff check
 
       - name: Check if compiled protobuf is up-to-date
-        working-directory: sdks/python/p2pindustries
+        working-directory: sdks/python/hyveos-sdk
         run: |
           mkdir proto-check
           poetry run python -m grpc_tools.protoc -I../../../protos --python_out=./proto-check --pyi_out=./proto-check --grpc_python_out=./proto-check ../../../protos/script.proto

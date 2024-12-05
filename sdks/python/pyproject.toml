@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "p2pindustries"
+name = "hyveos-sdk"
 version = "0.1.0"
 description = ""
 authors = [
@@ -11,11 +11,12 @@ authors = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-grpcio = "^1.66.0"
+grpcio = "^1.68.0"
+protobuf = "^5.29.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.5"
-grpcio-tools = "^1.66.0"
+grpcio-tools = "^1.68.0"
 
 [tool.ruff]
 exclude = ['protocol']
