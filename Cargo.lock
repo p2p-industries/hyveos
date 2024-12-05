@@ -3,14 +3,6 @@
 version = 3
 
 [[package]]
-name = "addr-filter"
-version = "0.1.0"
-dependencies = [
- "libp2p",
- "tracing",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1798,6 +1790,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyveos-libp2p-addr-filter"
+version = "0.1.0"
+dependencies = [
+ "libp2p",
+ "tracing",
+]
+
+[[package]]
+name = "hyveos-libp2p-batman-adv"
+version = "0.1.0"
+dependencies = [
+ "batman-neighbours-core",
+ "bincode",
+ "futures",
+ "hashlink",
+ "hyveos-ifaddr",
+ "hyveos-ifwatcher",
+ "itertools",
+ "libc",
+ "libp2p",
+ "macaddress",
+ "rand",
+ "serde",
+ "socket2",
+ "tarpc",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "hyveos-sdk"
 version = "0.1.0"
 dependencies = [
@@ -2215,31 +2240,6 @@ dependencies = [
  "libp2p-core",
  "libp2p-identity",
  "libp2p-swarm",
-]
-
-[[package]]
-name = "libp2p-batman-adv"
-version = "0.1.0"
-dependencies = [
- "batman-neighbours-core",
- "bincode",
- "futures",
- "hashlink",
- "hyveos-ifaddr",
- "hyveos-ifwatcher",
- "itertools",
- "libc",
- "libp2p",
- "macaddress",
- "rand",
- "serde",
- "socket2",
- "tarpc",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tracing",
 ]
 
 [[package]]
@@ -3066,7 +3066,6 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 name = "p2p-stack"
 version = "0.1.0"
 dependencies = [
- "addr-filter",
  "anyhow",
  "async-once-cell",
  "asynchronous-codec",
@@ -3077,9 +3076,10 @@ dependencies = [
  "futures",
  "hyveos-core",
  "hyveos-docker",
+ "hyveos-libp2p-addr-filter",
+ "hyveos-libp2p-batman-adv",
  "indicatif",
  "libp2p",
- "libp2p-batman-adv",
  "libp2p-stream",
  "pin-project",
  "rand",

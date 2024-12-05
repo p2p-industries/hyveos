@@ -38,7 +38,7 @@ indicatif = { version = "0.17.8", features = ["tokio"] }
 libp2p = { version = "0.54.1", git = "https://github.com/p2p-industries/rust-libp2p.git", rev = "d0ea971ccb4c85404454080df1363a5b42e1917c", features = [
     "tokio",
 ] }
-libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
+hyveos-libp2p-batman-adv = { version = "0.1.0", path = "crates/libp2p/batman-adv" }
 libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace dependency in libp2p, so we can't take the forked version here
 macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
@@ -62,7 +62,7 @@ tonic = { version = "0.12.2" }
 tracing = { version = "0.1.40" }
 ulid = { version = "1.1.2", features = ["serde"] }
 void = { version = "1.0.2" }
-addr-filter = { path = "crates/libp2p/addr-filter" }
+hyveos-libp2p-addr-filter = { path = "crates/libp2p/addr-filter" }
 
 [profile.perf]
 inherits = "release"

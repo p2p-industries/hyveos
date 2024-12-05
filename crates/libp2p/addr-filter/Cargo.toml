@@ -1,5 +1,5 @@
 [package]
-name = "addr-filter"
+name = "hyveos-libp2p-addr-filter"
 version = "0.1.0"
 edition = "2021"
 rust-version.workspace = true

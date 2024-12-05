@@ -143,7 +143,7 @@ pub trait NeighbourActor:
     SubActor<
     CommandError = void::Void,
     EventError = void::Void,
-    Event = libp2p_batman_adv::Event,
+    Event = hyveos_libp2p_batman_adv::Event,
     SubCommand = neighbours::Command,
 >
 {
@@ -154,7 +154,7 @@ impl<T> NeighbourActor for T where
     T: SubActor<
         CommandError = void::Void,
         EventError = void::Void,
-        Event = libp2p_batman_adv::Event,
+        Event = hyveos_libp2p_batman_adv::Event,
         SubCommand = neighbours::Command,
     >
 {

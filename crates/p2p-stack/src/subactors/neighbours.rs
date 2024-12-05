@@ -5,10 +5,10 @@ use futures::{
     Stream, StreamExt as _,
 };
 use hyveos_core::discovery::NeighbourEvent;
-use libp2p::PeerId;
-use libp2p_batman_adv::{
+use hyveos_libp2p_batman_adv::{
     Event as BatmanEvent, ReadOnlyNeighbourStore, ResolvedNeighbour, UnresolvedNeighbour,
 };
+use libp2p::PeerId;
 use tokio::sync::{broadcast, oneshot};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
