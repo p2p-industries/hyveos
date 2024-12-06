@@ -121,8 +121,18 @@ impl From<SpecialClient<Command>> for Client {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Outbound failure")]
+    OutboundFailure(#[from] OutboundFailure),
+    #[error("Channel closed")]
+    ChannelClosed,
+    #[error("Recv error")]
+    RecvError(#[from] oneshot::error::RecvError),
+}
+
 impl Client {
-    pub async fn ping(&self, peer: PeerId) -> Result<Duration, OutboundFailure> {
+    pub async fn ping(&self, peer: PeerId) -> Result<Duration, Error> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .send(Command::Ping {
@@ -131,7 +141,7 @@ impl Client {
                 start: Instant::now(),
             })
             .await
-            .unwrap();
-        receiver.await.unwrap()
+            .map_err(|_| Error::ChannelClosed)?;
+        Ok(receiver.await??)
     }
 }
