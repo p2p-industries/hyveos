@@ -65,7 +65,7 @@ impl FileTransfer for FileTransferServer {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        tokio::fs::copy(store_path, self.shared_dir_path.join(&ulid_string))
+        tokio::fs::hard_link(store_path, self.shared_dir_path.join(&ulid_string))
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 

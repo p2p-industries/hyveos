@@ -288,7 +288,7 @@ impl Client {
         if !file.exists() {
             return Err(io::Error::from(io::ErrorKind::NotFound).into());
         }
-        tokio::fs::copy(file, path).await?;
+        tokio::fs::hard_link(file, path).await?;
         self.provide_cid(cid).await?;
         Ok(())
     }

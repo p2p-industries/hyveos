@@ -134,7 +134,7 @@ impl Service {
 
             let (shared_path, _) = Path::new(&shared_dir).join(file_name).unique_file().await?;
 
-            tokio::fs::copy(&path, &shared_path).await?;
+            tokio::fs::hard_link(&path, &shared_path).await?;
 
             shared_path.try_into()
         }?;
