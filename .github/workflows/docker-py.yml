@@ -26,7 +26,7 @@ concurrency:
 jobs:
   build-base-image:
     name: Build and Push base image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read
@@ -86,7 +86,7 @@ jobs:
 
   build-garden-image:
     name: Build and push garden images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build-base-image
 
     permissions:
