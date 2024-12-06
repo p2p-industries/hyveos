@@ -9,7 +9,7 @@ use libp2p::{
 use crate::subactors::debug;
 #[cfg(feature = "location")]
 use crate::subactors::location;
-use crate::subactors::{file_transfer, req_resp, round_trip, scripting};
+use crate::subactors::{file_transfer, ping, req_resp, round_trip, scripting};
 
 #[derive(NetworkBehaviour)]
 pub struct MyBehaviour {
@@ -21,6 +21,7 @@ pub struct MyBehaviour {
     pub mdns: libp2p::mdns::tokio::Behaviour,
     pub gossipsub: gossipsub::Behaviour,
     pub req_resp: req_resp::Behaviour,
+    pub ping: ping::Behaviour,
     pub round_trip: round_trip::Behaviour,
     #[cfg(feature = "location")]
     pub location: location::Behaviour,
@@ -63,6 +64,7 @@ impl MyBehaviour {
                 public,
             )),
             req_resp: req_resp::new(),
+            ping: ping::new(),
             round_trip: round_trip::new(),
             #[cfg(feature = "location")]
             location: location::new(),

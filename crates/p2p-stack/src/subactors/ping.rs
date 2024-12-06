@@ -1,27 +1,47 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
-use libp2p::{request_response::cbor, PeerId};
-use tokio::sync::{broadcast, oneshot};
+use libp2p::{
+    request_response::{
+        cbor, Config, Message, OutboundFailure, OutboundRequestId, ProtocolSupport,
+    },
+    swarm::NetworkBehaviour,
+    PeerId, StreamProtocol,
+};
+use tokio::{sync::oneshot, time::Instant};
 
 use crate::{
-    actor::SubActor,
-    behaviour::MyBehaviour,
-    client::{RequestError, SpecialClient},
-    impl_from_special_command,
+    actor::SubActor, behaviour::MyBehaviour, client::SpecialClient, impl_from_special_command,
 };
 
+#[derive(Debug)]
+struct PingTracker {
+    start: Instant,
+    resp_channel: oneshot::Sender<Result<Duration, OutboundFailure>>,
+}
+
 #[derive(Debug, Default)]
-pub struct Actor {}
+pub struct Actor {
+    tracker: HashMap<OutboundRequestId, PingTracker>,
+}
 
 #[derive(Debug)]
 pub enum Command {
     Ping {
         peer: PeerId,
-        resp_channel: oneshot::Sender<Result<Duration, String>>,
+        resp_channel: oneshot::Sender<Result<Duration, OutboundFailure>>,
+        start: Instant,
     },
 }
 
-type Behaviour = cbor::Behaviour<u64, u64>;
+pub type Behaviour = cbor::Behaviour<(), ()>;
+pub type Event = <Behaviour as NetworkBehaviour>::ToSwarm;
+
+pub fn new() -> Behaviour {
+    cbor::Behaviour::new(
+        [(StreamProtocol::new("/fast_ping"), ProtocolSupport::Full)],
+        Config::default(),
+    )
+}
 
 impl_from_special_command!(Ping);
 
@@ -34,20 +54,57 @@ impl SubActor for Actor {
     fn handle_event(
         &mut self,
         event: Self::Event,
-        _behaviour: &mut MyBehaviour,
+        behaviour: &mut MyBehaviour,
     ) -> Result<(), Self::EventError> {
-        let _ = self.sender.send(Arc::new(event));
+        match event {
+            Event::Message { message, .. } => match message {
+                Message::Request {
+                    request, channel, ..
+                } => {
+                    let _ = behaviour.ping.send_response(channel, request);
+                }
+                Message::Response { request_id, .. } => {
+                    if let Some(PingTracker {
+                        start,
+                        resp_channel,
+                    }) = self.tracker.remove(&request_id)
+                    {
+                        let duration = start.elapsed();
+                        let _ = resp_channel.send(Ok(duration));
+                    }
+                }
+            },
+            Event::OutboundFailure {
+                request_id, error, ..
+            } => {
+                if let Some(PingTracker { resp_channel, .. }) = self.tracker.remove(&request_id) {
+                    let _ = resp_channel.send(Err(error));
+                }
+            }
+            Event::InboundFailure { .. } | Event::ResponseSent { .. } => {}
+        }
         Ok(())
     }
 
     fn handle_command(
         &mut self,
         command: Self::SubCommand,
-        _behaviour: &mut MyBehaviour,
+        behaviour: &mut MyBehaviour,
     ) -> Result<(), Self::CommandError> {
         match command {
-            Command::Subscribe(sender) => {
-                let _ = sender.send(self.sender.subscribe());
+            Command::Ping {
+                peer,
+                resp_channel,
+                start,
+            } => {
+                let request_id = behaviour.ping.send_request(&peer, ());
+                self.tracker.insert(
+                    request_id,
+                    PingTracker {
+                        start,
+                        resp_channel,
+                    },
+                );
             }
         }
         Ok(())
@@ -65,12 +122,16 @@ impl From<SpecialClient<Command>> for Client {
 }
 
 impl Client {
-    pub async fn subscribe(&self) -> Result<broadcast::Receiver<Arc<Event>>, RequestError> {
+    pub async fn ping(&self, peer: PeerId) -> Result<Duration, OutboundFailure> {
         let (sender, receiver) = oneshot::channel();
         self.inner
-            .send(Command::Subscribe(sender))
+            .send(Command::Ping {
+                peer,
+                resp_channel: sender,
+                start: Instant::now(),
+            })
             .await
-            .map_err(RequestError::Send)?;
-        receiver.await.map_err(RequestError::Oneshot)
+            .unwrap();
+        receiver.await.unwrap()
     }
 }
