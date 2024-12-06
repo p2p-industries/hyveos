@@ -10,7 +10,10 @@ use libp2p::{
 use tokio::{sync::oneshot, time::Instant};
 
 use crate::{
-    actor::SubActor, behaviour::MyBehaviour, client::SpecialClient, impl_from_special_command,
+    actor::SubActor,
+    behaviour::MyBehaviour,
+    client::{RequestError, SpecialClient},
+    impl_from_special_command,
 };
 
 #[derive(Debug)]
@@ -121,15 +124,7 @@ impl From<SpecialClient<Command>> for Client {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Outbound failure")]
-    OutboundFailure(#[from] OutboundFailure),
-    #[error("Channel closed")]
-    ChannelClosed,
-    #[error("Recv error")]
-    Receive(#[from] oneshot::error::RecvError),
-}
+pub type Error = RequestError<OutboundFailure>;
 
 impl Client {
     pub async fn ping(&self, peer: PeerId) -> Result<Duration, Error> {
@@ -141,7 +136,7 @@ impl Client {
                 start: Instant::now(),
             })
             .await
-            .map_err(|_| Error::ChannelClosed)?;
-        Ok(receiver.await??)
+            .map_err(Error::Send)?;
+        Ok(receiver.await.map_err(Error::Oneshot)??)
     }
 }
