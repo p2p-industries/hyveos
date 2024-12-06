@@ -3,7 +3,7 @@ import time
 import os
 
 from gpiozero import DigitalInputDevice
-from p2pindustries.services.db import DBService
+from hyveos_sdk.services.db import DBService
 
 MOISTURE_1_PIN = 23
 MOISTURE_2_PIN = 8

@@ -7,7 +7,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean \
     && apt-get update \
     && apt-get -y --no-install-recommends install \
-        curl
+    curl
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
@@ -26,7 +26,7 @@ COPY poetry.lock pyproject.toml ./
 
 RUN poetry install --only main
 
-COPY p2pindustries ./p2pindustries
+COPY hyveos_sdk ./hyveos_sdk
 
 RUN poetry install --only main
 RUN poetry build

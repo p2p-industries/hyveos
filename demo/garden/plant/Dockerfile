@@ -10,7 +10,7 @@ WORKDIR /app/demo/garden/plant
 COPY poetry.lock poetry.lock
 COPY pyproject.toml pyproject.toml
 
-RUN poetry remove p2pindustries
+RUN poetry remove hyveos-sdk
 RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --without dev --no-root
 

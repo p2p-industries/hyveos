@@ -1,4 +1,4 @@
-from p2pindustries.services.db import DBService
+from hyveos_sdk.services.db import DBService
 from .moisture import MoistureSensor
 from .valve import ValveController
 

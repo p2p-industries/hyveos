@@ -4,10 +4,10 @@ import json
 import asyncio
 from typing import Callable
 import ltr559
-from p2pindustries import P2PConnection
-from p2pindustries.services.dht import DHTService
-from p2pindustries.services.gossip_sub import GossipSubService
-from p2pindustries.services.request_response import RequestResponseService
+from hyveos_sdk import P2PConnection
+from hyveos_sdk.services.dht import DHTService
+from hyveos_sdk.services.gossip_sub import GossipSubService
+from hyveos_sdk.services.request_response import RequestResponseService
 from .display import Display
 from .moisture import MoistureSensor
 from .plant import Plant
