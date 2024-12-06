@@ -4,7 +4,7 @@ COPY ./pyproject.toml /app/client/pyproject.toml
 
 WORKDIR /app/client
 
-RUN poetry remove p2pindustries
+RUN poetry remove hyveos-sdk
 RUN poetry add /app/python/sdks/dist/*.whl
 RUN poetry install --only main
 

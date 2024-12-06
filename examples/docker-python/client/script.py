@@ -2,7 +2,7 @@ import asyncio
 from asyncio.tasks import sleep
 import os
 from typing import Optional
-from p2pindustries import P2PConnection, DHTService
+from hyveos_sdk import P2PConnection, DHTService
 
 
 async def get_listener(dht: DHTService) -> Optional[str]:

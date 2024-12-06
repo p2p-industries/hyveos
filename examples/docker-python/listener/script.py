@@ -1,5 +1,5 @@
 import asyncio
-from p2pindustries import P2PConnection, RequestResponseService
+from hyveos_sdk import P2PConnection, RequestResponseService
 from typing import Optional
 
 
