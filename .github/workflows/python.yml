@@ -14,10 +14,13 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     outputs:
       python: ${{ steps.filter.outputs.python }}
     steps:
       - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'pull_request' }}
       - uses: dorny/paths-filter@v3
         id: filter
         with:
