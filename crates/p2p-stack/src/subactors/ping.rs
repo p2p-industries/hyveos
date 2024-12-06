@@ -128,7 +128,7 @@ pub enum Error {
     #[error("Channel closed")]
     ChannelClosed,
     #[error("Recv error")]
-    RecvError(#[from] oneshot::error::RecvError),
+    Receive(#[from] oneshot::error::RecvError),
 }
 
 impl Client {
