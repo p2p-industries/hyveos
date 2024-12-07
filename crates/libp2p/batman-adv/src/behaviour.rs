@@ -349,7 +349,7 @@ impl ResolvingNeighboursBehaviour {
             } in neighbour_update.resolved.values()
             {
                 self.pending_swarm_events.push_back(ToSwarm::Dial {
-                    opts: DialOpts::peer_id(peer_id)
+                    opts: DialOpts::peer_id(*peer_id)
                         .addresses(vec![direct_addr.clone(), batman_addr.clone()])
                         .build(),
                 });
