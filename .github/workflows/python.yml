@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     outputs:
@@ -32,7 +32,7 @@ jobs:
               - '.github/workflows/python.yml'
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: changes
     if: ${{ needs.changes.outputs.python == 'true' }}
     steps:
@@ -84,7 +84,7 @@ jobs:
 
   test-completed:
     name: Wait for test completion (Python)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     needs: [changes, build]
     if: always()

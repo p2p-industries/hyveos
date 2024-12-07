@@ -434,7 +434,7 @@ where
                 .map_err(Into::into),
             SwarmEvent::Behaviour(MyBehaviourEvent::Ping(ping)) => self
                 .ping
-                .handle_event(ping.into(), self.swarm.behaviour_mut())
+                .handle_event(ping, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
             SwarmEvent::Behaviour(MyBehaviourEvent::Identify(event)) => self
                 .identify

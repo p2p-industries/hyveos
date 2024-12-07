@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     name: Test ${{ matrix.crate }} on ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: gather_crates
     strategy:
@@ -88,7 +88,7 @@ jobs:
 
   clippy:
     name: Run clippy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -115,7 +115,7 @@ jobs:
         run: cargo clippy --all-features -- -D warnings
 
   rustfmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -131,7 +131,7 @@ jobs:
 
   ensure-lockfile-uptodate:
     name: Ensure that `Cargo.lock` is up-to-date
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -140,7 +140,7 @@ jobs:
 
   gather_crates:
     name: Gather crates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
@@ -154,7 +154,7 @@ jobs:
   cargo-deny:
     name: Enforce dependency licenses and advisories
     needs: ensure-lockfile-uptodate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -167,7 +167,7 @@ jobs:
 
   test-completed:
     name: Wait for test completion (Rust)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test, clippy, rustfmt, cargo-deny, ensure-lockfile-uptodate, gather_crates]
     steps:
       - run: echo "Complete"
