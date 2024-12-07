@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet, VecDeque},
     future::Future as _,
     io,
     pin::Pin,
@@ -16,8 +16,8 @@ use itertools::Itertools as _;
 use libp2p::{
     core::{transport::PortUse, Endpoint},
     swarm::{
-        dummy, ConnectionDenied, ConnectionId, FromSwarm, ListenAddresses, NetworkBehaviour,
-        THandler, THandlerInEvent, THandlerOutEvent, ToSwarm,
+        dial_opts::DialOpts, dummy, ConnectionDenied, ConnectionId, FromSwarm, ListenAddresses,
+        NetworkBehaviour, THandler, THandlerInEvent, THandlerOutEvent, ToSwarm,
     },
     Multiaddr, PeerId,
 };
@@ -147,6 +147,7 @@ struct ResolvingNeighboursBehaviour {
     resolved_neighbour_sender: Sender<Result<ResolvedNeighbour, MacAddress>>,
     resolved_neighbour_receiver: Receiver<Result<ResolvedNeighbour, MacAddress>>,
     neighbour_store: Arc<RwLock<NeighbourStore>>,
+    pending_swarm_events: VecDeque<ToSwarm<Event, THandlerInEvent<Behaviour>>>,
 }
 
 impl ResolvingNeighboursBehaviour {
@@ -204,6 +205,7 @@ impl ResolvingNeighboursBehaviour {
             resolved_neighbour_sender,
             resolved_neighbour_receiver,
             neighbour_store: Arc::default(),
+            pending_swarm_events: VecDeque::new(),
         })
     }
 
@@ -334,7 +336,24 @@ impl ResolvingNeighboursBehaviour {
             }
         }
 
+        if let Some(event) = self.pending_swarm_events.pop_front() {
+            return Poll::Ready(event);
+        }
+
         if neighbour_update.has_changes() {
+            for ResolvedNeighbour {
+                peer_id,
+                batman_addr,
+                direct_addr,
+                ..
+            } in neighbour_update.resolved.values()
+            {
+                self.pending_swarm_events.push_back(ToSwarm::Dial {
+                    opts: DialOpts::peer_id(peer_id)
+                        .addresses(vec![direct_addr.clone(), batman_addr.clone()])
+                        .build(),
+                });
+            }
             return Poll::Ready(ToSwarm::GenerateEvent(Event::NeighbourUpdate(
                 neighbour_update,
             )));
