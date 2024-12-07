@@ -12,11 +12,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'pull_request' }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'protos/**'
+              - 'sdks/rust/**'
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'deny.toml'
+              - '.rustfmt.toml'
+              - '.github/workflows/rust.yml'
+
   test:
     name: Test ${{ matrix.crate }} on ${{ matrix.target }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    needs: gather_crates
+    needs: [changes, gather_crates]
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +114,8 @@ jobs:
   clippy:
     name: Run clippy
     runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -116,6 +143,8 @@ jobs:
 
   rustfmt:
     runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -132,6 +161,8 @@ jobs:
   ensure-lockfile-uptodate:
     name: Ensure that `Cargo.lock` is up-to-date
     runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -141,6 +172,8 @@ jobs:
   gather_crates:
     name: Gather crates
     runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
@@ -153,8 +186,9 @@ jobs:
 
   cargo-deny:
     name: Enforce dependency licenses and advisories
-    needs: ensure-lockfile-uptodate
     runs-on: ubuntu-24.04
+    needs: [changes, ensure-lockfile-uptodate]
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -168,6 +202,11 @@ jobs:
   test-completed:
     name: Wait for test completion (Rust)
     runs-on: ubuntu-24.04
-    needs: [test, clippy, rustfmt, cargo-deny, ensure-lockfile-uptodate, gather_crates]
+    timeout-minutes: 1
+    needs: [changes, test, clippy, rustfmt, cargo-deny, ensure-lockfile-uptodate, gather_crates]
+    if: always()
     steps:
+      - name: Fail if prerequisite failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
       - run: echo "Complete"
