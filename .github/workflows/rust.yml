@@ -86,15 +86,6 @@ jobs:
           CRATE_VERSION=$(cargo metadata --format-version=1 --no-deps | jq -e -r '.packages[] | select(.name == "'"$CRATE"'") | .version')
           echo "CRATE_VERSION=$CRATE_VERSION" >> $GITHUB_ENV
 
-
-  test-completed:
-    name: Wait for test completion
-    runs-on: ubuntu-24.04
-    needs: [test, clippy, rustfmt, cargo-deny, ensure-lockfile-uptodate, gather_crates]
-    steps:
-      -  name: Dummy
-         run: echo ""
-
   clippy:
     name: Run clippy
     runs-on: ubuntu-24.04
@@ -173,3 +164,10 @@ jobs:
 
       - name: Run cargo deny
         run: cargo deny --all-features check advisories bans licenses sources
+
+  test-completed:
+    name: Wait for test completion (Rust)
+    runs-on: ubuntu-24.04
+    needs: [test, clippy, rustfmt, cargo-deny, ensure-lockfile-uptodate, gather_crates]
+    steps:
+      - run: echo "Complete"

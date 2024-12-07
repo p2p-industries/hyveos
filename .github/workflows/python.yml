@@ -3,25 +3,38 @@ name: Python SDK
 on:
   workflow_dispatch:
   push:
-    branches: ["main", "python-sdk"]
-    paths:
-      - "**.py"
-      - "**.proto"
-      - ".github/workflows/python.yml"
+    branches: ["main"]
   pull_request:
-    branches: ["main", "python-sdk"]
-    paths:
-      - "**.py"
-      - "**.proto"
-      - ".github/workflows/python.yml"
+    branches: ["main"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'pull_request' }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            python:
+              - 'protos/**'
+              - 'scripts/**'
+              - 'sdks/python/**'
+              - '.github/workflows/python.yml'
+
   build:
     runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.python == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Protoc
@@ -68,3 +81,15 @@ jobs:
           poetry run python -m grpc_tools.protoc -I../../../protos --python_out=./proto-check --pyi_out=./proto-check --grpc_python_out=./proto-check ../../../protos/script.proto
           ../../../scripts/fix_grpc_imports.sh ./proto-check
           diff -r --exclude='__init__.py' ./proto-check ./protocol
+
+  test-completed:
+    name: Wait for test completion (Python)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    needs: [changes, build]
+    if: always()
+    steps:
+      - name: Fail if prerequisite failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
+      - run: echo "Complete"
