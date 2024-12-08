@@ -1,6 +1,5 @@
-use std::env;
+use std::{env, path::PathBuf, sync::Arc};
 
-use async_once_cell::OnceCell;
 use hyper_util::rt::TokioIo;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
@@ -22,69 +21,295 @@ use crate::{
     },
 };
 
-static CONNECTION: OnceCell<P2PConnection> = OnceCell::new();
+mod internal {
+    use std::future::Future;
 
-/// A connection to the P2P Industries bridge.
-///
-/// This struct provides access to the various services provided by the bridge.
-///
-/// # Example
-///
-/// ```no_run
-/// use hyveos_sdk::P2PConnection;
-///
-/// # #[tokio::main]
-/// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
-/// let mut discovery_service = connection.discovery();
-/// let peer_id = discovery_service.get_own_id().await.unwrap();
-///
-/// println!("My peer id: {peer_id}");
-/// # }
-/// ```
-pub struct P2PConnection {
-    pub(crate) channel: Channel,
+    use tonic::transport::Channel;
+
+    use crate::error::Result;
+
+    pub trait ConnectionType {
+        // We can promise `Send` here, so let's do it.
+        fn connect(self) -> impl Future<Output = Result<Channel>> + Send;
+    }
 }
 
-impl P2PConnection {
-    /// Returns a reference to the P2P Industries bridge connection.
+pub trait ConnectionType: internal::ConnectionType {}
+
+impl<T: internal::ConnectionType> ConnectionType for T {}
+
+/// A connection to the HyveOS runtime through the scripting bridge.
+///
+/// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
+/// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
+///
+/// This is the standard connection type when used in a HyveOS script.
+#[derive(Debug, Clone)]
+pub struct BridgeConnection {}
+
+impl internal::ConnectionType for BridgeConnection {
+    async fn connect(self) -> Result<Channel> {
+        Endpoint::try_from("http://[::]:50051")?
+            .connect_with_connector(service_fn(|_: Uri| async {
+                let path = env::var(hyveos_core::BRIDGE_SOCKET_ENV_VAR)
+                    .map_err(|e| Error::EnvVarMissing(hyveos_core::BRIDGE_SOCKET_ENV_VAR, e))?;
+
+                UnixStream::connect(path)
+                    .await
+                    .map_err(Error::from)
+                    .map(TokioIo::new)
+            }))
+            .await
+            .map_err(Into::into)
+    }
+}
+
+/// A connection to the HyveOS runtime through a custom Unix domain socket.
+#[derive(Debug, Clone)]
+pub struct CustomSocketConnection {
+    socket_path: PathBuf,
+}
+
+impl internal::ConnectionType for CustomSocketConnection {
+    async fn connect(self) -> Result<Channel> {
+        let socket_path = Arc::new(self.socket_path);
+        Endpoint::try_from("http://[::]:50051")?
+            .connect_with_connector(service_fn(move |_: Uri| {
+                let socket_path = socket_path.clone();
+                async move {
+                    UnixStream::connect(socket_path.as_path())
+                        .await
+                        .map_err(Error::from)
+                        .map(TokioIo::new)
+                }
+            }))
+            .await
+            .map_err(Into::into)
+    }
+}
+
+/// A connection over the network to a HyveOS runtime listening at a given URI.
+#[derive(Debug, Clone)]
+pub struct UriConnection {
+    uri: Uri,
+}
+
+impl internal::ConnectionType for UriConnection {
+    async fn connect(self) -> Result<Channel> {
+        Endpoint::from(self.uri).connect().await.map_err(Into::into)
+    }
+}
+
+/// A builder for configuring a connection to the HyveOS runtime.
+#[derive(Debug, Clone)]
+pub struct ConnectionBuilder<T> {
+    connection_type: T,
+}
+
+impl Default for ConnectionBuilder<BridgeConnection> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ConnectionBuilder<BridgeConnection> {
+    /// Creates a new builder for configuring a connection to the HyveOS runtime.
     ///
-    /// # Errors
+    /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+    /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
+    /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
+    /// If another connection type is desired, use the [`custom_socket`] or [`uri`] methods.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            connection_type: BridgeConnection {},
+        }
+    }
+
+    /// Specifies a custom Unix domain socket to connect to.
     ///
-    /// Returns an error if the connection to the bridge could not be established.
+    /// The socket path should point to a Unix domain socket that the HyveOS runtime is listening on.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::builder()
+    ///     .custom_socket("/path/to/hyveos.sock")
+    ///     .connect()
+    ///     .await
+    ///     .unwrap();
     /// let mut discovery_service = connection.discovery();
     /// let peer_id = discovery_service.get_own_id().await.unwrap();
     ///
     /// println!("My peer id: {peer_id}");
     /// # }
     /// ```
-    pub async fn get() -> Result<&'static P2PConnection, Error> {
-        CONNECTION
-            .get_or_try_init(async {
-                let channel = Endpoint::try_from("http://[::]:50051")?
-                    .connect_with_connector(service_fn(|_: Uri| async {
-                        let path = env::var("P2P_INDUSTRIES_BRIDGE_SOCKET")
-                            .map_err(|e| Error::EnvVarMissing("P2P_INDUSTRIES_BRIDGE_SOCKET", e))?;
+    pub fn custom_socket(
+        self,
+        socket_path: impl Into<PathBuf>,
+    ) -> ConnectionBuilder<CustomSocketConnection> {
+        ConnectionBuilder {
+            connection_type: CustomSocketConnection {
+                socket_path: socket_path.into(),
+            },
+        }
+    }
 
-                        UnixStream::connect(path)
-                            .await
-                            .map_err(Error::from)
-                            .map(TokioIo::new)
-                    }))
-                    .await?;
+    /// Specifies a URI to connect to over the network.
+    ///
+    /// The URI should be in the format `http://<host>:<port>`.
+    /// A HyveOS runtime should be listening at the given address.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::{Connection, Uri};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let uri = Uri::from_static("http://[::1]:50051");
+    /// let connection = Connection::builder()
+    ///     .uri(uri)
+    ///     .connect()
+    ///     .await
+    ///     .unwrap();
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    ///
+    /// println!("My peer id: {peer_id}");
+    /// # }
+    /// ```
+    pub fn uri(self, uri: Uri) -> ConnectionBuilder<UriConnection> {
+        ConnectionBuilder {
+            connection_type: UriConnection { uri },
+        }
+    }
+}
 
-                Ok(P2PConnection { channel })
-            })
-            .await
+impl<T: ConnectionType> ConnectionBuilder<T> {
+    /// Establishes a connection to the HyveOS runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the connection could not be established.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::builder()
+    ///     .custom_socket("/path/to/hyveos.sock")
+    ///     .connect()
+    ///     .await
+    ///     .unwrap();
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    ///
+    /// println!("My peer id: {peer_id}");
+    /// # }
+    /// ```
+    pub async fn connect(self) -> Result<Connection> {
+        let channel = self.connection_type.connect().await?;
+        Ok(Connection { channel })
+    }
+}
+
+/// A connection to the HyveOS runtime.
+///
+/// This struct provides access to the various services provided by HyveOS.
+///
+/// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+/// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
+/// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
+/// If another connection type is desired, use the [`builder`] function to get a
+/// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom_socket`] or
+/// [`ConnectionBuilder::uri`] methods.
+///
+/// # Example
+///
+/// ```no_run
+/// use hyveos_sdk::Connection;
+///
+/// # #[tokio::main]
+/// # async fn main() {
+/// let connection = Connection::new().await.unwrap();
+/// let mut discovery_service = connection.discovery();
+/// let peer_id = discovery_service.get_own_id().await.unwrap();
+///
+/// println!("My peer id: {peer_id}");
+/// # }
+/// ```
+pub struct Connection {
+    pub(crate) channel: Channel,
+}
+
+impl Connection {
+    /// Establishes a connection to the HyveOS runtime through the scripting bridge.
+    ///
+    /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
+    /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
+    /// If another connection type is desired, use the [`builder`] function to get a
+    /// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom_socket`] or
+    /// [`ConnectionBuilder::uri`] methods.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the connection could not be established.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    ///
+    /// println!("My peer id: {peer_id}");
+    /// # }
+    /// ```
+    pub async fn new() -> Result<Self> {
+        Connection::builder().connect().await
+    }
+
+    /// Creates a new builder for configuring a connection to the HyveOS runtime.
+    ///
+    /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+    /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
+    /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
+    /// If another connection type is desired, use the [`ConnectionBuilder::custom_socket`] or
+    /// [`ConnectionBuilder::uri`] methods.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::builder()
+    ///     .custom_socket("/path/to/hyveos.sock")
+    ///     .connect()
+    ///     .await
+    ///     .unwrap();
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    ///
+    /// println!("My peer id: {peer_id}");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn builder() -> ConnectionBuilder<BridgeConnection> {
+        ConnectionBuilder::new()
     }
 
     /// Returns a handle to the database service.
@@ -92,11 +317,11 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
     ///
@@ -115,11 +340,11 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut debug_service = connection.debug();
     /// let mut events = debug_service.subscribe_mesh_topology().await.unwrap();
     ///
@@ -138,11 +363,11 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let value = dht_service.get_record("topic", "key").await.unwrap();
     ///
@@ -163,11 +388,11 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut discovery_service = connection.discovery();
     /// let peer_id = discovery_service.get_own_id().await.unwrap();
     ///
@@ -186,7 +411,7 @@ impl P2PConnection {
     /// ```no_run
     /// use std::path::Path;
     ///
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -194,7 +419,7 @@ impl P2PConnection {
     /// let file_path = Path::new(&shared_dir).join("example.txt");
     /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
     ///
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut file_transfer_service = connection.file_transfer();
     /// let cid = file_transfer_service.publish_file(&file_path).await.unwrap();
     ///
@@ -211,11 +436,11 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let id = gossipsub_service.publish("topic", "Hello, world!").await.unwrap();
     ///
@@ -233,11 +458,11 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -269,7 +494,7 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -284,7 +509,7 @@ impl P2PConnection {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -322,7 +547,7 @@ impl P2PConnection {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -337,7 +562,7 @@ impl P2PConnection {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -374,11 +599,11 @@ impl P2PConnection {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let config = ScriptingConfig::new("my-docker-image:latest")

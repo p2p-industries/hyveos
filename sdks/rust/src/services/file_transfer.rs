@@ -11,7 +11,7 @@ use tokio::fs::File;
 use tonic::transport::Channel;
 
 use crate::{
-    connection::P2PConnection,
+    connection::Connection,
     error::{Error, Result},
 };
 
@@ -61,7 +61,7 @@ impl PathExt for Path {
 /// ```no_run
 /// use std::path::Path;
 ///
-/// use hyveos_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
@@ -69,7 +69,7 @@ impl PathExt for Path {
 /// let file_path = Path::new(&shared_dir).join("example.txt");
 /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
 ///
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut file_transfer_service = connection.file_transfer();
 /// let cid = file_transfer_service.publish_file(&file_path).await.unwrap();
 ///
@@ -82,7 +82,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = FileTransferClient::new(connection.channel.clone());
 
         Self { client }
@@ -91,8 +91,8 @@ impl Service {
     /// Publishes a file in the mesh network and returns its content ID.
     ///
     /// Before it's published, the file is copied to the shared directory if it is not already
-    /// there. The shared directory is defined by the `P2P_INDUSTRIES_SHARED_DIR` environment
-    /// variable.
+    /// there. The shared directory is defined by the `HYVEOS_BRIDGE_SHARED_DIR` environment
+    /// variable ([`hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR`]).
     ///
     /// # Errors
     ///
@@ -103,7 +103,7 @@ impl Service {
     /// ```no_run
     /// use std::path::Path;
     ///
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
@@ -111,7 +111,7 @@ impl Service {
     /// let file_path = Path::new(&shared_dir).join("example.txt");
     /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
     ///
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut file_transfer_service = connection.file_transfer();
     /// let cid = file_transfer_service.publish_file(&file_path).await.unwrap();
     ///
@@ -161,11 +161,11 @@ impl Service {
     ///
     /// ```no_run
     /// use hyveos_core::file_transfer::Cid;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let cid = dht_service.get_record_json("file", "example").await.unwrap();
     ///

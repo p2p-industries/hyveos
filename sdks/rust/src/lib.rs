@@ -19,11 +19,11 @@
 //!
 //! ```no_run
 //! use futures::StreamExt as _;
-//! use hyveos_sdk::P2PConnection;
+//! use hyveos_sdk::Connection;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let connection = P2PConnection::get().await.unwrap();
+//!     let connection = Connection::new().await.unwrap();
 //!     let mut dht_service = connection.dht();
 //!     let peer_id = dht_service
 //!         .get_providers("identification", "example")
@@ -46,9 +46,10 @@
 //! ```
 
 pub use libp2p_identity::PeerId;
+pub use tonic::transport::Uri;
 
 #[doc(inline)]
-pub use crate::{connection::P2PConnection, error::Error};
+pub use crate::{connection::Connection, error::Error};
 
 pub mod connection;
 pub mod error;
