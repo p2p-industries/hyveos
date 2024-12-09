@@ -83,6 +83,64 @@ jobs:
           ../../../scripts/fix_grpc_imports.sh ./proto-check
           diff -r --exclude='__init__.py' ./proto-check ./protocol
 
+  build-doc:
+    runs-on: ubuntu-24.04
+    needs: [changes, build]
+    if: ${{ needs.changes.outputs.python == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}-dev
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+        working-directory: sdks/python/hyveos_sdk
+
+      - name: Build documentation
+        run: poetry run pdoc --html hyveos_sdk
+        working-directory: sdks/python
+
+      - name: Upload static files as artifact
+        id: deployment
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: sdks/python/html/
+          name: python-api-doc
+  
+  deploy-doc:
+    runs-on: ubuntu-24.04
+    needs: build-doc
+    if: ${{ github.ref == 'refs/heads/main' && needs.changes.outputs.python == 'true' }}
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: python-api-doc
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: python-api-doc
+
+
   test-completed:
     name: Wait for test completion (Python)
     runs-on: ubuntu-24.04
