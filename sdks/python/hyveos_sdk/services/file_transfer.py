@@ -30,6 +30,7 @@ class FileTransferService:
         :param file_path: The local path to the file
         :return: A CID token that can be used by other peers to download the file
         """
+        # TODO: Add support for transferring files over the network
         cid = await self.stub.PublishFile(FilePath(path=file_path))
         return FileToken(cid.hash, cid.id.ulid)
 
@@ -39,6 +40,7 @@ class FileTransferService:
         :param file_token: The has
         :return:
         """
+        # TODO: Add support for transferring files over the network
         return await self.stub.GetFile(
             CID(hash=enc(file_token.hash), id=ID(ulid=file_token.id))
         )
