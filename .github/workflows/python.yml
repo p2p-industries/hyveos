@@ -117,6 +117,7 @@ jobs:
 
       - name: Upload static files as artifact
         id: deployment
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: sdks/python/html/hyveos_sdk
@@ -125,6 +126,7 @@ jobs:
   deploy-doc:
     runs-on: ubuntu-24.04
     needs: build-doc
+    if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
       pages: write
       id-token: write
