@@ -104,8 +104,18 @@ fi
 
 # Install dependencies
 
-sudo apt update
-sudo apt install wget curl gpg jq
+read -p "Do you want to install dependencies for this script (wget, curl, gpg, jq)? (y/n) " -n 1 -r
+
+echo
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+	echo -e "${GREEN}Installing dependencies${RESET}"
+	sudo apt update
+	sudo apt install wget curl gpg jq
+else
+	echo -e "${RED}Skipping installation of dependencies${RESET}"
+	exit 1
+fi
 
 # Check if docker is installed (docker --version)
 
