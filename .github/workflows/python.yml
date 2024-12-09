@@ -120,6 +120,24 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: sdks/python/html/hyveos_sdk
+          name: python-api-doc
+  
+  deploy-doc:
+    runs-on: ubuntu-24.04
+    needs: build-doc
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: python-api-doc
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: python-api-doc
+
 
   test-completed:
     name: Wait for test completion (Python)
