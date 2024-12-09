@@ -6,7 +6,6 @@ rust-version = { workspace = true }
 license = "MIT or Apache-2.0"
 
 [dependencies]
-async-once-cell = { workspace = true }
 derive-where = "1.2.7"
 futures = { workspace = true }
 hyper-util = { version = "0.1.10", features = ["tokio"] }

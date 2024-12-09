@@ -8,7 +8,7 @@ use libp2p_identity::PeerId;
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A handle to the DHT service.
 ///
@@ -18,11 +18,11 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use hyveos_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut dht_service = connection.dht();
 /// let value = dht_service.get_record("topic", "key").await.unwrap();
 ///
@@ -39,7 +39,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = DhtClient::new(connection.channel.clone());
 
         Self { client }
@@ -54,11 +54,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// dht_service.put_record("topic", "key", "Hello, world!").await.unwrap();
     /// # }
@@ -100,7 +100,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -110,7 +110,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let value = Example { message: "Hello, world!".to_string() };
     /// dht_service.put_record_json("topic", "key", &value).await.unwrap();
@@ -137,7 +137,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -147,7 +147,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let value = Example { message: "Hello, world!".to_string() };
     /// dht_service.put_record_cbor("topic", "key", &value).await.unwrap();
@@ -176,11 +176,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let value = dht_service.get_record("topic", "key").await.unwrap();
     ///
@@ -224,7 +224,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -234,7 +234,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let value: Option<Example> = dht_service.get_record_json("topic", "key").await.unwrap();
     ///
@@ -270,7 +270,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -280,7 +280,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let value: Option<Example> = dht_service.get_record_cbor("topic", "key").await.unwrap();
     ///
@@ -314,11 +314,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// dht_service.provide("topic", "key").await.unwrap();
     /// # }
@@ -356,11 +356,11 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let mut providers = dht_service.get_providers("topic", "key").await.unwrap();
     ///

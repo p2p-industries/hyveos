@@ -8,7 +8,7 @@ use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::grpc::{debug_client::DebugClient, Empty};
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A handle to the debug service.
 ///
@@ -19,11 +19,11 @@ use crate::{connection::P2PConnection, error::Result};
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use hyveos_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut debug_service = connection.debug();
 /// let mut events = debug_service.subscribe_mesh_topology().await.unwrap();
 ///
@@ -38,7 +38,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = DebugClient::new(connection.channel.clone());
 
         Self { client }
@@ -62,11 +62,11 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut debug_service = connection.debug();
     /// let mut events = debug_service.subscribe_mesh_topology().await.unwrap();
     ///
@@ -105,11 +105,11 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut debug_service = connection.debug();
     /// let mut events = debug_service.subscribe_messages().await.unwrap();
     ///
