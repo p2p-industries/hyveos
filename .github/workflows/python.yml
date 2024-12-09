@@ -120,7 +120,7 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-pages-artifact@v3
         with:
-          path: sdks/python/html/hyveos_sdk
+          path: sdks/python/html/
           name: python-api-doc
   
   deploy-doc:
