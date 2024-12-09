@@ -1891,7 +1891,6 @@ dependencies = [
 name = "hyveos-sdk"
 version = "0.1.0"
 dependencies = [
- "async-once-cell",
  "derive-where",
  "futures",
  "hyper-util",
