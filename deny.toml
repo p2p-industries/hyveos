@@ -75,6 +75,7 @@ ignore = [
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
     #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
     { id = "RUSTSEC-2021-0127", reason = "We have to wait until libp2p updates here" },
+    { id = "RUSTSEC-2024-0421", reason = "We have to wait until libp2p updates here" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
