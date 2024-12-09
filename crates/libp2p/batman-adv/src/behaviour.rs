@@ -215,6 +215,9 @@ impl ResolvingNeighboursBehaviour {
         cx: &mut Context<'_>,
         config: &Config,
     ) -> Poll<ToSwarm<Event, THandlerInEvent<Behaviour>>> {
+        if let Some(event) = self.pending_swarm_events.pop_front() {
+            return Poll::Ready(event);
+        }
         if self
             .listen_addresses_notifier
             .poll_next_unpin(cx)
@@ -334,10 +337,6 @@ impl ResolvingNeighboursBehaviour {
                     neighbour_update.combine(update);
                 }
             }
-        }
-
-        if let Some(event) = self.pending_swarm_events.pop_front() {
-            return Poll::Ready(event);
         }
 
         if neighbour_update.has_changes() {
