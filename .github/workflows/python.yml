@@ -112,7 +112,7 @@ jobs:
         working-directory: sdks/python/hyveos_sdk
 
       - name: Build documentation
-        run: P2P_INDUSTRIES_BRIDGE_SOCKET="" poetry run pdoc --html hyveos_sdk
+        run: poetry run pdoc --html hyveos_sdk
         working-directory: sdks/python
 
       - name: Upload static files as artifact
@@ -126,7 +126,7 @@ jobs:
   deploy-doc:
     runs-on: ubuntu-24.04
     needs: build-doc
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' && needs.changes.outputs.python == 'true' }}
     permissions:
       pages: write
       id-token: write
