@@ -10,6 +10,7 @@ from .services.file_transfer import FileTransferService
 from .services.gossip_sub import GossipSubService
 from .services.request_response import RequestResponseService
 
+
 class Connection:
     """
     A connection to the HyveOS runtime.
@@ -76,7 +77,7 @@ class Connection:
         elif uri is not None:
             self._conn = grpc.aio.insecure_channel(uri)
         else:
-            bridge_socket_path=os.environ['P2P_INDUSTRIES_BRIDGE_SOCKET']
+            bridge_socket_path = os.environ['P2P_INDUSTRIES_BRIDGE_SOCKET']
             self._conn = grpc.aio.insecure_channel(
                 f'unix://{bridge_socket_path}',
                 options=(('grpc.default_authority', 'localhost'),),
