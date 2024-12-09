@@ -120,6 +120,7 @@ impl Service {
     /// ```
     #[tracing::instrument(skip(self, path), fields(path = %path.as_ref().display()))]
     pub async fn publish_file(&mut self, path: impl AsRef<Path>) -> Result<Cid> {
+        // TODO: Add support for transferring files over the network
         let shared_dir = env::var("P2P_INDUSTRIES_SHARED_DIR")
             .map_err(|e| Error::EnvVarMissing("P2P_INDUSTRIES_SHARED_DIR", e))?;
 
@@ -184,6 +185,7 @@ impl Service {
     /// ```
     #[tracing::instrument(skip(self))]
     pub async fn get_file(&mut self, cid: Cid) -> Result<PathBuf> {
+        // TODO: Add support for transferring files over the network
         tracing::debug!("Received get_file request");
 
         self.client
