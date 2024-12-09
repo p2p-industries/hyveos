@@ -17,6 +17,7 @@ protobuf = "^5.29.0"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.5"
 grpcio-tools = "^1.68.0"
+pdoc3 = "^0.11.3"
 
 [tool.ruff]
 exclude = ['protocol']
