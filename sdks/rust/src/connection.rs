@@ -45,7 +45,9 @@ impl<T: internal::ConnectionType> ConnectionType for T {}
 ///
 /// This is the standard connection type when used in a HyveOS script.
 #[derive(Debug, Clone)]
-pub struct BridgeConnection {}
+pub struct BridgeConnection {
+    _private: (),
+}
 
 impl internal::ConnectionType for BridgeConnection {
     async fn connect(self) -> Result<Channel> {
@@ -122,7 +124,7 @@ impl ConnectionBuilder<BridgeConnection> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            connection_type: BridgeConnection {},
+            connection_type: BridgeConnection { _private: () },
         }
     }
 
