@@ -1,6 +1,6 @@
 import asyncio
 import os
-from hyveos_sdk import P2PConnection
+from hyveos_sdk import Connection
 from json import dumps, loads
 from gpiozero import PWMOutputDevice, OutputDevice
 from time import time
@@ -152,7 +152,7 @@ async def monitor_water_claims(gos: GossipSubService, water_claims: WaterClaims)
 
 
 async def main():
-    async with P2PConnection() as conn:
+    async with Connection() as conn:
         gos = conn.get_gossip_sub_service()
         req_resp = conn.get_request_response_service()
 

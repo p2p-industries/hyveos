@@ -4,7 +4,7 @@ import json
 import asyncio
 from typing import Callable
 import ltr559
-from hyveos_sdk import P2PConnection
+from hyveos_sdk import Connection
 from hyveos_sdk.services.dht import DHTService
 from hyveos_sdk.services.gossip_sub import GossipSubService
 from hyveos_sdk.services.request_response import RequestResponseService
@@ -109,7 +109,7 @@ async def register_plant(dht: DHTService):
 
 
 async def main():
-    async with P2PConnection() as connection:
+    async with Connection() as connection:
         discovery = connection.get_discovery_service()
         reqres = connection.get_request_response_service()
         gos = connection.get_gossip_sub_service()
