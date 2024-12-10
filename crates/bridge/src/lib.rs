@@ -1,18 +1,26 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
 
+#[cfg(feature = "network")]
+use std::net::SocketAddr;
 use std::{io, path::PathBuf, pin::Pin};
 
+#[cfg(feature = "network")]
+use file_transfer::FileTransferHTTPServer;
 use futures::stream::Stream;
 use hyveos_core::grpc;
 use hyveos_p2p_stack::Client;
 #[cfg(feature = "batman")]
 use hyveos_p2p_stack::DebugClientCommand;
+#[cfg(feature = "network")]
+use tokio::net::TcpListener;
 use tokio::net::UnixListener;
 #[cfg(feature = "batman")]
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnixListenerStream;
 use tokio_util::sync::CancellationToken;
+#[cfg(feature = "network")]
+use tonic::service::Routes as TonicRoutes;
 use tonic::transport::Server as TonicServer;
 use ulid::Ulid;
 
@@ -34,7 +42,7 @@ mod gossipsub;
 mod req_resp;
 mod scripting;
 
-pub const CONTAINER_SHARED_DIR: &str = "/p2p/shared";
+pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 
 type TonicResult<T> = tonic::Result<tonic::Response<T>>;
 
@@ -46,7 +54,115 @@ pub type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
 #[cfg(not(feature = "batman"))]
 pub type DebugCommandSender = ();
 
+enum Connection {
+    Local(UnixListener),
+    #[cfg(feature = "network")]
+    Network(TcpListener),
+}
+
 pub struct Bridge<Db, Scripting> {
+    pub client: BridgeClient<Db, Scripting>,
+    pub cancellation_token: CancellationToken,
+    pub socket_path: PathBuf,
+    pub shared_dir_path: PathBuf,
+}
+
+impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
+    pub async fn new(
+        client: Client,
+        db_client: Db,
+        base_path: PathBuf,
+        #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
+        scripting_client: Scripting,
+    ) -> io::Result<Self> {
+        tokio::fs::create_dir_all(&base_path).await?;
+
+        let socket_path = base_path.join("bridge.sock");
+        let shared_dir_path = base_path.join("files");
+
+        if socket_path.exists() {
+            tokio::fs::remove_file(&socket_path).await?;
+        }
+
+        if !shared_dir_path.exists() {
+            tokio::fs::create_dir(&shared_dir_path).await?;
+        }
+
+        let socket = UnixListener::bind(&socket_path)?;
+
+        let cancellation_token = CancellationToken::new();
+
+        let client = BridgeClient {
+            client,
+            db_client,
+            cancellation_token: cancellation_token.clone(),
+            ulid: None,
+            base_path,
+            shared_dir_path: shared_dir_path.clone(),
+            connection: Connection::Local(socket),
+            #[cfg(feature = "batman")]
+            debug_command_sender,
+            scripting_client,
+        };
+
+        Ok(Self {
+            client,
+            cancellation_token,
+            socket_path,
+            shared_dir_path,
+        })
+    }
+}
+
+#[cfg(feature = "network")]
+pub struct NetworkBridge<Db, Scripting> {
+    pub client: BridgeClient<Db, Scripting>,
+    pub cancellation_token: CancellationToken,
+}
+
+#[cfg(feature = "network")]
+impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
+    pub async fn new(
+        client: Client,
+        db_client: Db,
+        socket_addr: SocketAddr,
+        #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
+        scripting_client: Scripting,
+    ) -> io::Result<Self> {
+        let base_path = std::env::temp_dir().join("hyved").join("network");
+        tokio::fs::create_dir_all(&base_path).await?;
+
+        let shared_dir_path = base_path.join("files");
+
+        if !shared_dir_path.exists() {
+            tokio::fs::create_dir(&shared_dir_path).await?;
+        }
+
+        let socket = TcpListener::bind(socket_addr).await?;
+
+        let cancellation_token = CancellationToken::new();
+
+        let client = BridgeClient {
+            client,
+            db_client,
+            cancellation_token: cancellation_token.clone(),
+            ulid: None,
+            base_path,
+            shared_dir_path,
+            connection: Connection::Network(socket),
+            #[cfg(feature = "batman")]
+            debug_command_sender,
+            scripting_client,
+        };
+
+        Ok(Self {
+            client,
+            cancellation_token,
+        })
+    }
+}
+
+pub struct ScriptingBridge<Db, Scripting> {
     pub client: BridgeClient<Db, Scripting>,
     pub cancellation_token: CancellationToken,
     pub ulid: Ulid,
@@ -54,7 +170,7 @@ pub struct Bridge<Db, Scripting> {
     pub shared_dir_path: PathBuf,
 }
 
-impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
+impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
     pub async fn new(
         client: Client,
         db_client: Db,
@@ -67,36 +183,22 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
 
         tracing::debug!(id=%ulid, "Creating bridge with path {}", base_path.display());
 
-        tokio::fs::create_dir_all(&base_path).await?;
-
-        let socket_path = base_path.join("bridge.sock");
-        let shared_dir_path = base_path.join("shared");
-
-        if socket_path.exists() {
-            tokio::fs::remove_file(&socket_path).await?;
-        }
-
-        if !shared_dir_path.exists() {
-            tokio::fs::create_dir(&shared_dir_path).await?;
-        }
-
-        let socket = UnixListener::bind(&socket_path)?;
-        let socket_stream = UnixListenerStream::new(socket);
-
-        let cancellation_token = CancellationToken::new();
-
-        let client = BridgeClient {
+        let Bridge {
+            mut client,
+            cancellation_token,
+            socket_path,
+            shared_dir_path,
+        } = Bridge::new(
             client,
             db_client,
-            cancellation_token: cancellation_token.clone(),
-            ulid,
             base_path,
-            shared_dir_path: shared_dir_path.clone(),
-            socket_stream,
             #[cfg(feature = "batman")]
             debug_command_sender,
             scripting_client,
-        };
+        )
+        .await?;
+
+        client.ulid = Some(ulid);
 
         Ok(Self {
             client,
@@ -120,10 +222,10 @@ pub struct BridgeClient<Db, Scripting> {
     client: Client,
     db_client: Db,
     cancellation_token: CancellationToken,
-    ulid: Ulid,
+    ulid: Option<Ulid>,
     base_path: PathBuf,
     shared_dir_path: PathBuf,
-    socket_stream: UnixListenerStream,
+    connection: Connection,
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
     scripting_client: Scripting,
@@ -134,37 +236,79 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
         let db = DbServer::new(self.db_client);
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());
-        let file_transfer = FileTransferServer::new(self.client.clone(), self.shared_dir_path);
         let gossipsub = GossipSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client);
+        let req_resp = ReqRespServer::new(self.client.clone());
         let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
-
-        let router = TonicServer::builder()
-            .add_service(grpc::db_server::DbServer::new(db))
-            .add_service(grpc::dht_server::DhtServer::new(dht))
-            .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
-            .add_service(grpc::file_transfer_server::FileTransferServer::new(
-                file_transfer,
-            ))
-            .add_service(grpc::gossip_sub_server::GossipSubServer::new(gossipsub))
-            .add_service(grpc::req_resp_server::ReqRespServer::new(req_resp))
-            .add_service(grpc::scripting_server::ScriptingServer::new(scripting));
 
         #[cfg(feature = "batman")]
         let debug = DebugServer::new(self.debug_command_sender);
 
-        #[cfg(feature = "batman")]
-        let router = router.add_service(grpc::debug_server::DebugServer::new(debug));
+        tracing::debug!(id=?self.ulid, "Starting bridge");
 
-        tracing::debug!(id=%self.ulid, "Starting bridge");
+        match self.connection {
+            Connection::Local(socket) => {
+                let file_transfer = FileTransferServer::new(self.client, self.shared_dir_path);
 
-        router
-            .serve_with_incoming_shutdown(self.socket_stream, self.cancellation_token.cancelled())
-            .await?;
+                let router = TonicServer::builder()
+                    .add_service(grpc::db_server::DbServer::new(db))
+                    .add_service(grpc::dht_server::DhtServer::new(dht))
+                    .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
+                    .add_service(grpc::file_transfer_server::FileTransferServer::new(
+                        file_transfer,
+                    ))
+                    .add_service(grpc::gossip_sub_server::GossipSubServer::new(gossipsub))
+                    .add_service(grpc::req_resp_server::ReqRespServer::new(req_resp))
+                    .add_service(grpc::scripting_server::ScriptingServer::new(scripting));
+
+                #[cfg(feature = "batman")]
+                let router = router.add_service(grpc::debug_server::DebugServer::new(debug));
+
+                let socket_stream = UnixListenerStream::new(socket);
+                router
+                    .serve_with_incoming_shutdown(
+                        socket_stream,
+                        self.cancellation_token.cancelled(),
+                    )
+                    .await?;
+            }
+            #[cfg(feature = "network")]
+            Connection::Network(listener) => {
+                let file_transfer = FileTransferHTTPServer::new(self.client, self.shared_dir_path);
+
+                let router = axum::Router::new()
+                    .route(
+                        "/file-transfer/publish-file/{file_name}",
+                        axum::routing::post(FileTransferHTTPServer::publish_file),
+                    )
+                    .route(
+                        "/file-transfer/get-file",
+                        axum::routing::get(FileTransferHTTPServer::get_file),
+                    )
+                    .with_state(file_transfer);
+
+                let tonic_routes = TonicRoutes::from(router)
+                    .add_service(grpc::db_server::DbServer::new(db))
+                    .add_service(grpc::dht_server::DhtServer::new(dht))
+                    .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
+                    .add_service(grpc::gossip_sub_server::GossipSubServer::new(gossipsub))
+                    .add_service(grpc::req_resp_server::ReqRespServer::new(req_resp))
+                    .add_service(grpc::scripting_server::ScriptingServer::new(scripting));
+
+                #[cfg(feature = "batman")]
+                let tonic_routes =
+                    tonic_routes.add_service(grpc::debug_server::DebugServer::new(debug));
+
+                let router = tonic_routes.into_axum_router();
+
+                axum::serve(listener, router)
+                    .with_graceful_shutdown(self.cancellation_token.cancelled_owned())
+                    .await?;
+            }
+        }
 
         tokio::fs::remove_dir_all(self.base_path).await?;
 
-        tracing::debug!(id=%self.ulid, "Bridge stopped");
+        tracing::debug!(id=?self.ulid, "Bridge stopped");
 
         Ok(())
     }

@@ -6,6 +6,8 @@ rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
+anyhow = { workspace = true, optional = true }
+axum = { workspace = true, features = ["json"], optional = true }
 const_format = "0.2.33"
 drop-stream = "0.3.0"
 futures = { workspace = true }
@@ -14,6 +16,7 @@ hyveos-core = { workspace = true }
 hyveos-p2p-stack = { workspace = true }
 prost = { workspace = true }
 regex = { workspace = true }
+serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs", "sync"] }
 tokio-stream = { workspace = true }
@@ -25,3 +28,4 @@ ulid = { workspace = true }
 
 [features]
 batman = ["hyveos-p2p-stack/batman"]
+network = ["dep:anyhow", "dep:axum"]

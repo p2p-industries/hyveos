@@ -34,5 +34,6 @@ ulid = { workspace = true }
 batman = ["hyveos-bridge/batman", "hyveos-p2p-stack/batman"]
 clap = ["dep:clap"]
 console-subscriber = ["dep:console-subscriber"]
+network = ["hyveos-bridge/network"]
 mdns = ["hyveos-p2p-stack/mdns"]
 serde = ["dep:serde"]
