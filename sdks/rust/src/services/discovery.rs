@@ -1,12 +1,12 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-use libp2p_identity::PeerId;
-use p2p_industries_core::{
+use hyveos_core::{
     discovery::NeighbourEvent,
     grpc::{discovery_client::DiscoveryClient, Empty},
 };
+use libp2p_identity::PeerId;
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A handle to the discovery service.
 ///
@@ -16,11 +16,11 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut discovery_service = connection.discovery();
 /// let peer_id = discovery_service.get_own_id().await.unwrap();
 ///
@@ -33,7 +33,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = DiscoveryClient::new(connection.channel.clone());
 
         Self { client }
@@ -42,24 +42,24 @@ impl Service {
     /// Subscribes to neighbour events.
     ///
     /// Returns a stream of neighbour events. The stream will emit an event whenever the local
-    /// stack detects a change in the set of neighbours. The stream is guaranteed to emit an
+    /// runtime detects a change in the set of neighbours. The stream is guaranteed to emit an
     /// [`NeighbourEvent::Init`] directly after subscribing and only [`NeighbourEvent::Discovered`]
     /// and [`NeighbourEvent::Lost`] events afterwards.
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the events, as well as data conversion errors.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut discovery_service = connection.discovery();
     /// let mut events = discovery_service.subscribe_events().await.unwrap();
     ///
@@ -84,7 +84,7 @@ impl Service {
             .map_err(Into::into)
     }
 
-    /// Returns the peer ID of the local stack.
+    /// Returns the peer ID of the local runtime.
     ///
     /// # Errors
     ///
@@ -93,11 +93,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut discovery_service = connection.discovery();
     /// let peer_id = discovery_service.get_own_id().await.unwrap();
     ///

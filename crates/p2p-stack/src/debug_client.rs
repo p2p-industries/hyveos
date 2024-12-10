@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
 use futures::stream::StreamExt as _;
-use libp2p::{gossipsub::IdentTopic, PeerId};
-use p2p_industries_core::{
+use hyveos_core::{
     debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType},
     discovery,
     gossipsub::ReceivedMessage,
 };
+use libp2p::{gossipsub::IdentTopic, PeerId};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, mpsc, oneshot};
 use tokio_stream::wrappers::BroadcastStream;

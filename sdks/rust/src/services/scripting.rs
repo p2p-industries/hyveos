@@ -1,15 +1,15 @@
-use libp2p_identity::PeerId;
-use p2p_industries_core::{
+use hyveos_core::{
     grpc::{
         scripting_client::ScriptingClient, DeployScriptRequest, DockerImage, DockerScript, Empty,
         ListRunningScriptsRequest, StopScriptRequest,
     },
     scripting::RunningScript,
 };
+use libp2p_identity::PeerId;
 use tonic::transport::Channel;
 use ulid::Ulid;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// Configuration for deploying a script.
 ///
@@ -18,11 +18,11 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+/// use hyveos_sdk::{Connection, services::ScriptingConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut scripting_service = connection.scripting();
 ///
 /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -51,11 +51,11 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -82,11 +82,11 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -109,11 +109,11 @@ impl Config {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -145,11 +145,11 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -166,16 +166,16 @@ impl Config {
         self
     }
 
-    /// Sets the script to be persistent, meaning it will be restarted when the stack is restarted.
+    /// Sets the script to be persistent, meaning it will be restarted when the runtime is restarted.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -201,11 +201,11 @@ impl Config {
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+/// use hyveos_sdk::{Connection, services::ScriptingConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut scripting_service = connection.scripting();
 ///
 /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -222,7 +222,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = ScriptingClient::new(connection.channel.clone());
 
         Self { client }
@@ -240,11 +240,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let config = ScriptingConfig::new("my-docker-image:latest")
@@ -291,11 +291,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     ///
     /// let scripts = scripting_service.list_running_scripts(None).await.unwrap();
@@ -336,11 +336,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     /// let script_id = scripting_service.get_own_id().await.unwrap();
     ///
@@ -377,11 +377,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::{P2PConnection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut scripting_service = connection.scripting();
     /// let script_id = scripting_service.get_own_id().await.unwrap();
     ///

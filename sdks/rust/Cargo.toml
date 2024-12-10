@@ -1,17 +1,16 @@
 [package]
-name = "p2p-industries-sdk"
+name = "hyveos-sdk"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 license = "MIT or Apache-2.0"
 
 [dependencies]
-async-once-cell = { workspace = true }
 derive-where = "1.2.7"
 futures = { workspace = true }
 hyper-util = { version = "0.1.10", features = ["tokio"] }
 libp2p-identity = { workspace = true, features = ["peerid"] }
-p2p-industries-core = { workspace = true }
+hyveos-core = { workspace = true }
 prost = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_cbor = { version = "0.11.2", optional = true }
@@ -24,15 +23,15 @@ tracing = { workspace = true }
 ulid = { workspace = true }
 
 [dev-dependencies]
-p2p-industries-sdk = { path = ".", features = ["cbor", "json"] }
+hyveos-sdk = { path = ".", features = ["cbor", "json"] }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 
 [features]
 default = ["cbor"]
-serde = ["p2p-industries-core/serde", "dep:serde"]
+serde = ["hyveos-core/serde", "dep:serde"]
 json = ["serde", "dep:serde_json"]
 cbor = ["serde", "dep:serde_cbor"]
-scripting = ["p2p-industries-core/scripting"]
+scripting = ["hyveos-core/scripting"]
 
 [package.metadata.docs.rs]
 all-features = true

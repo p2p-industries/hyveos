@@ -6,9 +6,9 @@ use std::{
 
 use asynchronous_codec::{CborCodec, Framed};
 use futures::{sink::SinkExt as _, stream::StreamExt as _};
+use hyveos_core::file_transfer::Cid;
 use libp2p::Stream;
 use libp2p_stream::Control;
-use p2p_industries_core::file_transfer::Cid;
 use tokio::{
     fs::{try_exists, File},
     io::{split, AsyncReadExt as _},

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
-use p2p_industries_core::{
+use hyveos_core::{
     debug::MessageDebugEventType,
     gossipsub::{Message, MessageId, ReceivedMessage},
 };
+use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
 use tokio::sync::broadcast;
 
 use super::Command;
@@ -162,7 +162,7 @@ impl Actor {
         for (topic, sender) in self.topic_subscriptions.values() {
             if sender.receiver_count() == 0 {
                 tracing::info!("Unsubscribing from topic: {:?}", topic);
-                if !behaviour.unsubscribe(topic)? {
+                if !behaviour.unsubscribe(topic) {
                     tracing::warn!("There existed a sender but no subscription on the behviour. Inconsistency error.");
                 }
             }

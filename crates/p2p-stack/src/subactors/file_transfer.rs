@@ -11,13 +11,13 @@ use async_once_cell::OnceCell;
 use asynchronous_codec::{CborCodec, CborCodecError, Framed, FramedParts};
 use base64_simd::{Out, URL_SAFE};
 use futures::{SinkExt, Stream, StreamExt};
+use hyveos_core::file_transfer::Cid;
 use indicatif::ProgressFinish;
 use libp2p::{
     kad::{AddProviderError, GetProvidersOk, RecordKey},
     PeerId, StreamProtocol,
 };
 use libp2p_stream::{Behaviour, Control, OpenStreamError};
-use p2p_industries_core::file_transfer::Cid;
 use pin_project::pin_project;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   get-latest-release-number:
     name: Get latest release number
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     outputs:
       old_version: ${{ steps.latest_number.outputs.old_version }}
@@ -46,7 +46,7 @@ jobs:
 
   extract-debian-packages:
     name: Extract debian packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     outputs:
       crates: ${{ steps.cargo-metadata.outputs.crates }}
@@ -64,7 +64,7 @@ jobs:
 
   build-debian:
     name: Build debian package ${{ matrix.crate.deb_name }} for ${{ matrix.target.arch }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
       - extract-debian-packages
@@ -103,7 +103,7 @@ jobs:
         with:
           targets: ${{ matrix.target.target }}
 
-      - uses: useblacksmith/rust-cache@v3
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target.target }}--${{ matrix.crate.name }}
 
@@ -120,13 +120,8 @@ jobs:
           echo "Revision number: $rev"
           echo "rev=$rev" >> $GITHUB_ENV
 
-      - name: Build debian binary
-        if: ${{ matrix.target.arch != 'arm64' }}
+      - name: Build debian package
         run: cargo deb -p ${{ matrix.crate.name }} --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
-
-      - name: Build Raspbian binary
-        if: ${{ matrix.target.arch == 'arm64' }}
-        run: cargo deb -p ${{ matrix.crate.name }} --variant raspbian --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
 
       - name: Upload artifacts
         id: upload-artifact
@@ -137,7 +132,7 @@ jobs:
 
   create-release:
     name: Create a release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
       - get-latest-release-number

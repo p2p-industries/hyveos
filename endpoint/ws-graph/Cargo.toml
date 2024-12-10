@@ -7,16 +7,21 @@ publish.workspace = true
 
 [dependencies]
 axum = { version = "0.7.5", features = ["http2", "ws"] }
-p2p-industries-sdk = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "sync"]  }
+hyveos-sdk = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
 tokio-stream = { workspace = true }
 serde = { workspace = true }
 serde_json = "1.0.125"
 anyhow = { workspace = true }
-futures = { workspace = true}
+futures = { workspace = true }
 libp2p-identity = { workspace = true, optional = true, features = ["rand"] }
 rand = { workspace = true, optional = true }
-tower-http = { version = "0.6.1", features = ["compression-gzip", "compression-br", "decompression-gzip", "decompression-br"] }
+tower-http = { version = "0.6.1", features = [
+    "compression-gzip",
+    "compression-br",
+    "decompression-gzip",
+    "decompression-br",
+] }
 tower = "0.5.0"
 ulid = { workspace = true }
 

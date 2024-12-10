@@ -143,7 +143,7 @@ pub trait NeighbourActor:
     SubActor<
     CommandError = void::Void,
     EventError = void::Void,
-    Event = libp2p_batman_adv::Event,
+    Event = hyveos_libp2p_batman_adv::Event,
     SubCommand = neighbours::Command,
 >
 {
@@ -154,7 +154,7 @@ impl<T> NeighbourActor for T where
     T: SubActor<
         CommandError = void::Void,
         EventError = void::Void,
-        Event = libp2p_batman_adv::Event,
+        Event = hyveos_libp2p_batman_adv::Event,
         SubCommand = neighbours::Command,
     >
 {
@@ -341,13 +341,7 @@ where
     pub fn build(keypair: Keypair) -> (Client, Self) {
         let swarm = SwarmBuilder::with_existing_identity(keypair)
             .with_tokio()
-            .with_tcp(
-                libp2p::tcp::Config::default(),
-                libp2p::noise::Config::new,
-                libp2p::yamux::Config::default,
-            )
-            .expect("Failed to create transport")
-            // .with_quic()
+            .with_quic()
             .with_behaviour(MyBehaviour::new)
             .expect("Failed to build swarm")
             .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
@@ -440,7 +434,7 @@ where
                 .map_err(Into::into),
             SwarmEvent::Behaviour(MyBehaviourEvent::Ping(ping)) => self
                 .ping
-                .handle_event(ping.into(), self.swarm.behaviour_mut())
+                .handle_event(ping, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
             SwarmEvent::Behaviour(MyBehaviourEvent::Identify(event)) => self
                 .identify

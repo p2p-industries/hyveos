@@ -1,17 +1,17 @@
 [package]
-name = "bridge"
+name = "hyveos-bridge"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
-const_format = "0.2.33"
+const_format = "0.2.34"
 drop-stream = "0.3.0"
 futures = { workspace = true }
 libp2p = { workspace = true }
-p2p-industries-core = { workspace = true }
-p2p-stack = { workspace = true }
+hyveos-core = { workspace = true }
+hyveos-p2p-stack = { workspace = true }
 prost = { workspace = true }
 regex = { workspace = true }
 thiserror = { workspace = true }
@@ -24,4 +24,4 @@ trait-variant = "0.1.2"
 ulid = { workspace = true }
 
 [features]
-batman = ["p2p-stack/batman"]
+batman = ["hyveos-p2p-stack/batman"]

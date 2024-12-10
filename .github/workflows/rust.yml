@@ -12,11 +12,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'pull_request' }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'protos/**'
+              - 'sdks/rust/**'
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'deny.toml'
+              - '.rustfmt.toml'
+              - '.github/workflows/rust.yml'
+
   test:
     name: Test ${{ matrix.crate }} on ${{ matrix.target }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
-    needs: gather_crates
+    needs: [changes, gather_crates]
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,9 +74,10 @@ jobs:
       - uses: r7kamura/rust-problem-matchers@9fe7ca9f6550e5d6358e179d451cc25ea6b54f98 # v1.5.0
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
 
-      - uses: useblacksmith/rust-cache@v3
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.crate }}--${{ matrix.target }}
+          cache-provider: "buildjet"
 
       - name: Run complete check
         run: cargo check --package "$CRATE" --all-features --target "$TARGET" --tests
@@ -60,15 +86,15 @@ jobs:
         run: cargo build --package "$CRATE" --all-features --target "$TARGET" --tests
 
       - name: Run all tests
-        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate != 'docker' }}
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         run: cargo test --package "$CRATE" --all-features --target "$TARGET"
 
       - name: Run batman no mdns check
-        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'stack' }}
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'hyved' }}
         run: cargo check --package "$CRATE" -F batman --target "$TARGET" --tests
 
       - name: Run batman no mdns test
-        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'stack' }}
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' && matrix.crate == 'hyved' }}
         run: cargo test --package "$CRATE" -F batman --target "$TARGET"
 
       - name: Check if we compile without any features activated
@@ -87,7 +113,9 @@ jobs:
 
   clippy:
     name: Run clippy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -106,7 +134,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      
+
       - name: Run clippy without all features
         run: cargo clippy --no-default-features -- -D warnings
 
@@ -114,7 +142,9 @@ jobs:
         run: cargo clippy --all-features -- -D warnings
 
   rustfmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -130,7 +160,9 @@ jobs:
 
   ensure-lockfile-uptodate:
     name: Ensure that `Cargo.lock` is up-to-date
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -139,7 +171,9 @@ jobs:
 
   gather_crates:
     name: Gather crates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
@@ -152,8 +186,9 @@ jobs:
 
   cargo-deny:
     name: Enforce dependency licenses and advisories
-    needs: ensure-lockfile-uptodate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    needs: [changes, ensure-lockfile-uptodate]
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -163,3 +198,15 @@ jobs:
 
       - name: Run cargo deny
         run: cargo deny --all-features check advisories bans licenses sources
+
+  test-completed:
+    name: Wait for test completion (Rust)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    needs: [changes, test, clippy, rustfmt, cargo-deny, ensure-lockfile-uptodate, gather_crates]
+    if: always()
+    steps:
+      - name: Fail if prerequisite failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
+      - run: echo "Complete"

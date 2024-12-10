@@ -23,6 +23,9 @@ pub mod grpc {
     tonic::include_proto!("script");
 }
 
+pub const BRIDGE_SHARED_DIR_ENV_VAR: &str = "HYVEOS_BRIDGE_SHARED_DIR";
+pub const BRIDGE_SOCKET_ENV_VAR: &str = "HYVEOS_BRIDGE_SOCKET";
+
 impl From<Vec<u8>> for grpc::Data {
     fn from(data: Vec<u8>) -> Self {
         Self { data }

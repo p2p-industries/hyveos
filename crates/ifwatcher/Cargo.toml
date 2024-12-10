@@ -1,5 +1,5 @@
 [package]
-name = "ifwatcher"
+name = "hyveos-ifwatcher"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
@@ -7,7 +7,7 @@ publish = { workspace = true }
 
 [dependencies]
 futures = { workspace = true }
-ifaddr = { workspace = true }
+hyveos-ifaddr = { workspace = true }
 netlink-proto = "0.11.3"
 netlink-packet-core = { workspace = true }
 netlink-packet-route = "0.19.0"

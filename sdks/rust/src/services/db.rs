@@ -1,9 +1,9 @@
-use p2p_industries_core::grpc::{db_client::DbClient, DbKey, DbRecord};
+use hyveos_core::grpc::{db_client::DbClient, DbKey, DbRecord};
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A handle to the database service.
 ///
@@ -13,11 +13,11 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut db_service = connection.db();
 /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
 ///
@@ -31,7 +31,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = DbClient::new(connection.channel.clone());
 
         Self { client }
@@ -48,11 +48,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
     ///
@@ -91,7 +91,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -101,7 +101,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// let value = Example { value: "Hello, world!".to_string() };
     /// assert!(db_service.put_json("key", &value).await.unwrap().is_none());
@@ -136,7 +136,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -146,7 +146,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// let value = Example { value: "Hello, world!".to_string() };
     /// assert!(db_service.put_cbor("key", &value).await.unwrap().is_none());
@@ -181,11 +181,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
     ///
@@ -215,7 +215,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -225,7 +225,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// let value = Example { value: "Hello, world!".to_string() };
     /// assert!(db_service.put_json("key", &value).await.unwrap().is_none());
@@ -257,7 +257,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Serialize, Deserialize)]
@@ -267,7 +267,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut db_service = connection.db();
     /// let value = Example { value: "Hello, world!".to_string() };
     /// assert!(db_service.put_cbor("key", &value).await.unwrap().is_none());

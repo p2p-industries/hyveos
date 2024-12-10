@@ -1,14 +1,14 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-pub use p2p_industries_core::debug::{
+pub use hyveos_core::debug::{
     MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType, RequestDebugEvent,
     ResponseDebugEvent,
 };
 #[cfg(docsrs)]
-use p2p_industries_core::discovery::NeighbourEvent;
-use p2p_industries_core::grpc::{debug_client::DebugClient, Empty};
+use hyveos_core::discovery::NeighbourEvent;
+use hyveos_core::grpc::{debug_client::DebugClient, Empty};
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A handle to the debug service.
 ///
@@ -19,11 +19,11 @@ use crate::{connection::P2PConnection, error::Result};
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut debug_service = connection.debug();
 /// let mut events = debug_service.subscribe_mesh_topology().await.unwrap();
 ///
@@ -38,7 +38,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = DebugClient::new(connection.channel.clone());
 
         Self { client }
@@ -55,18 +55,18 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the events, as well as data conversion errors.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut debug_service = connection.debug();
     /// let mut events = debug_service.subscribe_mesh_topology().await.unwrap();
     ///
@@ -98,18 +98,18 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the events, as well as data conversion errors.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut debug_service = connection.debug();
     /// let mut events = debug_service.subscribe_messages().await.unwrap();
     ///

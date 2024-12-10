@@ -140,9 +140,8 @@ impl ContainerManager {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let manager = docker::ContainerManager::new().unwrap();
+    /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
-    /// # let _ = image.remove().await;
     /// # }
     ///
     /// ```
@@ -254,9 +253,8 @@ impl PulledImage<'_> {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let manager = docker::ContainerManager::new().unwrap();
+    /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
-    /// let _ = image.remove().await;
     /// # }
     pub async fn remove(self) -> Result<(), BollardError> {
         self.docker
@@ -309,12 +307,11 @@ impl PulledImage<'_> {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let manager = docker::ContainerManager::new().unwrap();
+    /// let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let container = image.create_container().enable_stream().run().await.unwrap();
     /// # let stopped = container.stop().await.unwrap();
-    /// # let image = stopped.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped.remove().await.unwrap();
     /// # }
     pub fn create_container(&self) -> ContainerBuilder<'_> {
         ContainerBuilder {
@@ -413,7 +410,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
     /// # use tokio::io::AsyncBufReadExt;
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let manager = docker::ContainerManager::new().unwrap();
+    /// # let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// let (tx, rx) = tokio::io::duplex(4096);
     /// let container = image.create_container().cmd(vec!["echo", "hello"]).stdout(tx).enable_stream().run().await.unwrap();
@@ -421,8 +418,7 @@ impl<'a, In, Out, Err> ContainerBuilder<'a, In, Out, Err> {
     /// let line = rx.next_line().await.unwrap().unwrap();
     /// assert_eq!(line, "hello");
     /// # let stopped_container = container.stop().await.unwrap();
-    /// # let image = stopped_container.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped_container.remove().await.unwrap();
     /// # }
     pub fn cmd(mut self, cmd: Vec<&str>) -> Self {
         self.cmd = Some(cmd.iter().map(|s| s.to_string()).collect());
@@ -820,12 +816,11 @@ impl<'a> RunningContainer<'a> {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let manager = docker::ContainerManager::new().unwrap();
+    /// # let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let container = image.create_container().enable_stream().run().await.unwrap();
     /// let stopped = container.stop().await.unwrap();
-    /// # let image = stopped.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped.remove().await.unwrap();
     /// # }
     pub async fn stop(self) -> Result<StoppedContainer<'a>, BollardError> {
         self.inner_stop(None).await
@@ -835,12 +830,11 @@ impl<'a> RunningContainer<'a> {
     /// ```rust
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let manager = docker::ContainerManager::new().unwrap();
+    /// # let manager = hyveos_docker::ContainerManager::new().unwrap();
     /// # let image = manager.pull_image("alpine:latest", false).await.unwrap();
     /// # let container = image.create_container().cmd(vec!["sh", "-c", "sleep 1500"]).run().await.unwrap();
     /// let stopped = container.kill().await.unwrap();
-    /// # let image = stopped.remove().await.unwrap();
-    /// # let _ = image.remove().await;
+    /// # let _image = stopped.remove().await.unwrap();
     /// # }
     pub async fn kill(self) -> Result<StoppedContainer<'a>, BollardError> {
         self.inner_stop(Some(0)).await
@@ -1002,53 +996,34 @@ mod tests {
         io::{Read, Write as _},
     };
 
-    use once_cell::sync::Lazy;
     use tempfile::{tempdir, NamedTempFile};
     use tokio::{
         io::{AsyncBufReadExt, BufReader},
-        sync::{oneshot, Barrier},
+        sync::oneshot,
     };
 
     use crate::Compression;
 
-    #[cfg(feature = "zstd")]
-    const ZSTD_NUM: usize = 1;
-
-    #[cfg(not(feature = "zstd"))]
-    const ZSTD_NUM: usize = 0;
-
-    const TEST_NUM: usize = 10 + ZSTD_NUM;
-
-    static BARRIER: Lazy<Barrier> = Lazy::new(|| Barrier::new(TEST_NUM));
-
-    macro_rules! wait_before_remove {
-        ($image:ident) => {
-            BARRIER.wait().await;
-            let _ = $image.remove().await;
-        };
-    }
-
     #[tokio::test]
     async fn test_pull_image() {
         let manager = super::ContainerManager::new().unwrap();
-        let image = manager.pull_image("alpine:latest", true).await.unwrap();
-        wait_before_remove!(image);
+        let _image = manager.pull_image("alpine:latest", true).await.unwrap();
     }
 
     #[tokio::test]
     async fn test_create_and_stop_container() {
-        const IMAGE: &str = "redis:alpine";
+        const IMAGE: &str = "alpine:latest";
         let manager = super::ContainerManager::new().unwrap();
         let image = manager.pull_image(IMAGE, false).await.unwrap();
         let container = image
             .create_container()
             .enable_stream()
+            .cmd(vec!["sleep", "1000"])
             .run()
             .await
             .unwrap();
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1068,8 +1043,7 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
         drop(stdin_out);
         drop(stdout_out);
     }
@@ -1087,8 +1061,7 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.run_to_completion(None).await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1112,8 +1085,7 @@ mod tests {
         let line = rx.next_line().await.unwrap().unwrap();
         assert_eq!(line, "hello");
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1129,8 +1101,7 @@ mod tests {
             .await
             .unwrap();
         let stopped = container.kill().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1163,8 +1134,7 @@ mod tests {
         stop_sender.send(false).unwrap();
 
         let stopped = handle.await.unwrap().unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
     }
 
     #[tokio::test]
@@ -1176,7 +1146,6 @@ mod tests {
             .import_image(archive, Compression::None)
             .await
             .unwrap();
-        wait_before_remove!(image);
     }
 
     #[tokio::test]
@@ -1189,7 +1158,6 @@ mod tests {
             .import_image(archive, Compression::Zstd)
             .await
             .unwrap();
-        wait_before_remove!(image);
     }
 
     #[tokio::test]
@@ -1217,8 +1185,7 @@ mod tests {
         let line = rx.next_line().await.unwrap().unwrap();
 
         let stopped = container.stop().await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
 
         assert_eq!(line, "Hello");
         drop(tempfile);
@@ -1242,8 +1209,7 @@ mod tests {
             .unwrap();
 
         let stopped = container.run_to_completion(None).await.unwrap();
-        let image = stopped.remove().await.unwrap();
-        wait_before_remove!(image);
+        let _image = stopped.remove().await.unwrap();
 
         let mut line = String::new();
         let mut file = File::open(path.clone() + "/file").unwrap();

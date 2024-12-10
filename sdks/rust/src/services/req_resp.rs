@@ -5,17 +5,17 @@ use derive_where::derive_where;
 #[cfg(feature = "serde")]
 use futures::future;
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-use libp2p_identity::PeerId;
-pub use p2p_industries_core::req_resp::{Request, Response, ResponseError, TopicQuery};
-use p2p_industries_core::{
+pub use hyveos_core::req_resp::{Request, Response, ResponseError, TopicQuery};
+use hyveos_core::{
     grpc::{req_resp_client::ReqRespClient, OptionalTopicQuery, SendRequest, SendResponse},
     req_resp::InboundRequest as CoreInboundRequest,
 };
+use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A request that was received from a remote peer.
 ///
@@ -35,11 +35,11 @@ pub struct InboundRequest<T> {
 ///
 /// ```no_run
 /// use futures::TryStreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut req_resp_service = connection.req_resp();
 /// let mut requests = req_resp_service.recv(None).await.unwrap();
 ///
@@ -78,11 +78,11 @@ impl InboundRequestHandle<'_> {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///
@@ -110,11 +110,11 @@ impl InboundRequestHandle<'_> {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///
@@ -166,7 +166,7 @@ pub trait TypedService {
 ///
 /// ```no_run
 /// use futures::TryStreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Serialize, Deserialize)]
@@ -181,7 +181,7 @@ pub trait TypedService {
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut req_resp_service = connection.req_resp_json();
 /// let mut requests = req_resp_service.recv(None).await.unwrap();
 ///
@@ -228,7 +228,7 @@ where
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -243,7 +243,7 @@ where
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp_json();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///
@@ -271,7 +271,7 @@ where
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -286,7 +286,7 @@ where
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp_json::<ExampleRequest, ExampleResponse>();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///
@@ -309,11 +309,11 @@ where
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut dht_service = connection.dht();
 /// let peer_id = dht_service
 ///     .get_providers("identification", "example")
@@ -340,7 +340,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = ReqRespClient::new(connection.channel.clone());
 
         Self { client }
@@ -359,11 +359,11 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -415,18 +415,18 @@ impl Service {
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion errors.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///
@@ -503,7 +503,7 @@ impl Service {
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Serialize, Deserialize)]
@@ -518,7 +518,7 @@ impl Service {
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut dht_service = connection.dht();
 /// let peer_id = dht_service
 ///     .get_providers("identification", "example")
@@ -553,7 +553,7 @@ where
     Req: Serialize + DeserializeOwned,
     Resp: Serialize + DeserializeOwned,
 {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let inner = Service::new(connection);
 
         Self {
@@ -582,7 +582,7 @@ where
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -597,7 +597,7 @@ where
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -643,14 +643,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion errors.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -665,7 +665,7 @@ where
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp_json();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///
@@ -753,7 +753,7 @@ where
 ///
 /// ```no_run
 /// use futures::StreamExt as _;
-/// use p2p_industries_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Serialize, Deserialize)]
@@ -768,7 +768,7 @@ where
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut dht_service = connection.dht();
 /// let peer_id = dht_service
 ///     .get_providers("identification", "example")
@@ -803,7 +803,7 @@ where
     Req: Serialize + DeserializeOwned,
     Resp: Serialize + DeserializeOwned,
 {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let inner = Service::new(connection);
 
         Self {
@@ -832,7 +832,7 @@ where
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -847,7 +847,7 @@ where
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut dht_service = connection.dht();
     /// let peer_id = dht_service
     ///     .get_providers("identification", "example")
@@ -893,14 +893,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the stack
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
     /// while processing the providers, as well as data conversion errors.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use p2p_industries_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::{Serialize, Deserialize};
     ///
     /// #[derive(Debug, Serialize, Deserialize)]
@@ -915,7 +915,7 @@ where
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut req_resp_service = connection.req_resp_cbor();
     /// let mut requests = req_resp_service.recv(None).await.unwrap();
     ///

@@ -1,5 +1,5 @@
 import asyncio
-from p2pindustries import P2PConnection, RequestResponseService
+from hyveos_sdk import Connection, RequestResponseService
 from typing import Optional
 
 
@@ -14,7 +14,7 @@ async def handle_requests(
 
 
 async def main():
-    async with P2PConnection() as connection:
+    async with Connection() as connection:
         dht = connection.get_dht_service()
         req_resp = connection.get_request_response_service()
 

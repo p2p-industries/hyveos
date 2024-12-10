@@ -4,8 +4,8 @@ use std::{
     sync::{Arc, PoisonError, RwLock, RwLockReadGuard},
 };
 
+use hyveos_macaddress::MacAddress;
 use libp2p::PeerId;
-use macaddress::MacAddress;
 
 use crate::{ResolvedNeighbour, UnresolvedNeighbour};
 

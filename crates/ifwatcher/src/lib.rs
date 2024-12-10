@@ -8,7 +8,7 @@ use std::{
 };
 
 use futures::{stream::FusedStream, Stream, StreamExt as _, TryStreamExt as _};
-use ifaddr::IfAddr;
+use hyveos_ifaddr::IfAddr;
 use netlink_packet_core::NetlinkPayload;
 use netlink_packet_route::{
     address::{AddressAttribute, AddressMessage},

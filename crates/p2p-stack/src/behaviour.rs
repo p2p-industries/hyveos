@@ -2,7 +2,6 @@ use libp2p::{
     gossipsub, identify,
     identity::Keypair,
     kad::{self, store::MemoryStore},
-    ping,
     swarm::NetworkBehaviour,
 };
 
@@ -10,19 +9,19 @@ use libp2p::{
 use crate::subactors::debug;
 #[cfg(feature = "location")]
 use crate::subactors::location;
-use crate::subactors::{file_transfer, req_resp, round_trip, scripting};
+use crate::subactors::{file_transfer, ping, req_resp, round_trip, scripting};
 
 #[derive(NetworkBehaviour)]
 pub struct MyBehaviour {
     #[cfg(feature = "batman")]
-    pub batman_neighbours: libp2p_batman_adv::Behaviour,
-    pub ping: ping::Behaviour,
+    pub batman_neighbours: hyveos_libp2p_batman_adv::Behaviour,
     pub identify: identify::Behaviour,
-    pub kad: addr_filter::Behaviour<kad::Behaviour<MemoryStore>>,
+    pub kad: hyveos_libp2p_addr_filter::Behaviour<kad::Behaviour<MemoryStore>>,
     #[cfg(feature = "mdns")]
     pub mdns: libp2p::mdns::tokio::Behaviour,
     pub gossipsub: gossipsub::Behaviour,
     pub req_resp: req_resp::Behaviour,
+    pub ping: ping::Behaviour,
     pub round_trip: round_trip::Behaviour,
     #[cfg(feature = "location")]
     pub location: location::Behaviour,
@@ -38,12 +37,11 @@ impl MyBehaviour {
         let peer_id = public.to_peer_id();
         Self {
             #[cfg(feature = "batman")]
-            batman_neighbours: libp2p_batman_adv::Behaviour::new(
-                libp2p_batman_adv::Config::default(),
+            batman_neighbours: hyveos_libp2p_batman_adv::Behaviour::new(
+                hyveos_libp2p_batman_adv::Config::default(),
                 peer_id,
             ),
-            ping: ping::Behaviour::default(),
-            kad: addr_filter::Behaviour::new(kad::Behaviour::new(
+            kad: hyveos_libp2p_addr_filter::Behaviour::new(kad::Behaviour::new(
                 peer_id,
                 MemoryStore::new(peer_id),
             )),
@@ -66,6 +64,7 @@ impl MyBehaviour {
                 public,
             )),
             req_resp: req_resp::new(),
+            ping: ping::new(),
             round_trip: round_trip::new(),
             #[cfg(feature = "location")]
             location: location::new(),

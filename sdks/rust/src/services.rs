@@ -1,4 +1,4 @@
-pub use p2p_industries_core::{debug::MeshTopologyEvent, discovery::NeighbourEvent};
+pub use hyveos_core::{debug::MeshTopologyEvent, discovery::NeighbourEvent};
 
 #[cfg(feature = "cbor")]
 #[doc(inline)]

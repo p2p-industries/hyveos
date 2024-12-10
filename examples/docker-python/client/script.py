@@ -2,7 +2,7 @@ import asyncio
 from asyncio.tasks import sleep
 import os
 from typing import Optional
-from p2pindustries import P2PConnection, DHTService
+from hyveos_sdk import Connection, DHTService
 
 
 async def get_listener(dht: DHTService) -> Optional[str]:
@@ -19,7 +19,7 @@ def print_response(peer_id: str, response):
 
 
 async def main():
-    async with P2PConnection() as connection:
+    async with Connection() as connection:
         dht = connection.get_dht_service()
         discovery = connection.get_discovery_service()
         req_resp = connection.get_request_response_service()

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from p2p_sdk import P2PConnection, RequestResponseService, DiscoveryService
+from p2p_sdk import Connection, RequestResponseService, DiscoveryService
 from typing import Optional
 
 
@@ -22,7 +22,7 @@ async def handle_requests(
 
 
 async def main():
-    async with P2PConnection() as connection:
+    async with Connection() as connection:
         discovery = connection.discovery_service()
         req_resp = connection.request_response_service()
 

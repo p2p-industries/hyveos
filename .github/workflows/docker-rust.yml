@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build-and-push-image:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-24.04
     name: Build container image for ${{ matrix.name }}
 
     permissions:
@@ -75,7 +75,7 @@ jobs:
 
       - name: Build and push ${{ matrix.name }}
         id: push
-        uses: useblacksmith/build-push-action@v1
+        uses: docker/build-push-action@v6
         with:
           build-args: ${{toJSON(matrix.arg) }}
           context: ${{ matrix.context }}
@@ -84,6 +84,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
           platforms: linux/amd64,linux/aarch64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
