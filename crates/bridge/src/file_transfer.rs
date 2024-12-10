@@ -137,8 +137,10 @@ impl FileTransferHTTPServer {
         let file_ext = file_name.extension().map(OsString::from);
 
         let mut file_path = self.shared_dir_path.join(file_name);
-        let mut i = 1;
-        while file_path.exists() {
+        for i in 1.. {
+            if file_path.exists() {
+            	break
+            }
             let mut file_name = file_stem.clone();
             file_name.push(format!("_{i}"));
             if let Some(ext) = file_ext.clone() {
@@ -147,7 +149,6 @@ impl FileTransferHTTPServer {
             }
 
             file_path = self.shared_dir_path.join(file_name);
-            i += 1;
         }
 
         let reader = StreamReader::new(
