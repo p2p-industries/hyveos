@@ -1,6 +1,5 @@
-use p2p_industries_sdk::P2PConnection;
+use hyveos_sdk::Connection;
 use clap::Subcommand;
-use async_trait::async_trait;
 use std::error::Error;
 use crate::util::CommandFamily;
 use crate::output::{CommandOutput, OutputField};
@@ -42,9 +41,8 @@ pub enum Kv {
     }
 }
 
-#[async_trait]
 impl CommandFamily for Kv {
-    async fn run(self, connection: &P2PConnection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {
         let mut dht = connection.dht();
 
         match self {
@@ -110,7 +108,7 @@ impl CommandFamily for Kv {
                     .boxed()
             },
             Kv::StopProvide { key: _, topic: _ } => {
-                unreachable!()
+                todo!()
             }
         }
     }
