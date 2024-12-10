@@ -63,7 +63,6 @@ enum Connection {
 pub struct Bridge<Db, Scripting> {
     pub client: BridgeClient<Db, Scripting>,
     pub cancellation_token: CancellationToken,
-    pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
 }
 
@@ -72,12 +71,12 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         client: Client,
         db_client: Db,
         base_path: PathBuf,
+        socket_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
-        let socket_path = base_path.join("bridge.sock");
         let shared_dir_path = base_path.join("files");
 
         if socket_path.exists() {
@@ -108,7 +107,6 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         Ok(Self {
             client,
             cancellation_token,
-            socket_path,
             shared_dir_path,
         })
     }
@@ -125,11 +123,11 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
     pub async fn new(
         client: Client,
         db_client: Db,
+        base_path: PathBuf,
         socket_addr: SocketAddr,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
     ) -> io::Result<Self> {
-        let base_path = std::env::temp_dir().join("hyved").join("network");
         tokio::fs::create_dir_all(&base_path).await?;
 
         let shared_dir_path = base_path.join("files");
@@ -183,15 +181,17 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
 
         tracing::debug!(id=%ulid, "Creating bridge with path {}", base_path.display());
 
+        let socket_path = base_path.join("bridge.sock");
+
         let Bridge {
             mut client,
             cancellation_token,
-            socket_path,
             shared_dir_path,
         } = Bridge::new(
             client,
             db_client,
             base_path,
+            socket_path.clone(),
             #[cfg(feature = "batman")]
             debug_command_sender,
             scripting_client,

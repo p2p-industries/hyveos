@@ -1,24 +1,27 @@
 use std::{
-    env::temp_dir,
+    env,
     path::{Path, PathBuf},
 };
+#[cfg(feature = "network")]
+use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
-use dirs::{data_local_dir, runtime_dir};
+use dirs::data_local_dir;
+use hyveos_core::DAEMON_NAME;
 use hyveos_ifaddr::{if_name_to_index, IfAddr};
-use hyveos_runtime::{LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
+use hyveos_runtime::{CliConnectionType, LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use libp2p::{
     identity::Keypair,
     multiaddr::{Multiaddr, Protocol},
 };
 use serde::Deserialize;
 
-const DAEMON_NAME: &str = "hyved";
-
 const LISTEN_PORT: u16 = 39811;
 
 fn default_store_directory() -> PathBuf {
-    data_local_dir().unwrap_or_else(temp_dir).join(DAEMON_NAME)
+    data_local_dir()
+        .unwrap_or_else(env::temp_dir)
+        .join(DAEMON_NAME)
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -42,6 +45,11 @@ struct Config {
     log_dir: Option<PathBuf>,
     #[serde(default)]
     log_level: LogFilter,
+    #[serde(default)]
+    cli_socket_path: Option<PathBuf>,
+    #[cfg(feature = "network")]
+    #[serde(default, deserialize_with = "deserialize_socket_addr")]
+    cli_socket_addr: Option<SocketAddr>,
 }
 
 impl Config {
@@ -121,6 +129,50 @@ pub struct Opts {
     pub log_dir: Option<PathBuf>,
     #[clap(short = 'f', long)]
     pub log_level: Option<LogFilter>,
+    #[clap(long, conflicts_with("cli_socket_addr"))]
+    cli_socket_path: Option<PathBuf>,
+    #[cfg(feature = "network")]
+    #[clap(
+        long,
+        value_parser = parse_socket_addr,
+        conflicts_with("cli_socket_path")
+    )]
+    cli_socket_addr: Option<SocketAddr>,
+}
+
+#[cfg(feature = "network")]
+fn deserialize_socket_addr<'de, D>(deserializer: D) -> Result<Option<SocketAddr>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let s: Option<&str> = Deserialize::deserialize(deserializer)?;
+
+    if let Some(s) = s {
+        parse_socket_addr(s)
+            .map_err(serde::de::Error::custom)
+            .map(Some)
+    } else {
+        Ok(None)
+    }
+}
+
+#[cfg(feature = "network")]
+fn parse_socket_addr(s: &str) -> Result<SocketAddr, anyhow::Error> {
+    if let Some(s) = s.strip_prefix("[") {
+        let mut parts = s.splitn(2, "]:");
+        let host = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("Missing host"))
+            .and_then(|addr| IfAddr::from_str(addr).map_err(Into::into))?;
+        let port = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("Missing port"))
+            .and_then(|port| port.parse().map_err(Into::into))?;
+
+        host.with_port(port).map_err(Into::into)
+    } else {
+        s.parse().map_err(Into::into)
+    }
 }
 
 #[cfg(not(feature = "batman"))]
@@ -190,7 +242,6 @@ async fn fallback_listen_addrs(interfaces: Option<Vec<String>>) -> anyhow::Resul
 }
 
 #[tokio::main]
-#[allow(clippy::too_many_lines)]
 async fn main() -> anyhow::Result<()> {
     let Opts {
         config_file,
@@ -206,6 +257,9 @@ async fn main() -> anyhow::Result<()> {
         clean,
         log_dir,
         log_level,
+        cli_socket_path,
+        #[cfg(feature = "network")]
+        cli_socket_addr,
     } = Opts::parse();
 
     let Config {
@@ -218,6 +272,9 @@ async fn main() -> anyhow::Result<()> {
         script_management: config_script_management,
         log_dir: config_log_dir,
         log_level: config_log_level,
+        cli_socket_path: config_cli_socket_path,
+        #[cfg(feature = "network")]
+            cli_socket_addr: config_cli_socket_addr,
     } = Config::load(config_file)?;
 
     let listen_addrs = if let Some(addrs) = listen_addrs.map(|e| {
@@ -280,17 +337,49 @@ async fn main() -> anyhow::Result<()> {
         keypair
     };
 
-    let log_dir = log_dir.or(config_log_dir);
-    let log_level = log_level.unwrap_or(config_log_level);
-
     let random_directory = random_directory || config_random_directory;
-
-    let runtime_base_path =
-        runtime_dir().unwrap_or_else(|| PathBuf::from("/tmp").join(DAEMON_NAME).join("runtime"));
 
     let script_management = script_management
         .or(config_script_management)
         .unwrap_or_default();
+
+    let log_dir = log_dir.or(config_log_dir);
+    let log_level = log_level.unwrap_or(config_log_level);
+
+    #[cfg(feature = "network")]
+    let cli_connection = if let Some(cli_connection) = cli_socket_path
+        .map(CliConnectionType::Local)
+        .or(cli_socket_addr.map(CliConnectionType::Network))
+    {
+        cli_connection
+    } else if let Some(cli_socket_path) = config_cli_socket_path {
+        if config_cli_socket_addr.is_some() {
+            return Err(anyhow::anyhow!(
+                "Config specifies both cli_socket_path and cli_socket_addr"
+            ));
+        }
+
+        CliConnectionType::Local(cli_socket_path)
+    } else if let Some(cli_socket_addr) = config_cli_socket_addr {
+        CliConnectionType::Network(cli_socket_addr)
+    } else {
+        CliConnectionType::Local(
+            hyveos_core::get_runtime_base_path()
+                .join("bridge")
+                .join("bridge.sock"),
+        )
+    };
+
+    #[cfg(not(feature = "network"))]
+    let cli_connection = CliConnectionType::Local(
+        cli_socket_path
+            .or(config_cli_socket_path)
+            .unwrap_or_else(|| {
+                hyveos_core::get_runtime_base_path()
+                    .join("bridge")
+                    .join("bridge.sock")
+            }),
+    );
 
     let args = RuntimeArgs {
         listen_addrs,
@@ -299,11 +388,11 @@ async fn main() -> anyhow::Result<()> {
         db_file,
         keypair,
         random_directory,
-        runtime_base_path,
         script_management,
         clean,
         log_dir,
         log_level,
+        cli_connection,
     };
 
     Runtime::new(args).await?.run().await

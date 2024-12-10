@@ -1,8 +1,11 @@
 #![warn(clippy::pedantic, clippy::expect_used, clippy::unwrap_used)]
 #![allow(clippy::module_name_repetitions)]
 
+#[cfg(feature = "serde")]
 use std::str::FromStr;
+use std::{env, path::PathBuf};
 
+use dirs::runtime_dir;
 use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{
@@ -32,6 +35,14 @@ pub mod grpc {
 
 pub const BRIDGE_SHARED_DIR_ENV_VAR: &str = "HYVEOS_BRIDGE_SHARED_DIR";
 pub const BRIDGE_SOCKET_ENV_VAR: &str = "HYVEOS_BRIDGE_SOCKET";
+pub const DAEMON_NAME: &str = "hyved";
+
+#[must_use]
+pub fn get_runtime_base_path() -> PathBuf {
+    runtime_dir()
+        .unwrap_or_else(env::temp_dir)
+        .join(DAEMON_NAME)
+}
 
 impl From<Vec<u8>> for grpc::Data {
     fn from(data: Vec<u8>) -> Self {
