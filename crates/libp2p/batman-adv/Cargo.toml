@@ -10,7 +10,7 @@ publish = { workspace = true }
 batman-neighbours-core = { workspace = true }
 bincode = "1.3.3"
 futures = { workspace = true }
-hashlink = "0.9.0"
+hashlink = "0.10.0"
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true }
 itertools = "0.13.0"
