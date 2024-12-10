@@ -1,8 +1,4 @@
-use p2p_industries_sdk::P2PConnection;
 use clap::Subcommand;
-use async_trait::async_trait;
-use std::error::Error;
-use crate::util::CommandFamily;
 
 #[derive(Subcommand)]
 pub enum PubSub {
@@ -30,20 +26,3 @@ pub enum PubSub {
     },
 }
 
-#[async_trait]
-impl CommandFamily for PubSub {
-    async fn run(self, connection: &P2PConnection) -> Result<(), Box<dyn Error>> {
-        match self {
-            PubSub::Publish { topic, message} => {
-                let result = connection.gossipsub()
-                    .publish(topic, message).await?;
-                println!("Published result {result:?}");
-                Ok(())
-            },
-            PubSub::Get {topic, n, follow} => {
-                // TODO
-                Ok(())
-            }
-        }
-    }
-}

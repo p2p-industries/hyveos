@@ -107,7 +107,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let shared_dir = std::env::var("P2P_INDUSTRIES_SHARED_DIR").unwrap();
+    /// let shared_dir = std::env::var("qP2P_INDUSTRIES_SHARED_DIR").unwrap();
     /// let file_path = Path::new(&shared_dir).join("example.txt");
     /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
     ///

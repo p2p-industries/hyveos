@@ -10,4 +10,5 @@ clap = { workspace = true }
 p2p-industries-sdk = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 async-trait = "*"
