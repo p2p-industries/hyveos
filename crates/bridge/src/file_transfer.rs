@@ -123,6 +123,7 @@ impl FileTransferHTTPServer {
         Json(result.into())
     }
 
+    #[tracing::instrument(skip(self, stream))]
     async fn publish_file_impl<E>(
         &self,
         file_name: String,
@@ -131,10 +132,8 @@ impl FileTransferHTTPServer {
     where
         E: Into<BoxError>,
     {
-        tracing::debug!(file_name=?file_name, "Received publish_file request");
-
         let file_name = PathBuf::from(file_name);
-        let file_stem = file_name.file_stem().unwrap().to_os_string();
+        let file_stem = file_name.file_stem().unwrap_or_default().to_os_string();
         let file_ext = file_name.extension().map(OsString::from);
 
         let mut file_path = self.shared_dir_path.join(file_name);
@@ -173,9 +172,8 @@ impl FileTransferHTTPServer {
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
     }
 
+    #[tracing::instrument(skip(self, cid))]
     async fn get_file_impl(&self, cid: Cid) -> Result<Body, ClientError> {
-        tracing::debug!(request=?cid, "Received get_file request");
-
         let store_path = self.client.file_transfer().get_cid(cid).await?;
 
         let bytes = File::open(store_path).await?;

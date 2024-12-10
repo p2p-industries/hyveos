@@ -179,7 +179,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
 
-        tracing::debug!(id=%ulid, "Creating bridge with path {}", base_path.display());
+        tracing::debug!(id=%ulid, path=%base_path.display(), "Creating bridge");
 
         let socket_path = base_path.join("bridge.sock");
 

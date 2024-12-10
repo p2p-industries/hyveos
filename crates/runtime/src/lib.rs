@@ -34,6 +34,12 @@ mod db;
 mod future_map;
 mod scripting;
 
+macro_rules! map_to_anyhow {
+    ($e:ident) => {
+        let $e = $e.map_err(anyhow::Error::from);
+    };
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize))]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -331,11 +337,12 @@ impl Runtime {
 
         cli_bridge_cancellation_token.cancel();
 
-        let file_provider_task = file_provider_task.map_err(anyhow::Error::from);
+        map_to_anyhow!(file_provider_task);
         #[cfg(feature = "batman")]
-        let debug_client_task = debug_client_task.map_err(anyhow::Error::from);
-        let scripting_manager_task = scripting_manager_task.map_err(anyhow::Error::from);
-        let ping_task = ping_task.map_err(anyhow::Error::from);
+        map_to_anyhow!(debug_client_task);
+        map_to_anyhow!(scripting_manager_task);
+        map_to_anyhow!(ping_task);
+
         let cli_bridge_task = cli_bridge_task.map(|res| match res {
             Ok(Ok(())) => Ok(()),
             Ok(Err(err)) => Err(anyhow::Error::from(err)),
