@@ -121,12 +121,14 @@ impl TryFrom<grpc::Id> for Ulid {
 #[cfg(feature = "serde")]
 pub struct JsonResult<T, E>(Result<T, E>);
 
+#[cfg(feature = "serde")]
 impl<T, E> From<Result<T, E>> for JsonResult<T, E> {
     fn from(result: Result<T, E>) -> Self {
         Self(result)
     }
 }
 
+#[cfg(feature = "serde")]
 impl<T, E> From<JsonResult<T, E>> for Result<T, E> {
     fn from(result: JsonResult<T, E>) -> Self {
         result.0
