@@ -80,60 +80,83 @@ impl Config {
     }
 }
 
-/// This daemon starts the HyveOS runtime.
+/// This daemon starts and manages the HyveOS runtime.
+///
+/// Most of the command line arguments can also be set by editing the config file (see also `--config-file`).
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 #[command(version, about)]
 pub struct Opts {
-    #[clap(long)]
+    /// Set the path to the configuration file (defaults to /etc/hyved/config.toml or /usr/lib/hyved/config.toml).
+    #[clap(short, long, value_name = "FILE")]
     pub config_file: Option<PathBuf>,
+    /// Set link-local interface addresses to listen on. Conflicts with `--interfaces`.
+    ///
+    /// Example: `fe80::1%wlan0,fe80::2%bat0`
     #[clap(
         short,
-        long = "listen-address",
-        value_name = "LISTEN_ADDRESS",
+        long = "listen-addresses",
+        value_name = "IF_ADDRESS,...",
         conflicts_with("interfaces")
     )]
     pub listen_addrs: Option<Vec<hyveos_ifaddr::IfAddr>>,
+    /// Set interfaces to listen on. Conflicts with `--listen-addresses`.
+    ///
+    /// Example: `wlan0,bat0`
     #[clap(
         short,
-        long = "interface",
-        value_name = "INTERFACE",
+        long,
+        value_name = "INTERFACE,...",
         conflicts_with("listen_addrs")
     )]
     pub interfaces: Option<Vec<String>>,
+    /// Set the link-local address of the batman interface. Conflicts with `--batman-interface`.
+    ///
+    /// Example: `fe80::1%bat0`
     #[clap(
         long = "batman-address",
-        value_name = "ADDRESS",
+        value_name = "IF_ADDRESS",
         conflicts_with("batman_interface")
     )]
     pub batman_addr: Option<hyveos_ifaddr::IfAddr>,
-    #[clap(
-        long = "batman-interface",
-        value_name = "INTERFACE",
-        conflicts_with("batman_addr")
-    )]
+    /// Set the name of the batman interface. Conflicts with `--batman-address`.
+    ///
+    /// Example: `bat0`
+    #[clap(long, value_name = "INTERFACE", conflicts_with("batman_addr"))]
     pub batman_interface: Option<String>,
-    #[clap(short, long)]
+    /// Set the directory to store runtime data in (defaults to $XDG_DATA_HOME/hyved or $HOME/.local/share/hyved).
+    #[clap(short, long, value_name = "DIR")]
     pub store_directory: Option<PathBuf>,
-    #[clap(long)]
+    /// Set the path to the local database file (defaults to `store_directory`/db)
+    #[clap(long, value_name = "FILE")]
     pub db_file: Option<PathBuf>,
-    #[clap(short, long)]
+    /// Set the path to the keypair file (defaults to `store_directory`/keypair)
+    #[clap(short, long, value_name = "FILE")]
     pub key_file: Option<PathBuf>,
+    /// Generate a random subdirectory in `store_directory` to store other runtime data in.
     #[clap(short, long)]
     pub random_directory: bool,
+    /// Whether to enable script management through the CLI or by other scripts.
     #[clap(long, value_enum)]
     pub script_management: Option<ScriptManagementConfig>,
-    #[clap(short, long)]
+    /// Clean the store directory on startup.
+    #[clap(long)]
     pub clean: bool,
-    #[clap(short = 'o', long)]
+    /// Set the directory to store logs in. If not set, logs will only be printed to stdout.
+    #[clap(short = 'o', long, value_name = "DIR")]
     pub log_dir: Option<PathBuf>,
+    /// Set the log level filter (defaults to `info`).
     #[clap(short = 'f', long)]
     pub log_level: Option<LogFilter>,
-    #[clap(long, conflicts_with("cli_socket_addr"))]
+    /// Set the path to the CLI socket file, used by `hyvectl` (defaults to $XDG_RUNTIME_DIR/hyved/bridge/bridge.sock).
+    /// Conflicts with `--cli-socket-addr`.
+    #[clap(long, value_name = "FILE", conflicts_with("cli_socket_addr"))]
     cli_socket_path: Option<PathBuf>,
+    /// Set the network address of the CLI socket. Enables `hyvectl` connections over the network. Conflicts with `--cli-socket-path`.
     #[cfg(feature = "network")]
     #[clap(
         long,
+        value_name = "NETWORK_ADDRESS",
         value_parser = parse_socket_addr,
         conflicts_with("cli_socket_path")
     )]
