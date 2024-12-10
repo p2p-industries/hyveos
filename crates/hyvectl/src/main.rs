@@ -33,7 +33,6 @@ impl CommandFamily for Families {
     async fn run(self, connection: &P2PConnection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {
         match self {
             Families::KV(cmd) => cmd.run(connection).await,
-            _ => {unreachable!()}
         }
     }
 }
