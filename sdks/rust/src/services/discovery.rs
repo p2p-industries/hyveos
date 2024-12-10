@@ -6,7 +6,7 @@ use hyveos_core::{
 use libp2p_identity::PeerId;
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A handle to the discovery service.
 ///
@@ -16,11 +16,11 @@ use crate::{connection::P2PConnection, error::Result};
 /// # Example
 ///
 /// ```no_run
-/// use hyveos_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut discovery_service = connection.discovery();
 /// let peer_id = discovery_service.get_own_id().await.unwrap();
 ///
@@ -33,7 +33,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = DiscoveryClient::new(connection.channel.clone());
 
         Self { client }
@@ -55,11 +55,11 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut discovery_service = connection.discovery();
     /// let mut events = discovery_service.subscribe_events().await.unwrap();
     ///
@@ -93,11 +93,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut discovery_service = connection.discovery();
     /// let peer_id = discovery_service.get_own_id().await.unwrap();
     ///
