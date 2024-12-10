@@ -1,22 +1,40 @@
 name: Frontend
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
-
+    branches: ["main"]
   pull_request:
-    branches:
-      - main
+    branches: ["main"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name != 'pull_request' }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'ui/**'
+              - '.github/workflows/frontend.yml'
+
   check:
     name: Frontend checks
     runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,7 +49,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: ui/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -49,3 +67,15 @@ jobs:
       - name: Build
         run: pnpm build
         working-directory: ui
+
+  test-completed:
+    name: Wait for test completion (Frontend)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    needs: [changes, check]
+    if: always()
+    steps:
+      - name: Fail if prerequisite failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
+      - run: echo "Complete"

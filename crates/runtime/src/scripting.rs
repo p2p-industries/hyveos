@@ -18,7 +18,9 @@ use futures::{
 #[cfg(feature = "batman")]
 use hyveos_bridge::DebugCommandSender;
 use hyveos_bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
-use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
+use hyveos_core::{
+    file_transfer::Cid, scripting::RunningScript, BRIDGE_SHARED_DIR_ENV_VAR, BRIDGE_SOCKET_ENV_VAR,
+};
 use hyveos_docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
 use hyveos_p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
 use libp2p::PeerId;
@@ -590,8 +592,8 @@ impl ExecutionManager<'_> {
             .network_mode(NetworkMode::Bridge)
             .add_volumes(volumes)
             .privileged(true) // Unfortunate hack for now
-            .env("P2P_INDUSTRIES_SHARED_DIR", CONTAINER_SHARED_DIR)
-            .env("P2P_INDUSTRIES_BRIDGE_SOCKET", CONTAINER_BRIDGE_SOCKET)
+            .env(BRIDGE_SHARED_DIR_ENV_VAR, CONTAINER_SHARED_DIR)
+            .env(BRIDGE_SOCKET_ENV_VAR, CONTAINER_BRIDGE_SOCKET)
             .auto_remove(true)
             .stdout(Box::new(stdout()) as Box<_>)
             .stderr(Box::new(stderr()) as Box<_>)

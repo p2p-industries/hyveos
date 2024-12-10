@@ -37,7 +37,7 @@ async fn get_stream() -> anyhow::Result<(
 )> {
     use futures::stream::StreamExt as _;
 
-    let connection = hyveos_sdk::P2PConnection::get().await?;
+    let connection = hyveos_sdk::Connection::new().await?;
 
     let (messages_sender, messages_receiver) = broadcast::channel(10);
 

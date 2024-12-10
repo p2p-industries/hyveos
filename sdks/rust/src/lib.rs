@@ -3,27 +3,28 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, allow(unused_attributes))]
 
-//! # P2P Industries SDK
+//! # HyveOS SDK
 //!
-//! This crate provides a high-level API for interacting with the P2P Industries runtime.
+//! This crate provides a high-level API for interacting with the HyveOS runtime.
 //!
-//! > **Note**: This crate will only work properly when running inside a docker container, started
-//! > by the P2P Industries runtime.
+//! > **Note**: By default, the [`Connection`] struct assumes that it's running inside a script docker container,
+//! > started by the HyveOS runtime.
+//! > To use the SDK elsewhere, the connection can be configured using [`ConnectionBuilder`].
 //!
 //! ## Crate Features
 //!
-//! - `json` - Enables JSON (de-)serialization for data sent to other nodes.
-//! - `cbor` - Enables CBOR (de-)serialization for data sent to other nodes.
+//! - `json` - Enables JSON (de-)serialization for data exchanged with other nodes.
+//! - `cbor` - Enables CBOR (de-)serialization for data exchanged with other nodes.
 //!
 //! ## Example
 //!
 //! ```no_run
 //! use futures::StreamExt as _;
-//! use hyveos_sdk::P2PConnection;
+//! use hyveos_sdk::Connection;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let connection = P2PConnection::get().await.unwrap();
+//!     let connection = Connection::new().await.unwrap();
 //!     let mut dht_service = connection.dht();
 //!     let peer_id = dht_service
 //!         .get_providers("identification", "example")
@@ -46,9 +47,10 @@
 //! ```
 
 pub use libp2p_identity::PeerId;
+pub use tonic::transport::Uri;
 
 #[doc(inline)]
-pub use crate::{connection::P2PConnection, error::Error};
+pub use crate::{connection::Connection, error::Error};
 
 pub mod connection;
 pub mod error;

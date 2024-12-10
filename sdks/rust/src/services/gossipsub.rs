@@ -12,7 +12,7 @@ use libp2p_identity::PeerId;
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
 
-use crate::{connection::P2PConnection, error::Result};
+use crate::{connection::Connection, error::Result};
 
 /// A typed message received from the gossipsub service.
 ///
@@ -36,11 +36,11 @@ pub struct TypedMessage<T> {
 /// # Example
 ///
 /// ```no_run
-/// use hyveos_sdk::P2PConnection;
+/// use hyveos_sdk::Connection;
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let connection = P2PConnection::get().await.unwrap();
+/// let connection = Connection::new().await.unwrap();
 /// let mut gossipsub_service = connection.gossipsub();
 /// let id = gossipsub_service.publish("topic", "Hello, world!").await.unwrap();
 ///
@@ -53,7 +53,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(connection: &P2PConnection) -> Self {
+    pub(crate) fn new(connection: &Connection) -> Self {
         let client = GossipSubClient::new(connection.channel.clone());
 
         Self { client }
@@ -70,11 +70,11 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let mut messages = gossipsub_service.subscribe("topic").await.unwrap();
     ///
@@ -125,7 +125,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -135,7 +135,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let mut messages = gossipsub_service.subscribe_json("topic").await.unwrap();
     ///
@@ -192,7 +192,7 @@ impl Service {
     ///
     /// ```no_run
     /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Deserialize;
     ///
     /// #[derive(Debug, Deserialize)]
@@ -202,7 +202,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let mut messages = gossipsub_service.subscribe_cbor("topic").await.unwrap();
     ///
@@ -256,11 +256,11 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let id = gossipsub_service.publish("topic", "Hello, world!").await.unwrap();
     ///
@@ -298,7 +298,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -308,7 +308,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let data = Example { message: "Hello, world!".to_string() };
     /// let id = gossipsub_service.publish_json("topic", &data).await.unwrap();
@@ -336,7 +336,7 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::P2PConnection;
+    /// use hyveos_sdk::Connection;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
@@ -346,7 +346,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let connection = P2PConnection::get().await.unwrap();
+    /// let connection = Connection::new().await.unwrap();
     /// let mut gossipsub_service = connection.gossipsub();
     /// let data = Example { message: "Hello, world!".to_string() };
     /// let id = gossipsub_service.publish_cbor("topic", &data).await.unwrap();
