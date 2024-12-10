@@ -27,7 +27,7 @@ base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
 hyveos-bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
-clap = { version = "4.5.18", features = ["derive"] }
+clap = { version = "4.5.23", features = ["derive"] }
 hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
