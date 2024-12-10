@@ -231,6 +231,32 @@ pub struct BridgeClient<Db, Scripting> {
     scripting_client: Scripting,
 }
 
+macro_rules! build_tonic {
+    (
+        $tonic:expr,
+        $db:ident,
+        $dht:ident,
+        $discovery:ident,
+        $gossipsub:ident,
+        $req_resp:ident,
+        $scripting:ident,
+        $debug:ident
+    ) => {{
+        let tmp = $tonic
+            .add_service(grpc::db_server::DbServer::new($db))
+            .add_service(grpc::dht_server::DhtServer::new($dht))
+            .add_service(grpc::discovery_server::DiscoveryServer::new($discovery))
+            .add_service(grpc::gossip_sub_server::GossipSubServer::new($gossipsub))
+            .add_service(grpc::req_resp_server::ReqRespServer::new($req_resp))
+            .add_service(grpc::scripting_server::ScriptingServer::new($scripting));
+
+        #[cfg(feature = "batman")]
+        let tmp = tmp.add_service(grpc::debug_server::DebugServer::new($debug));
+
+        tmp
+    }};
+}
+
 impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
     pub async fn run(self) -> Result<(), Error> {
         let db = DbServer::new(self.db_client);
@@ -249,19 +275,19 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
             Connection::Local(socket) => {
                 let file_transfer = FileTransferServer::new(self.client, self.shared_dir_path);
 
-                let router = TonicServer::builder()
-                    .add_service(grpc::db_server::DbServer::new(db))
-                    .add_service(grpc::dht_server::DhtServer::new(dht))
-                    .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
-                    .add_service(grpc::file_transfer_server::FileTransferServer::new(
-                        file_transfer,
-                    ))
-                    .add_service(grpc::gossip_sub_server::GossipSubServer::new(gossipsub))
-                    .add_service(grpc::req_resp_server::ReqRespServer::new(req_resp))
-                    .add_service(grpc::scripting_server::ScriptingServer::new(scripting));
-
-                #[cfg(feature = "batman")]
-                let router = router.add_service(grpc::debug_server::DebugServer::new(debug));
+                let router = build_tonic!(
+                    TonicServer::builder(),
+                    db,
+                    dht,
+                    discovery,
+                    gossipsub,
+                    req_resp,
+                    scripting,
+                    debug
+                )
+                .add_service(grpc::file_transfer_server::FileTransferServer::new(
+                    file_transfer,
+                ));
 
                 let socket_stream = UnixListenerStream::new(socket);
                 router
@@ -287,17 +313,16 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
                     )
                     .with_state(file_transfer);
 
-                let tonic_routes = TonicRoutes::from(router)
-                    .add_service(grpc::db_server::DbServer::new(db))
-                    .add_service(grpc::dht_server::DhtServer::new(dht))
-                    .add_service(grpc::discovery_server::DiscoveryServer::new(discovery))
-                    .add_service(grpc::gossip_sub_server::GossipSubServer::new(gossipsub))
-                    .add_service(grpc::req_resp_server::ReqRespServer::new(req_resp))
-                    .add_service(grpc::scripting_server::ScriptingServer::new(scripting));
-
-                #[cfg(feature = "batman")]
-                let tonic_routes =
-                    tonic_routes.add_service(grpc::debug_server::DebugServer::new(debug));
+                let tonic_routes = build_tonic!(
+                    TonicRoutes::from(router),
+                    db,
+                    dht,
+                    discovery,
+                    gossipsub,
+                    req_resp,
+                    scripting,
+                    debug
+                );
 
                 let router = tonic_routes.into_axum_router();
 
