@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[cfg(feature = "network")]
 use axum::{
     body::{Body, Bytes},
-    extract::{Path, Request, State},
+    extract::{Path, Query, Request, State},
     http::{header, StatusCode},
     response::IntoResponse,
     BoxError, Json,
@@ -166,7 +166,7 @@ impl FileTransferHTTPServer {
             .map(Into::into)
     }
 
-    pub async fn get_file(State(this): State<Self>, Json(cid): Json<Cid>) -> impl IntoResponse {
+    pub async fn get_file(State(this): State<Self>, Query(cid): Query<Cid>) -> impl IntoResponse {
         this.get_file_impl(cid)
             .await
             .map(|body| ([(header::CONTENT_TYPE, "application/octet-stream")], body))

@@ -278,7 +278,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
 
                 let router = axum::Router::new()
                     .route(
-                        "/file-transfer/publish-file/{file_name}",
+                        "/file-transfer/publish-file/:file_name",
                         axum::routing::post(FileTransferHTTPServer::publish_file),
                     )
                     .route(
