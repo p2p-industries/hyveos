@@ -273,6 +273,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
             }
             #[cfg(feature = "network")]
             Connection::Network(listener) => {
+                // TODO: We should support tls/https here
                 let file_transfer = FileTransferHTTPServer::new(self.client, self.shared_dir_path);
 
                 let router = axum::Router::new()
