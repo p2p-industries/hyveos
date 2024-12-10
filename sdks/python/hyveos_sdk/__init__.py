@@ -1,4 +1,4 @@
-from .p2p import Connection
+from .p2p import Connection, OpenedConnection
 from .services.debug import DebugService
 from .services.dht import DHTService
 from .services.discovery import DiscoveryService
@@ -9,6 +9,7 @@ from .services.stream import ManagedStream
 
 __all__ = [
     'Connection',
+    'OpenedConnection',
     'DebugService',
     'DHTService',
     'DiscoveryService',

@@ -27,7 +27,7 @@ base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
 hyveos-bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
-clap = { version = "4.5.18", features = ["derive"] }
+clap = { version = "4.5.23", features = ["derive"] }
 hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
@@ -45,7 +45,7 @@ multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
 hyveos-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
 pin-project = { version = "1.1.7" }
-prost = "0.13"
+prost = { version = "0.13.4" }
 rand = { version = "0.8.5" }
 regex = { version = "1.11.1", default-features = false, features = [
     "perf",
