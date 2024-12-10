@@ -34,12 +34,6 @@ mod db;
 mod future_map;
 mod scripting;
 
-macro_rules! map_to_anyhow {
-    ($e:ident) => {
-        let $e = $e.map_err(anyhow::Error::from);
-    };
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize))]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -129,6 +123,12 @@ fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter) {
     } else {
         registry.init();
     }
+}
+
+macro_rules! map_to_anyhow {
+    ($e:ident) => {
+        let $e = $e.map_err(anyhow::Error::from);
+    };
 }
 
 impl Runtime {

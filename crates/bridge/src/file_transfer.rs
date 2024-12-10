@@ -15,7 +15,7 @@ use const_format::concatcp;
 use futures::{Stream, TryStreamExt as _};
 use hyveos_core::grpc::{self, file_transfer_server::FileTransfer};
 #[cfg(feature = "network")]
-use hyveos_core::{file_transfer::Cid, JsonResult};
+use hyveos_core::{file_transfer::Cid, serde::JsonResult};
 #[cfg(feature = "network")]
 use hyveos_p2p_stack::file_transfer::ClientError;
 use hyveos_p2p_stack::Client;
