@@ -56,6 +56,6 @@ assets = [
 ]
 maintainer-scripts = "systemd/debian/"
 systemd-units = [
-    { unit-name = "hyved", enable = true },
-    { unit-name = "hyveos-batman", enable = false },
+    { unit-name = "hyved", enable = false },
+    { unit-name = "hyveos-batman", enable = true },
 ]
