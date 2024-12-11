@@ -128,6 +128,7 @@ impl internal::ConnectionType for UriConnection {
     }
 }
 
+#[cfg(feature = "network")]
 fn uri_to_url_and_if_name(uri: Uri) -> Result<(reqwest::Url, Option<String>)> {
     let mut parts = uri.into_parts();
     let mut if_name = None;
