@@ -10,17 +10,22 @@ derive-where = "1.2.7"
 futures = { workspace = true }
 hyper-util = { version = "0.1.10", features = ["tokio"] }
 libp2p-identity = { workspace = true, features = ["peerid"] }
+http = { version = "1.2.0", optional = true }
 hyveos-core = { workspace = true }
+hyveos-ifaddr = { workspace = true, optional = true }
 prost = { workspace = true }
+reqwest = { version = "0.12.9", features = ["json", "stream"], optional = true }
 serde = { workspace = true, optional = true }
 serde_cbor = { version = "0.11.2", optional = true }
 serde_json = { version = "1.0.118", optional = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["fs"] }
+tokio = { workspace = true, features = ["fs", "io-util"] }
+tokio-util = { workspace = true, optional = true }
 tonic = { workspace = true }
 tower = { version = "0.5.0", features = ["util"] }
 tracing = { workspace = true }
 ulid = { workspace = true }
+url = { version = "2.5.4", optional = true }
 
 [dev-dependencies]
 hyveos-sdk = { path = ".", features = ["cbor", "json"] }
@@ -28,10 +33,18 @@ tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 
 [features]
 default = ["cbor"]
+network = [
+    "dep:hyveos-ifaddr",
+    "dep:http",
+    "dep:reqwest",
+    "dep:tokio-util",
+    "dep:url",
+]
 serde = ["hyveos-core/serde", "dep:serde"]
 json = ["serde", "dep:serde_json"]
 cbor = ["serde", "dep:serde_cbor"]
 scripting = ["hyveos-core/scripting"]
+reqwest = ["dep:reqwest"]
 
 [package.metadata.docs.rs]
 all-features = true
