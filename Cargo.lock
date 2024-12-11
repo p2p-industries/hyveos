@@ -1685,6 +1685,7 @@ dependencies = [
  "clap",
  "dirs",
  "futures",
+ "hyveos-core",
  "hyveos-ifaddr",
  "hyveos-ifwatcher",
  "hyveos-runtime",
@@ -1700,6 +1701,8 @@ dependencies = [
 name = "hyveos-bridge"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "axum",
  "const_format",
  "drop-stream",
  "futures",
@@ -1708,6 +1711,7 @@ dependencies = [
  "libp2p",
  "prost",
  "regex",
+ "serde",
  "thiserror 1.0.69",
  "tokio",
  "tokio-stream",
@@ -1722,6 +1726,7 @@ dependencies = [
 name = "hyveos-core"
 version = "0.1.0"
 dependencies = [
+ "dirs",
  "hex_fmt",
  "libp2p-identity",
  "prost",
@@ -1866,6 +1871,7 @@ dependencies = [
  "serde",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-util",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

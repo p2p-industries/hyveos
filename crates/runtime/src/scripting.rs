@@ -17,7 +17,7 @@ use futures::{
 };
 #[cfg(feature = "batman")]
 use hyveos_bridge::DebugCommandSender;
-use hyveos_bridge::{Bridge, Error as BridgeError, CONTAINER_SHARED_DIR};
+use hyveos_bridge::{Error as BridgeError, ScriptingBridge, CONTAINER_SHARED_DIR};
 use hyveos_core::{
     file_transfer::Cid, scripting::RunningScript, BRIDGE_SHARED_DIR_ENV_VAR, BRIDGE_SOCKET_ENV_VAR,
 };
@@ -519,7 +519,7 @@ impl ExecutionManager<'_> {
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
         if let Some(scripting_client) = self.scripting_client {
-            let bridge = Bridge::new(
+            let bridge = ScriptingBridge::new(
                 self.client,
                 self.db_client,
                 self.base_path,
@@ -531,7 +531,7 @@ impl ExecutionManager<'_> {
 
             Self::exec_with_bridge(bridge, image, ports).await
         } else {
-            let bridge = Bridge::new(
+            let bridge = ScriptingBridge::new(
                 self.client,
                 self.db_client,
                 self.base_path,
@@ -546,11 +546,11 @@ impl ExecutionManager<'_> {
     }
 
     async fn exec_with_bridge(
-        bridge: Bridge<DbClient, impl hyveos_bridge::ScriptingClient>,
+        bridge: ScriptingBridge<DbClient, impl hyveos_bridge::ScriptingClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
-        let Bridge {
+        let ScriptingBridge {
             client,
             cancellation_token,
             ulid,

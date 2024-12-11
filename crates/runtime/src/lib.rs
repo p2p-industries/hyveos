@@ -1,20 +1,25 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
+#[cfg(feature = "network")]
+use std::net::SocketAddr;
 use std::{
     future::Future,
     path::{Path, PathBuf},
 };
 
-use futures::{future, TryFutureExt as _};
-use hyveos_bridge::ScriptingClient as _;
-use hyveos_core::gossipsub::ReceivedMessage;
+use futures::{future, FutureExt as _, TryFutureExt as _};
+#[cfg(feature = "network")]
+use hyveos_bridge::NetworkBridge;
+use hyveos_bridge::{Bridge, ScriptingClient as _};
+use hyveos_core::{get_runtime_base_path, gossipsub::ReceivedMessage};
 #[cfg(feature = "batman")]
 use hyveos_p2p_stack::DebugClient;
 use hyveos_p2p_stack::{Client as P2PClient, FullActor};
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
 pub use scripting::ScriptManagementConfig;
 use tokio::task::{AbortHandle, JoinHandle};
+use tokio_util::sync::CancellationToken;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
     fmt::time::UtcTime, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
@@ -55,6 +60,12 @@ impl From<LogFilter> for LevelFilter {
     }
 }
 
+pub enum CliConnectionType {
+    Local(PathBuf),
+    #[cfg(feature = "network")]
+    Network(SocketAddr),
+}
+
 #[derive(Clone)]
 pub struct Clients {
     pub p2p_client: P2PClient,
@@ -68,11 +79,11 @@ pub struct RuntimeArgs {
     pub db_file: PathBuf,
     pub keypair: Keypair,
     pub random_directory: bool,
-    pub runtime_base_path: PathBuf,
     pub script_management: ScriptManagementConfig,
     pub clean: bool,
     pub log_dir: Option<PathBuf>,
     pub log_level: LogFilter,
+    pub cli_connection: CliConnectionType,
 }
 
 pub struct Runtime {
@@ -83,6 +94,8 @@ pub struct Runtime {
     debug_client_task: JoinHandle<()>,
     scripting_manager_task: JoinHandle<()>,
     ping_task: JoinHandle<()>,
+    cli_bridge_task: JoinHandle<Result<(), hyveos_bridge::Error>>,
+    cli_bridge_cancellation_token: CancellationToken,
 }
 
 macro_rules! create_logfile {
@@ -112,12 +125,19 @@ fn setup_logging(log_dir: Option<PathBuf>, log_level: LogFilter) {
     }
 }
 
+macro_rules! map_to_anyhow {
+    ($e:ident) => {
+        let $e = $e.map_err(anyhow::Error::from);
+    };
+}
+
 impl Runtime {
     /// Create a new runtime that will listen on the given addresses
     ///
     /// # Errors
     ///
     /// TODO: Document errors
+    #[allow(clippy::too_many_lines)]
     pub async fn new(args: RuntimeArgs) -> anyhow::Result<Runtime> {
         let RuntimeArgs {
             listen_addrs,
@@ -126,11 +146,11 @@ impl Runtime {
             db_file,
             keypair,
             random_directory,
-            runtime_base_path,
             script_management,
             clean,
             log_dir,
             log_level,
+            cli_connection,
         } = args;
 
         setup_logging(log_dir, log_level);
@@ -153,6 +173,8 @@ impl Runtime {
         if !store_directory.exists() {
             std::fs::create_dir_all(&store_directory)?;
         }
+
+        let runtime_base_path = get_runtime_base_path();
 
         let db_client = DbClient::new(db_file)?;
 
@@ -186,9 +208,9 @@ impl Runtime {
             scripting_command_broker,
             p2p_client.clone(),
             db_client.clone(),
-            runtime_base_path,
+            runtime_base_path.clone(),
             #[cfg(feature = "batman")]
-            debug_command_sender,
+            debug_command_sender.clone(),
             script_management,
         );
 
@@ -203,6 +225,48 @@ impl Runtime {
 
         let ping_task = tokio::spawn(Self::ping_task(p2p_client.clone()));
 
+        let cli_bridge_base_path = runtime_base_path.join("bridge");
+        let (cli_bridge_task, cli_bridge_cancellation_token) = match cli_connection {
+            CliConnectionType::Local(socket_path) => {
+                let Bridge {
+                    client,
+                    cancellation_token,
+                    ..
+                } = Bridge::new(
+                    p2p_client.clone(),
+                    db_client,
+                    cli_bridge_base_path,
+                    socket_path,
+                    #[cfg(feature = "batman")]
+                    debug_command_sender,
+                    scripting_client.clone(),
+                )
+                .await?;
+
+                let task = tokio::spawn(client.run());
+                (task, cancellation_token)
+            }
+            #[cfg(feature = "network")]
+            CliConnectionType::Network(socket_addr) => {
+                let NetworkBridge {
+                    client,
+                    cancellation_token,
+                } = NetworkBridge::new(
+                    p2p_client.clone(),
+                    db_client,
+                    cli_bridge_base_path,
+                    socket_addr,
+                    #[cfg(feature = "batman")]
+                    debug_command_sender,
+                    scripting_client.clone(),
+                )
+                .await?;
+
+                let task = tokio::spawn(client.run());
+                (task, cancellation_token)
+            }
+        };
+
         let clients = Clients {
             p2p_client,
             scripting_client,
@@ -216,6 +280,8 @@ impl Runtime {
             debug_client_task,
             scripting_manager_task,
             ping_task,
+            cli_bridge_task,
+            cli_bridge_cancellation_token,
         })
     }
 
@@ -250,6 +316,8 @@ impl Runtime {
             debug_client_task,
             scripting_manager_task,
             ping_task,
+            cli_bridge_task,
+            cli_bridge_cancellation_token,
         } = self;
 
         let scripting_client = clients.scripting_client.clone();
@@ -267,16 +335,36 @@ impl Runtime {
         scripting_manager_task.abort();
         ping_task.abort();
 
+        cli_bridge_cancellation_token.cancel();
+
+        map_to_anyhow!(file_provider_task);
+        #[cfg(feature = "batman")]
+        map_to_anyhow!(debug_client_task);
+        map_to_anyhow!(scripting_manager_task);
+        map_to_anyhow!(ping_task);
+
+        let cli_bridge_task = cli_bridge_task.map(|res| match res {
+            Ok(Ok(())) => Ok(()),
+            Ok(Err(err)) => Err(anyhow::Error::from(err)),
+            Err(err) => Err(anyhow::Error::from(err)),
+        });
+
         #[cfg(feature = "batman")]
         tokio::try_join!(
             file_provider_task,
             debug_client_task,
             scripting_manager_task,
             ping_task,
+            cli_bridge_task,
         )?;
 
         #[cfg(not(feature = "batman"))]
-        tokio::try_join!(file_provider_task, scripting_manager_task, ping_task)?;
+        tokio::try_join!(
+            file_provider_task,
+            scripting_manager_task,
+            ping_task,
+            cli_bridge_task,
+        )?;
 
         Ok(())
     }

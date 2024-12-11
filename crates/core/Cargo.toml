@@ -6,6 +6,7 @@ rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
+dirs = { workspace = true }
 hex_fmt = "0.3.0"
 libp2p-identity = { workspace = true, features = ["peerid"] }
 prost = { workspace = true }
