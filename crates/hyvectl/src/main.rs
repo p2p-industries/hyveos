@@ -2,30 +2,16 @@ mod util;
 mod families;
 mod output;
 
-use families::{kv};
-
-use clap::{Parser, Subcommand};
 use hyveos_sdk::{Connection};
 use std::error::Error;
 use std::io::{stdout, IsTerminal, Write};
+use clap::Parser;
 use util::CommandFamily;
 use futures::stream::BoxStream;
 use futures::StreamExt;
 use crate::output::CommandOutput;
 
-#[derive(Parser)]
-#[command(name = "hyvectl", about = "Hyvectl")]
-struct Cli {
-    #[command(subcommand)]
-    command: Families,
-}
-
-#[derive(Subcommand)]
-enum Families {
-    #[command(subcommand, about = "Key-Value Store")]
-    KV(kv::Kv),
-}
-
+use hyvectl_commands::command::{Cli, Families};
 
 impl CommandFamily for Families {
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {

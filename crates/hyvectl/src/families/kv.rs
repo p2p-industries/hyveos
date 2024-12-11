@@ -1,45 +1,11 @@
 use hyveos_sdk::Connection;
-use clap::Subcommand;
 use std::error::Error;
 use crate::util::CommandFamily;
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt, TryStreamExt, stream};
 use futures::stream::BoxStream;
+use hyvectl_commands::families::kv::Kv;
 
-#[derive(Subcommand)]
-pub enum Kv {
-    #[command(about = "Publish the value for the given key")]
-    Put {
-        key: String,
-        value: String,
-        #[arg(long)]
-        topic: Option<String>,
-    },
-    #[command(about = "Get the value for the given key")]
-    Get {
-        key: String,
-        #[arg(long)]
-        topic: Option<String>,
-    },
-    #[command(about = "Announce that this node can provide the value for the given key")]
-    Provide {
-        key: String,
-        #[arg(long)]
-        topic: Option<String>,
-    },
-    #[command(about = "Get the providers for the given key")]
-    GetProviders {
-        key: String,
-        #[arg(long)]
-        topic: Option<String>,
-    },
-    #[command(about = "Stop providing a given key")]
-    StopProvide {
-        key: String,
-        #[arg(long)]
-        topic: Option<String>,
-    }
-}
 
 impl CommandFamily for Kv {
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {
