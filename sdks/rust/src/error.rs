@@ -36,6 +36,26 @@ pub enum Error {
     /// A path was expected to have a file name, but it didn't.
     #[error("Path has no file name: {}", .0.display())]
     NoFileName(PathBuf),
+    /// An error occurred while parsing a URI.
+    #[cfg(feature = "network")]
+    #[error("Invalid URI: {0}")]
+    InvalidUri(#[from] http::uri::InvalidUri),
+    /// An error occurred while parsing URI parts.
+    #[cfg(feature = "network")]
+    #[error("Invalid URI: {0}")]
+    InvalidUriParts(#[from] http::uri::InvalidUriParts),
+    /// An error occurred while parsing a URL.
+    #[cfg(feature = "network")]
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(#[from] url::ParseError),
+    #[cfg(feature = "network")]
+    /// An error occurred while sending a request.
+    #[error("Request error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[cfg(feature = "network")]
+    /// Got an error response from a HTTP request.
+    #[error("Got an error response: {0}")]
+    Response(String),
 }
 
 /// Alias for a `Result` that defaults to [`Error`] as the error type.
