@@ -1752,7 +1752,6 @@ dependencies = [
 name = "hyveos-core"
 version = "0.1.0"
 dependencies = [
- "dirs",
  "hex_fmt",
  "libp2p-identity",
  "prost",

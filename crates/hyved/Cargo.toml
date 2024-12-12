@@ -9,7 +9,7 @@ publish = { workspace = true }
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-dirs = { workspace = true }
+dirs = "5.0.1"
 futures = { workspace = true }
 hyveos-core = { workspace = true }
 hyveos-ifaddr = { workspace = true }
@@ -56,6 +56,6 @@ assets = [
 ]
 maintainer-scripts = "systemd/debian/"
 systemd-units = [
-    { unit-name = "hyved", enable = true },
-    { unit-name = "hyveos-batman", enable = false },
+    { unit-name = "hyved", enable = false },
+    { unit-name = "hyveos-batman", enable = true },
 ]
