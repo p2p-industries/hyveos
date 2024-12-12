@@ -9,7 +9,7 @@ publish = { workspace = true }
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-dirs = { workspace = true }
+dirs = "5.0.1"
 futures = { workspace = true }
 hyveos-core = { workspace = true }
 hyveos-ifaddr = { workspace = true }
