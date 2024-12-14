@@ -45,11 +45,11 @@ pub trait ScriptingClient: Sync + 'static {
 
 pub struct ScriptingServer<C> {
     client: C,
-    ulid: Ulid,
+    ulid: Option<Ulid>,
 }
 
 impl<C: ScriptingClient> ScriptingServer<C> {
-    pub fn new(client: C, ulid: Ulid) -> Self {
+    pub fn new(client: C, ulid: Option<Ulid>) -> Self {
         Self { client, ulid }
     }
 }
@@ -136,6 +136,9 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
     }
 
     async fn get_own_id(&self, _: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Id> {
-        Ok(TonicResponse::new(self.ulid.into()))
+        self.ulid
+            .map(Into::into)
+            .map(TonicResponse::new)
+            .ok_or(Status::internal("Can only get ID of scripting bridge"))
     }
 }

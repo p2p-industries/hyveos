@@ -11,6 +11,7 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 dirs = "5.0.1"
 futures = { workspace = true }
+hyveos-core = { workspace = true }
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }
@@ -24,12 +25,13 @@ tracing = { workspace = true }
 [features]
 batman = ["hyveos-runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
 console-subscriber = ["hyveos-runtime/console-subscriber"]
+network = ["hyveos-runtime/network"]
 mdns = ["hyveos-runtime/mdns"]
 
 [package.metadata.deb]
 name = "hyved"
-features = ["batman"]
-depends = "batman-neighbours-daemon, docker-ce, iproute2, net-tools, wpasupplicant"
+features = ["batman", "network"]
+depends = "batman-neighbours-daemon, docker-ce, wpasupplicant"
 assets = [
     [
         "target/release/hyved",
@@ -54,6 +56,6 @@ assets = [
 ]
 maintainer-scripts = "systemd/debian/"
 systemd-units = [
-    { unit-name = "hyved", enable = true },
-    { unit-name = "hyveos-batman", enable = false },
+    { unit-name = "hyved", enable = false },
+    { unit-name = "hyveos-batman", enable = true },
 ]
