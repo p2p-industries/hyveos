@@ -25,11 +25,16 @@ trap 'int_handler' INT
 echo -e "${GREEN}Welcome to the installation script!${RESET}"
 
 function continue_installation() {
-	read -p "Continue? (y/n) " -n 1 -r
+	# Default is yes and if the users presses enter, it will continue with the installation.
+	read -p "Continue (Y/n)? " -n 1 -r
 
 	echo
 
-	if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+	# If the user presses enter, it will continue with the installation.
+
+	if [[ -z "$REPLY" ]]; then
+		echo -e "${GREEN}Continuing installation${RESET}"
+	elif [[ "$REPLY" =~ ^[Yy]$ ]]; then
 		echo -e "${GREEN}Continuing installation${RESET}"
 	else
 		echo -e "${RED}Exiting installation${RESET}"
@@ -136,11 +141,16 @@ else
 
 	if [[ "$REPLY" == "1" ]]; then
 		echo -e "${YELLOW}Please install Docker manually by visiting the following link: https://docs.docker.com/engine/install/${RESET}"
-		# Open the link in the browser
-		xdg-open https://docs.docker.com/engine/install/
+		# Open the link in the browser but first check if xdg-open is installed
+
+		if [[ -x "$(command -v xdg-open)" ]]; then
+			xdg-open https://docs.docker.com/engine/install/
+		else
+			echo -e "${YELLOW}Please visit the following link to install Docker: https://docs.docker.com/engine/install/${RESET}"
+		fi
 
 		echo -e "Return to the terminal after installing Docker"
-		read -p "Press any key to continue"
+		read -p "Press enter key to continue"
 	elif [[ "$REPLY" == "2" ]]; then
 		echo -e "${YELLOW}Installing Docker using the convenience script${RESET}"
 		curl -sSL https://get.docker.com | sh || (echo -e "${RED}Error encountered while installing Docker${RESET}" && exit 1)
@@ -207,6 +217,11 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 				# Load batman-adv
 
 				sudo modprobe batman-adv
+
+				# Also load batman-adv at boot
+
+				echo -e "${GREEN}Enabling batman-adv to run at boot${RESET}"
+				sudo sh -c "echo batman-adv >> /etc/modules"
 			fi
 		fi
 
@@ -252,3 +267,8 @@ continue_installation
 
 sudo systemctl enable --now docker
 sudo systemctl enable --now batman-neighbours-daemon
+
+echo -e "${GREEN}Installation complete${RESET}"
+
+echo "To start the hyved service, run: sudo systemctl start hyved"
+echo "To start the hyved service at boot, run: sudo systemctl enable --now hyved"
