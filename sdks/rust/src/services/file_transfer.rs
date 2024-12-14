@@ -3,11 +3,22 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(feature = "network")]
+use futures::TryStreamExt as _;
+#[cfg(feature = "network")]
+use hyveos_core::serde::JsonResult;
 use hyveos_core::{
     file_transfer::{read_only_hard_link, Cid},
     grpc::{self, file_transfer_client::FileTransferClient, FilePath},
+    BRIDGE_SHARED_DIR_ENV_VAR,
 };
+#[cfg(feature = "network")]
+use reqwest::Body;
 use tokio::fs::File;
+#[cfg(feature = "network")]
+use tokio::io::BufWriter;
+#[cfg(feature = "network")]
+use tokio_util::io::{ReaderStream, StreamReader};
 use tonic::transport::Channel;
 
 use crate::{
@@ -51,6 +62,15 @@ impl PathExt for Path {
     }
 }
 
+#[cfg(not(feature = "network"))]
+type Client = FileTransferClient<Channel>;
+#[cfg(feature = "network")]
+#[derive(Debug, Clone)]
+enum Client {
+    Local(FileTransferClient<Channel>),
+    Network(reqwest::Client, reqwest::Url),
+}
+
 /// A handle to the file transfer service.
 ///
 /// Exposes methods to interact with the file transfer service, like for publishing and getting
@@ -65,7 +85,7 @@ impl PathExt for Path {
 ///
 /// # #[tokio::main]
 /// # async fn main() {
-/// let shared_dir = std::env::var("P2P_INDUSTRIES_SHARED_DIR").unwrap();
+/// let shared_dir = std::env::var(hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR).unwrap();
 /// let file_path = Path::new(&shared_dir).join("example.txt");
 /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
 ///
@@ -78,12 +98,19 @@ impl PathExt for Path {
 /// ```
 #[derive(Debug, Clone)]
 pub struct Service {
-    client: FileTransferClient<Channel>,
+    client: Client,
 }
 
 impl Service {
     pub(crate) fn new(connection: &Connection) -> Self {
+        #[cfg(not(feature = "network"))]
         let client = FileTransferClient::new(connection.channel.clone());
+        #[cfg(feature = "network")]
+        let client = if let Some((client, url)) = connection.reqwest_client_and_url.clone() {
+            Client::Network(client, url)
+        } else {
+            Client::Local(FileTransferClient::new(connection.channel.clone()))
+        };
 
         Self { client }
     }
@@ -107,7 +134,7 @@ impl Service {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let shared_dir = std::env::var("P2P_INDUSTRIES_SHARED_DIR").unwrap();
+    /// let shared_dir = std::env::var(hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR).unwrap();
     /// let file_path = Path::new(&shared_dir).join("example.txt");
     /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
     ///
@@ -120,19 +147,45 @@ impl Service {
     /// ```
     #[tracing::instrument(skip(self, path), fields(path = %path.as_ref().display()))]
     pub async fn publish_file(&mut self, path: impl AsRef<Path>) -> Result<Cid> {
-        // TODO: Add support for transferring files over the network
-        let shared_dir = env::var("P2P_INDUSTRIES_SHARED_DIR")
-            .map_err(|e| Error::EnvVarMissing("P2P_INDUSTRIES_SHARED_DIR", e))?;
-
         let path = path.as_ref().canonicalize()?;
+
+        let Some(file_name) = path.file_name() else {
+            return Err(Error::NoFileName(path));
+        };
+
+        #[cfg(not(feature = "network"))]
+        let client = &mut self.client;
+        #[cfg(feature = "network")]
+        let client = match &mut self.client {
+            Client::Local(client) => client,
+            Client::Network(client, url) => {
+                let url = url.join(&format!(
+                    "file-transfer/publish-file/{}",
+                    file_name.to_string_lossy()
+                ))?;
+
+                let bytes = File::open(path).await?;
+                let stream = ReaderStream::new(bytes);
+
+                let result: Result<Cid, String> = client
+                    .post(url)
+                    .body(Body::wrap_stream(stream))
+                    .send()
+                    .await?
+                    .json::<JsonResult<_, _>>()
+                    .await?
+                    .into();
+
+                return result.map_err(Error::Response);
+            }
+        };
+
+        let shared_dir = env::var(BRIDGE_SHARED_DIR_ENV_VAR)
+            .map_err(|e| Error::EnvVarMissing(BRIDGE_SHARED_DIR_ENV_VAR, e))?;
 
         let path: FilePath = if path.starts_with(&shared_dir) {
             path.try_into()
         } else {
-            let Some(file_name) = path.file_name() else {
-                return Err(Error::NoFileName(path));
-            };
-
             let (shared_path, _) = Path::new(&shared_dir).join(file_name).unique_file().await?;
 
             read_only_hard_link(&path, &shared_path).await?;
@@ -140,7 +193,7 @@ impl Service {
             shared_path.try_into()
         }?;
 
-        self.client
+        client
             .publish_file(path)
             .await?
             .into_inner()
@@ -148,10 +201,11 @@ impl Service {
             .map_err(Into::into)
     }
 
-    /// Publishes a file in the mesh network and returns its content ID.
+    /// Retrieves a file from the mesh network and returns its path.
     ///
-    /// Before it's published, the file is copied to the shared directory if it is not already
-    /// there. The shared directory is defined by the `P2P_INDUSTRIES_SHARED_DIR` environment
+    /// When the local runtime doesn't own a copy of this file yet, it downloads it from one of its peers.
+    /// Afterwards, or if it was already locally available, the file is copied
+    /// into the shared directory, which is defined by the `HYVEOS_BRIDGE_SHARED_DIR` environment
     /// variable.
     ///
     /// # Errors
@@ -185,10 +239,35 @@ impl Service {
     /// ```
     #[tracing::instrument(skip(self))]
     pub async fn get_file(&mut self, cid: Cid) -> Result<PathBuf> {
-        // TODO: Add support for transferring files over the network
-        tracing::debug!("Received get_file request");
+        #[cfg(not(feature = "network"))]
+        let client = &mut self.client;
+        #[cfg(feature = "network")]
+        let client = match &mut self.client {
+            Client::Local(client) => client,
+            Client::Network(client, url) => {
+                let url = url.join("file-transfer/get-file")?;
 
-        self.client
+                let stream = client.get(url).query(&cid).send().await?.bytes_stream();
+
+                let reader = StreamReader::new(
+                    stream.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
+                );
+                futures::pin_mut!(reader);
+
+                let (path, file) = env::temp_dir()
+                    .join(cid.id.to_string())
+                    .unique_file()
+                    .await?;
+
+                let mut file = BufWriter::new(file);
+
+                tokio::io::copy(&mut reader, &mut file).await?;
+
+                return Ok(path);
+            }
+        };
+
+        client
             .get_file(grpc::Cid::from(cid))
             .await
             .map(|response| response.into_inner().into())
