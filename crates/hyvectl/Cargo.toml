@@ -12,3 +12,9 @@ hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+
+[build-dependencies]
+clap.workspace = true
+clap_complete = "4.5.38"
+clap_mangen = "0.2.24"
+hyvectl-commands = { workspace = true }

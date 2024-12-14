@@ -1,0 +1,11 @@
+[package]
+name = "hyvectl-commands"
+version = "0.1.0"
+description = "Just the commands for hyvectl"
+rust-version.workspace = true
+edition = "2021"
+
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+
