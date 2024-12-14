@@ -11,7 +11,7 @@ use async_once_cell::OnceCell;
 use asynchronous_codec::{CborCodec, CborCodecError, Framed, FramedParts};
 use base64_simd::{Out, URL_SAFE};
 use futures::{SinkExt, Stream, StreamExt};
-use hyveos_core::file_transfer::Cid;
+use hyveos_core::file_transfer::{read_only_hard_link, Cid};
 use indicatif::ProgressFinish;
 use libp2p::{
     kad::{AddProviderError, GetProvidersOk, RecordKey},
@@ -288,7 +288,7 @@ impl Client {
         if !file.exists() {
             return Err(io::Error::from(io::ErrorKind::NotFound).into());
         }
-        tokio::fs::hard_link(file, path).await?;
+        read_only_hard_link(file, &path).await?;
         self.provide_cid(cid).await?;
         Ok(())
     }

@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -66,4 +69,26 @@ impl From<grpc::FilePath> for PathBuf {
     fn from(path: grpc::FilePath) -> Self {
         path.path.into()
     }
+}
+
+/// # Errors
+///
+/// Returns an error if the file does not exist or if the file is not a regular file or the
+/// permissions couldn't be set or read.
+pub async fn read_only_hard_link(src: &Path, dest: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
+    // Set source file read only
+    let src_file = tokio::fs::File::open(src).await?;
+    let metadata = src_file.metadata().await?;
+    let mut permissions = metadata.permissions();
+    permissions.set_readonly(true);
+    #[cfg(unix)]
+    permissions.set_mode(0o444);
+    tokio::fs::set_permissions(src, permissions.clone()).await?;
+    // Create hardlink to source file
+    tokio::fs::hard_link(src, dest).await?;
+    // Set permissions to read only
+    tokio::fs::set_permissions(dest, permissions).await?;
+    Ok(())
 }

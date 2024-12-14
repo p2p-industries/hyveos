@@ -1728,6 +1728,7 @@ dependencies = [
  "regex",
  "serde",
  "thiserror 1.0.69",
+ "tokio",
  "tonic",
  "tonic-build",
  "ulid",

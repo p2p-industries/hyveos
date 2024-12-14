@@ -14,6 +14,7 @@ serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tonic = { workspace = true }
 ulid = { workspace = true }
+tokio = { workspace = true, features = ["fs"] }
 
 [build-dependencies]
 tonic-build = { version = "0.12.1", features = ["prost"] }

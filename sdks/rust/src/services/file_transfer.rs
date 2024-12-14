@@ -4,7 +4,7 @@ use std::{
 };
 
 use hyveos_core::{
-    file_transfer::Cid,
+    file_transfer::{read_only_hard_link, Cid},
     grpc::{self, file_transfer_client::FileTransferClient, FilePath},
 };
 use tokio::fs::File;
@@ -135,7 +135,7 @@ impl Service {
 
             let (shared_path, _) = Path::new(&shared_dir).join(file_name).unique_file().await?;
 
-            tokio::fs::hard_link(&path, &shared_path).await?;
+            read_only_hard_link(&path, &shared_path).await?;
 
             shared_path.try_into()
         }?;
