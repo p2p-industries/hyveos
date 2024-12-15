@@ -1,3 +1,4 @@
+import aiohttp
 import grpc
 import os
 from typing import Optional
@@ -6,7 +7,11 @@ from .services.db import DBService
 from .services.debug import DebugService
 from .services.dht import DHTService
 from .services.discovery import DiscoveryService
-from .services.file_transfer import FileTransferService
+from .services.file_transfer import (
+    FileTransferService,
+    GrpcFileTransferService,
+    NetworkFileTransferService,
+)
 from .services.gossip_sub import GossipSubService
 from .services.request_response import RequestResponseService
 
@@ -38,6 +43,10 @@ class Connection:
     ```
     """
 
+    _conn: grpc.aio.Channel
+    _uri: Optional[str]
+    _session: Optional[aiohttp.ClientSession]
+
     def __init__(self, socket_path: Optional[str] = None, uri: Optional[str] = None):
         """
         Establishes a connection to the HyveOS runtime.
@@ -67,6 +76,9 @@ class Connection:
             If both `socket_path` and `uri` are provided.
         """
 
+        self._uri = None
+        self._session = None
+
         if socket_path is not None:
             if uri is not None:
                 raise ValueError('Only one of `socket_path` and `uri` can be provided')
@@ -76,6 +88,8 @@ class Connection:
             )
         elif uri is not None:
             self._conn = grpc.aio.insecure_channel(uri)
+            self._uri = uri
+            self._session = aiohttp.ClientSession()
         else:
             bridge_socket_path = os.environ['P2P_INDUSTRIES_BRIDGE_SOCKET']
             self._conn = grpc.aio.insecure_channel(
@@ -88,6 +102,9 @@ class Connection:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self._conn.close()
+
+        if self._session is not None:
+            await self._session.close()
 
 
 class OpenedConnection:
@@ -113,8 +130,14 @@ class OpenedConnection:
     ```
     """
 
+    _conn: grpc.aio.Channel
+    _uri: Optional[str]
+    _session: Optional[aiohttp.ClientSession]
+
     def __init__(self, conn: Connection):
         self._conn = conn._conn
+        self._uri = conn._uri
+        self._session = conn._session
 
     def get_db_service(self) -> DBService:
         """
@@ -174,7 +197,10 @@ class OpenedConnection:
             A handle to the file transfer service.
         """
 
-        return FileTransferService(self._conn)
+        if self._uri is not None and self._session is not None:
+            return NetworkFileTransferService(self._uri, self._session)
+        else:
+            return GrpcFileTransferService(self._conn)
 
     def get_gossip_sub_service(self) -> GossipSubService:
         """

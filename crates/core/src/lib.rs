@@ -3,7 +3,6 @@
 
 use std::{env, path::PathBuf};
 
-use dirs::runtime_dir;
 use libp2p_identity::PeerId;
 use ulid::Ulid;
 
@@ -35,7 +34,10 @@ pub const DAEMON_NAME: &str = "hyved";
 
 #[must_use]
 pub fn get_runtime_base_path() -> PathBuf {
-    runtime_dir()
+    ["/run", "/var/run"]
+        .into_iter()
+        .map(str::to_string)
+        .find_map(|s| PathBuf::from(s).canonicalize().ok())
         .unwrap_or_else(env::temp_dir)
         .join(DAEMON_NAME)
 }
