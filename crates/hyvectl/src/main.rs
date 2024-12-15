@@ -17,6 +17,7 @@ impl CommandFamily for Families {
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {
         match self {
             Families::KV(cmd) => cmd.run(connection).await,
+            Families::PubSub(cmd) => cmd.run(connection).await,
         }
     }
 }
@@ -25,7 +26,12 @@ impl CommandFamily for Families {
 async fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
 
+    let socket_path = hyveos_core::get_runtime_base_path()
+        .join("bridge")
+        .join("bridge.sock");
+
     let connection = Connection::builder()
+        .custom_socket(socket_path)
         .connect()
         .await?;
 

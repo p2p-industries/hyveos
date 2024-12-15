@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use crate::families::kv;
+use crate::families::{kv, pubsub};
 
 #[derive(Parser)]
 #[command(name = "hyvectl", about = "Hyvectl")]
@@ -12,4 +12,6 @@ pub struct Cli {
 pub enum Families {
     #[command(subcommand, about = "Key-Value Store")]
     KV(kv::Kv),
+    #[command(subcommand, about = "Publisher Subscriber Service")]
+    PubSub(pubsub::PubSub),
 }

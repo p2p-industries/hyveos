@@ -1,11 +1,13 @@
 use std::io::{Result, Write, ErrorKind};
 use serde::Serialize;
+use hyveos_core::gossipsub::ReceivedMessage;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum OutputField {
     String(String),
     Int(u64),
     List(Vec<OutputField>),
+    GossipMessage(ReceivedMessage),
 }
 
 impl OutputField {
@@ -17,6 +19,16 @@ impl OutputField {
                 let items: Vec<String> = list.iter().map(|item| item.to_string()).collect();
                 format!("[{}]", items.join(", "))
             }
+            OutputField::GossipMessage(m) => {
+                format!(
+                    "{{ propagation_source: {}, source: {:?}, message_id: {}, message: {:?} }}",
+                    m.propagation_source,
+                    m.source,
+                    m.message_id,
+                    m.message
+                )
+            }
+
         }
     }
 }
@@ -34,7 +46,7 @@ impl CommandOutput {
     pub fn new(command: &'static str) -> Self {
         Self {
             command,
-            success: false,
+            success: true,
             fields: Vec::new(),
             human_readable_template: None,
         }
@@ -56,14 +68,7 @@ impl CommandOutput {
     }
 
     fn safe_write_line(&self, output_stream: &mut dyn Write, line: &str) -> Result<()> {
-        if let Err(e) = writeln!(output_stream, "{}", line) {
-            if e.kind() == ErrorKind::BrokenPipe {
-                return Ok(());
-            } else {
-                return Err(e);
-            }
-        }
-        Ok(())
+        writeln!(output_stream, "{}", line)
     }
 
     pub fn write_impl(&self, output_stream: &mut dyn Write) -> Result<()> {

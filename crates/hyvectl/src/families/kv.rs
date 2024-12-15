@@ -15,7 +15,7 @@ impl CommandFamily for Kv {
             Kv::Put { key, value, topic } => {
                 let topic = topic.unwrap_or_default();
                 stream::once(async move {
-                    dht.put_record(key.clone(), value.clone(), topic.clone()).await?;
+                    dht.put_record(topic.clone(), key.clone(), value.clone()).await?;
                     Ok(CommandOutput::new("KV Put")
                         .add_field("key", OutputField::String(key))
                         .add_field("value", OutputField::String(value))
@@ -27,7 +27,7 @@ impl CommandFamily for Kv {
             Kv::Get { key, topic } => {
                 let topic = topic.unwrap_or_default();
                 stream::once(async move {
-                    let result = dht.get_record(key.clone(), topic.clone()).await?;
+                    let result = dht.get_record(topic.clone(), key.clone()).await?;
                     Ok(match result {
                         Some(res) => CommandOutput::new("KV Get")
                             .add_field("key", OutputField::String(key))
@@ -44,7 +44,7 @@ impl CommandFamily for Kv {
             Kv::Provide { key, topic } => {
                 let topic = topic.unwrap_or_default();
                 stream::once(async move {
-                    dht.provide(key.clone(), topic.clone()).await?;
+                    dht.provide(topic.clone(), key.clone()).await?;
                     Ok(CommandOutput::new("KV Provide")
                         .add_field("key", OutputField::String(key))
                         .add_field("topic", OutputField::String(topic))
@@ -54,7 +54,7 @@ impl CommandFamily for Kv {
             },
             Kv::GetProviders { key, topic } => {
                 let topic = topic.unwrap_or_default();
-                let providers_future = dht.get_providers(key.clone(), topic.clone());
+                let providers_future = dht.get_providers(topic.clone(), key.clone());
                 let providers_stream = match providers_future.await {
                     Ok(s) => s,
                     Err(e) => {
