@@ -25,7 +25,7 @@ use tokio::{fs::File, io::BufWriter};
 use tokio_util::io::{ReaderStream, StreamReader};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{TonicResult, CONTAINER_SHARED_DIR};
+use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
 
 pub struct FileTransferServer {
     client: Client,
@@ -43,6 +43,8 @@ impl FileTransferServer {
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl FileTransfer for FileTransferServer {
+    type GetFileWithProgressStream = ServerStream<grpc::DownloadEvent>;
+
     async fn publish_file(&self, request: TonicRequest<grpc::FilePath>) -> TonicResult<grpc::Cid> {
         let file_path = request.into_inner();
 
@@ -92,6 +94,17 @@ impl FileTransfer for FileTransferServer {
         let container_file_path = PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string);
 
         Ok(TonicResponse::new(container_file_path.try_into()?))
+    }
+
+    async fn get_file_with_progress(
+        &self,
+        request: TonicRequest<grpc::Cid>,
+    ) -> TonicResult<Self::GetFileWithProgressStream> {
+        let cid = request.into_inner();
+
+        tracing::debug!(request=?cid, "Received get_file_with_progress request");
+
+        todo!()
     }
 }
 

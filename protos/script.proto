@@ -151,6 +151,16 @@ message CID {
   required ID id = 2;
 }
 
+// A download event
+//
+// The progress field is a percentage of the download progress
+message DownloadEvent {
+  oneof event {
+    uint64 progress = 1;
+    FilePath ready = 2;
+  }
+}
+
 // A mesh topology event
 message MeshTopologyEvent {
   required Peer peer = 1;
@@ -286,6 +296,10 @@ service FileTransfer {
 
   // Request a file with a cid from the runtime
   rpc GetFile(CID) returns (FilePath) {}
+
+  // Request a file with a cid from the runtime and get notified about the
+  // download progress
+  rpc GetFileWithProgress(CID) returns (stream DownloadEvent) {}
 }
 
 service Debug {
