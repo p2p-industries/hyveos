@@ -240,18 +240,27 @@ macro_rules! build_tonic {
         $gossipsub:ident,
         $req_resp:ident,
         $scripting:ident,
-        $debug:ident
+        $debug:ident,
+        $transform:expr
     ) => {{
         let tmp = $tonic
-            .add_service(grpc::db_server::DbServer::new($db))
-            .add_service(grpc::dht_server::DhtServer::new($dht))
-            .add_service(grpc::discovery_server::DiscoveryServer::new($discovery))
-            .add_service(grpc::gossip_sub_server::GossipSubServer::new($gossipsub))
-            .add_service(grpc::req_resp_server::ReqRespServer::new($req_resp))
-            .add_service(grpc::scripting_server::ScriptingServer::new($scripting));
+            .add_service($transform(grpc::db_server::DbServer::new($db)))
+            .add_service($transform(grpc::dht_server::DhtServer::new($dht)))
+            .add_service($transform(grpc::discovery_server::DiscoveryServer::new(
+                $discovery,
+            )))
+            .add_service($transform(grpc::gossip_sub_server::GossipSubServer::new(
+                $gossipsub,
+            )))
+            .add_service($transform(grpc::req_resp_server::ReqRespServer::new(
+                $req_resp,
+            )))
+            .add_service($transform(grpc::scripting_server::ScriptingServer::new(
+                $scripting,
+            )));
 
         #[cfg(feature = "batman")]
-        let tmp = tmp.add_service(grpc::debug_server::DebugServer::new($debug));
+        let tmp = tmp.add_service($transform(grpc::debug_server::DebugServer::new($debug)));
 
         tmp
     }};
@@ -283,7 +292,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
                     gossipsub,
                     req_resp,
                     scripting,
-                    debug
+                    debug,
+                    std::convert::identity
                 )
                 .add_service(grpc::file_transfer_server::FileTransferServer::new(
                     file_transfer,
@@ -321,7 +331,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
                     gossipsub,
                     req_resp,
                     scripting,
-                    debug
+                    debug,
+                    tonic_web::enable
                 );
 
                 let router = tonic_routes.into_axum_router();
