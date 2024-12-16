@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+IndentWidth: 4
+---
+Language: Proto
+IndentWidth: 2
+AllowShortEnumsOnASingleLine: false

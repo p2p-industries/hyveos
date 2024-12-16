@@ -4,7 +4,6 @@ syntax = "proto2";
 
 package script;
 
-
 // ----- MESSAGES -----
 
 message Empty {}
@@ -226,14 +225,14 @@ message StopScriptRequest {
   optional Peer peer = 2;
 }
 
-
 // ----- SERVICES -----
 
 service ReqResp {
   // Send a request with an optional topic to a peer and wait for a response
   rpc Send(SendRequest) returns (Response) {}
 
-  // Receive requests from peers that either have no topic or have a topic that has been subscribed to
+  // Receive requests from peers that either have no topic or have a topic that
+  // has been subscribed to
   rpc Recv(OptionalTopicQuery) returns (stream RecvRequest) {}
 
   // Respond to a request received from Recv
@@ -241,7 +240,8 @@ service ReqResp {
 }
 
 service Discovery {
-  // Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
+  // Subscribe to neighbour discovery events to get notified when new neighbour
+  // peers are discovered or lost
   rpc SubscribeEvents(Empty) returns (stream NeighbourEvent) {}
 
   // Get the peer id of the current runtime
@@ -260,7 +260,8 @@ service DHT {
   // Put a record in the DHT
   rpc PutRecord(DHTRecord) returns (Empty) {}
 
-  // Get a record from the DHT. The value of the record will be empty if the key is not found.
+  // Get a record from the DHT. The value of the record will be empty if the key
+  // is not found.
   rpc GetRecord(DHTKey) returns (OptionalData) {}
 
   // Mark the current runtime as a provider for a key in the DHT
@@ -271,7 +272,8 @@ service DHT {
 }
 
 service DB {
-  // Put a record into the key-value store and get the previous value if it exists
+  // Put a record into the key-value store and get the previous value if it
+  // exists
   rpc Put(DBRecord) returns (OptionalData) {}
 
   // Get a record from the key-value store
@@ -287,7 +289,8 @@ service FileTransfer {
 }
 
 service Debug {
-  // Subscribe to mesh topology events to get notified when the mesh topology changes
+  // Subscribe to mesh topology events to get notified when the mesh topology
+  // changes
   rpc SubscribeMeshTopology(Empty) returns (stream MeshTopologyEvent) {}
 
   // Subscribe to message debug events to get notified when messages are sent
