@@ -1,6 +1,6 @@
-import { Client, createClient, type Transport } from "@connectrpc/connect";
-import { ReqResp as Service, TopicQuery } from "./gen/script_pb";
-import { BaseService } from "./core";
+import { Client, type Transport } from "@connectrpc/connect";
+import { ReqResp as Service, TopicQuery, RecvRequest } from "./gen/script_pb";
+import { AbortOnDispose, BaseService } from "./core";
 
 export interface IncomingRequest {
   data: Uint8Array;
@@ -66,6 +66,48 @@ export class IncomingRequestHandle implements IncomingRequest {
   }
 }
 
+export class ReqResSubscription
+  extends AbortOnDispose
+  implements AsyncIterable<IncomingRequestHandle>
+{
+  private stream: AsyncIterable<RecvRequest>;
+  private client: Client<typeof Service>;
+
+  constructor(
+    stream: AsyncIterable<RecvRequest>,
+    client: Client<typeof Service>,
+    abortController: AbortController,
+  ) {
+    super(abortController);
+    this.stream = stream;
+    this.client = client;
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterator<IncomingRequestHandle> {
+    for await (const { msg, seq, peer } of this.stream) {
+      if (!peer) {
+        throw new Error("Missing peer in message");
+      }
+      if (!msg) {
+        throw new Error("Missing message in message");
+      }
+      if (!msg.data) {
+        throw new Error("Missing data in message");
+      }
+      const topic = msg.topic?.topic?.topic || null;
+      const { peerId } = peer;
+      const { data } = msg.data;
+      yield IncomingRequestHandle.__create(
+        this.client,
+        seq,
+        data,
+        peerId,
+        topic,
+      );
+    }
+  }
+}
+
 export class ReqRes extends BaseService<typeof Service> {
   public static __create(transport: Transport): ReqRes {
     return new ReqRes(Service, transport);
@@ -115,38 +157,25 @@ export class ReqRes extends BaseService<typeof Service> {
     }
   }
 
-  public async *recv(filter: string | RegExp) {
-    const stream = this.client.recv({
-      query: ReqRes.filterToQuery(filter),
-    });
-    for await (const { msg, seq, peer } of stream) {
-      if (!peer) {
-        throw new Error("Missing peer in message");
-      }
-      if (!msg) {
-        throw new Error("Missing message in message");
-      }
-      if (!msg.data) {
-        throw new Error("Missing data in message");
-      }
-      const topic = msg.topic?.topic?.topic || null;
-      const { peerId } = peer;
-      const { data } = msg.data;
-      yield IncomingRequestHandle.__create(
-        this.client,
-        seq,
-        data,
-        peerId,
-        topic,
-      );
-    }
+  public recv(filter: string | RegExp) {
+    const abortController = new AbortController();
+    const stream = this.client.recv(
+      {
+        query: ReqRes.filterToQuery(filter),
+      },
+      {
+        signal: abortController.signal,
+      },
+    );
+    return new ReqResSubscription(stream, this.client, abortController);
   }
 
   public async handle(
     filter: string | RegExp,
     handler: (req: IncomingRequest) => Promise<Uint8Array>,
   ) {
-    for await (const req of this.recv(filter)) {
+    using stream = this.recv(filter);
+    for await (const req of stream) {
       handler(req)
         .then(async (data) => {
           await req.respond(data);

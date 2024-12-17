@@ -8,3 +8,18 @@ export class BaseService<Service extends DescService> {
     this.client = createClient(service, transport);
   }
 }
+
+export abstract class AbortOnDispose implements Disposable {
+  private abortController: AbortController;
+  constructor(abortController: AbortController) {
+    this.abortController = abortController;
+  }
+
+  public cancel() {
+    this.abortController.abort();
+  }
+
+  [Symbol.dispose](): void {
+    this.cancel();
+  }
+}

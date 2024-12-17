@@ -1,5 +1,5 @@
 import { Transport } from "@connectrpc/connect";
-import { BaseService } from "./core";
+import { AbortOnDispose, BaseService } from "./core";
 import { GossipSubRecvMessage, GossipSub as Service } from "./gen/script_pb";
 
 export interface IncomingMessage {
@@ -11,25 +11,17 @@ export interface IncomingMessage {
 }
 
 export class GossipsubSubscription
-  implements Disposable, AsyncIterable<IncomingMessage>
+  extends AbortOnDispose
+  implements AsyncIterable<IncomingMessage>, Disposable
 {
   stream: AsyncIterable<GossipSubRecvMessage>;
-  abortController: AbortController;
 
   constructor(
     stream: AsyncIterable<GossipSubRecvMessage>,
     abortController: AbortController,
   ) {
+    super(abortController);
     this.stream = stream;
-    this.abortController = abortController;
-  }
-
-  public cancel(reason?: any) {
-    this.abortController.abort(reason);
-  }
-
-  [Symbol.dispose](): void {
-    this.cancel();
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<IncomingMessage> {
@@ -67,5 +59,24 @@ export class GossipSub extends BaseService<typeof Service> {
       },
     );
     return new GossipsubSubscription(stream, abortController);
+  }
+
+  public async handle(topic: string, callback: (msg: IncomingMessage) => void) {
+    using subscription = this.subscribe(topic);
+    for await (const msg of subscription) {
+      callback(msg);
+    }
+  }
+
+  public async publish(topic: string, data: Uint8Array) {
+    const { id } = await this.client.publish({
+      topic: {
+        topic,
+      },
+      data: {
+        data,
+      },
+    });
+    return id;
   }
 }
