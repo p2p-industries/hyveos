@@ -3,8 +3,9 @@ import { ReqRes } from "./reqresp";
 import { GossipSub } from "./gossipsub";
 import { Discovery } from "./discovery";
 import { DHT } from "./dht";
+import { LocalDb } from "./db";
 
-export { ReqRes, GossipSub, Discovery };
+export { ReqRes, GossipSub, Discovery, DHT, LocalDb };
 
 export interface ITransport {
   transport(): Transport;
@@ -31,5 +32,9 @@ export class Client<T extends ITransport> {
 
   public get dht(): DHT {
     return DHT.__create(this.transport.transport());
+  }
+
+  public get localdb(): LocalDb {
+    return LocalDb.__create(this.transport.transport());
   }
 }

@@ -1,0 +1,16 @@
+{
+	"name": "hyveos-ts-monorepo",
+	"version": "1.0.0",
+	"private": true,
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
+		"lint": "eslint --ext .js,.ts,.tsx .",
+		"lint:fix": "eslint --ext .js,.ts,.tsx . --fix",
+	},
+	"devDependencies": {
+		"prettier": "3.4.2"
+	}
+}
