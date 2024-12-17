@@ -16,7 +16,7 @@ use axum::{
 use const_format::concatcp;
 #[cfg(feature = "network")]
 use futures::Stream;
-use futures::{future, TryStreamExt as _};
+use futures::{future, StreamExt as _, TryStreamExt as _};
 #[cfg(feature = "network")]
 use hyveos_core::{file_transfer::Cid, serde::JsonResult};
 use hyveos_core::{
@@ -149,9 +149,10 @@ impl FileTransfer for FileTransferServer {
                     }
                 }
             })
-            .and_then(|event| future::ready(event.try_into().map_err(Into::into)));
+            .and_then(|event| future::ready(event.try_into().map_err(Into::into)))
+            .boxed();
 
-        Ok(TonicResponse::new(Box::pin(stream)))
+        Ok(TonicResponse::new(stream))
     }
 }
 
