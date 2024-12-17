@@ -1,10 +1,10 @@
 {
-  "include": ["src"],
-  "exclude": ["**/*.test.ts"],
+  "include": ["packages/*/src"],
+  "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "module": "esnext",
     "target": "esnext",
-    "lib": ["esnext"],
+    "lib": ["esnext", "webworker"],
     "declaration": true,
     "strict": true,
     "moduleResolution": "node",

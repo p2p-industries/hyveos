@@ -6,7 +6,29 @@ settings:
 
 importers:
 
-  .:
+  packages/hyveos-node:
+    dependencies:
+      '@connectrpc/connect':
+        specifier: ^2.0.0
+        version: 2.0.0(@bufbuild/protobuf@2.2.3)
+      '@connectrpc/connect-node':
+        specifier: ^2.0.0
+        version: 2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))
+      hyveos-sdk:
+        specifier: workspace:*
+        version: link:../hyveos-sdk
+    devDependencies:
+      tsup:
+        specifier: ^8.3.5
+        version: 8.3.5(postcss@8.4.49)(typescript@5.7.2)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.8
+
+  packages/hyveos-sdk:
     dependencies:
       '@bufbuild/protobuf':
         specifier: ^2.2.3
@@ -14,12 +36,6 @@ importers:
       '@connectrpc/connect':
         specifier: ^2.0.0
         version: 2.0.0(@bufbuild/protobuf@2.2.3)
-      '@connectrpc/connect-node':
-        specifier: ^2.0.0
-        version: 2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))
-      '@connectrpc/connect-web':
-        specifier: ^2.0.0
-        version: 2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))
     devDependencies:
       '@bufbuild/buf':
         specifier: ^1.47.2
@@ -27,6 +43,28 @@ importers:
       '@bufbuild/protoc-gen-es':
         specifier: ^2.2.3
         version: 2.2.3(@bufbuild/protobuf@2.2.3)
+      tsup:
+        specifier: ^8.3.5
+        version: 8.3.5(postcss@8.4.49)(typescript@5.7.2)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.8
+
+  packages/hyveos-web:
+    dependencies:
+      '@connectrpc/connect':
+        specifier: ^2.0.0
+        version: 2.0.0(@bufbuild/protobuf@2.2.3)
+      '@connectrpc/connect-web':
+        specifier: ^2.0.0
+        version: 2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))
+      hyveos-sdk:
+        specifier: workspace:*
+        version: link:../hyveos-sdk
+    devDependencies:
       tsup:
         specifier: ^8.3.5
         version: 8.3.5(postcss@8.4.49)(typescript@5.7.2)
@@ -607,8 +645,8 @@ packages:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
 
-  chokidar@4.0.1:
-    resolution: {integrity: sha512-n8enUVCED/KVRQlab1hr3MVpcVMvxtZjmEa956u+4YijlmQED223XMSYj2tLuKvr4jcCTzNNMpQDUer72MMmzA==}
+  chokidar@4.0.2:
+    resolution: {integrity: sha512-/b57FK+bblSU+dfewfFe0rT1YjVDfOmeLQwCAuC+vwvgLkXboATqqmy+Ipux6JrF6L5joe5CBnFOw+gLWH6yKg==}
     engines: {node: '>= 14.16.0'}
 
   color-convert@2.0.1:
@@ -1402,7 +1440,7 @@ snapshots:
 
   check-error@2.1.1: {}
 
-  chokidar@4.0.1:
+  chokidar@4.0.2:
     dependencies:
       readdirp: 4.0.2
 
@@ -1709,7 +1747,7 @@ snapshots:
     dependencies:
       bundle-require: 5.0.0(esbuild@0.24.0)
       cac: 6.7.14
-      chokidar: 4.0.1
+      chokidar: 4.0.2
       consola: 3.2.3
       debug: 4.4.0
       esbuild: 0.24.0

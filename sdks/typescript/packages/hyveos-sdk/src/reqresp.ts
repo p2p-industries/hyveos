@@ -1,0 +1,159 @@
+import { Client, createClient, type Transport } from "@connectrpc/connect";
+import { ReqResp as Service, TopicQuery } from "./gen/script_pb";
+import { BaseService } from "./core";
+
+export interface IncomingRequest {
+  data: Uint8Array;
+  peerId: string;
+  topic: string | null;
+}
+
+export class IncomingRequestHandle implements IncomingRequest {
+  private client: Client<typeof Service>;
+  private seq: bigint;
+  public data: Uint8Array;
+  public peerId: string;
+  public topic: string | null;
+
+  private constructor(
+    client: Client<typeof Service>,
+    seq: bigint,
+    data: Uint8Array,
+    peerId: string,
+    topic: string | null,
+  ) {
+    this.client = client;
+    this.seq = seq;
+    this.data = data;
+    this.peerId = peerId;
+    this.topic = topic;
+  }
+
+  public static __create(
+    client: Client<typeof Service>,
+    seq: bigint,
+    data: Uint8Array,
+    peerId: string,
+    topic: string | null,
+  ): IncomingRequestHandle {
+    return new IncomingRequestHandle(client, seq, data, peerId, topic);
+  }
+
+  public async error(message: string) {
+    await this.client.respond({
+      seq: this.seq,
+      response: {
+        response: {
+          value: message,
+          case: "error",
+        },
+      },
+    });
+  }
+
+  public async respond(data: Uint8Array) {
+    await this.client.respond({
+      seq: this.seq,
+      response: {
+        response: {
+          value: {
+            data,
+          },
+          case: "data",
+        },
+      },
+    });
+  }
+}
+
+export class ReqRes extends BaseService<typeof Service> {
+  public static __create(transport: Transport): ReqRes {
+    return new ReqRes(Service, transport);
+  }
+
+  public async request(peerId: string, data: Uint8Array) {
+    const { response } = await this.client.send({
+      peer: {
+        peerId,
+      },
+      msg: {
+        data: {
+          data,
+        },
+      },
+    });
+    switch (response.case) {
+      case "data":
+        return response.value.data;
+      case "error":
+        throw new Error(`Response with error: ${response.value}`);
+      default:
+        throw new Error(`Unknown response case: ${response}`);
+    }
+  }
+
+  private static filterToQuery(filter: string | RegExp): TopicQuery {
+    if (typeof filter === "string") {
+      return {
+        query: {
+          case: "topic",
+          value: {
+            topic: filter,
+            $typeName: "script.Topic",
+          },
+        },
+        $typeName: "script.TopicQuery",
+      };
+    } else {
+      return {
+        query: {
+          case: "regex",
+          value: filter.source,
+        },
+        $typeName: "script.TopicQuery",
+      };
+    }
+  }
+
+  public async *recv(filter: string | RegExp) {
+    const stream = this.client.recv({
+      query: ReqRes.filterToQuery(filter),
+    });
+    for await (const { msg, seq, peer } of stream) {
+      if (!peer) {
+        throw new Error("Missing peer in message");
+      }
+      if (!msg) {
+        throw new Error("Missing message in message");
+      }
+      if (!msg.data) {
+        throw new Error("Missing data in message");
+      }
+      const topic = msg.topic?.topic?.topic || null;
+      const { peerId } = peer;
+      const { data } = msg.data;
+      yield IncomingRequestHandle.__create(
+        this.client,
+        seq,
+        data,
+        peerId,
+        topic,
+      );
+    }
+  }
+
+  public async handle(
+    filter: string | RegExp,
+    handler: (req: IncomingRequest) => Promise<Uint8Array>,
+  ) {
+    for await (const req of this.recv(filter)) {
+      handler(req)
+        .then(async (data) => {
+          await req.respond(data);
+        })
+        .catch(async (err) => {
+          await req.error(err.toString());
+        });
+    }
+  }
+}
