@@ -1,9 +1,9 @@
-import { Transport } from "@connectrpc/connect";
-import { ReqRes } from "./reqresp";
-import { GossipSub } from "./gossipsub";
-import { Discovery } from "./discovery";
-import { DHT } from "./dht";
-import { LocalDb } from "./db";
+import { Transport } from '@connectrpc/connect';
+import { ReqRes } from './reqresp';
+import { GossipSub } from './gossipsub';
+import { Discovery } from './discovery';
+import { DHT } from './dht';
+import { LocalDb } from './db';
 
 export { ReqRes, GossipSub, Discovery, DHT, LocalDb };
 

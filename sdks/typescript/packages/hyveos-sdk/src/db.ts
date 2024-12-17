@@ -1,6 +1,6 @@
-import { Transport } from "@connectrpc/connect";
-import { BaseService } from "./core";
-import { DB as Service } from "./gen/script_pb";
+import { Transport } from '@connectrpc/connect';
+import { BaseService } from './core';
+import { DB as Service } from './gen/script_pb';
 
 export class LocalDb extends BaseService<typeof Service> {
   public static __create(transport: Transport) {
@@ -11,8 +11,8 @@ export class LocalDb extends BaseService<typeof Service> {
     const resp = await this.client.put({
       key,
       value: {
-        data,
-      },
+        data
+      }
     });
     return resp.data?.data ?? null;
   }

@@ -1,6 +1,6 @@
-import { Transport } from "@connectrpc/connect";
-import { createGrpcTransport } from "@connectrpc/connect-node";
-import type { ITransport } from "hyveos-sdk";
+import { Transport } from '@connectrpc/connect';
+import { createGrpcTransport } from '@connectrpc/connect-node';
+import type { ITransport } from 'hyveos-sdk';
 
 export class Connection implements ITransport {
   private url: string;
@@ -10,7 +10,7 @@ export class Connection implements ITransport {
 
   transport(): Transport {
     return createGrpcTransport({
-      baseUrl: this.url,
+      baseUrl: this.url
     });
   }
 }

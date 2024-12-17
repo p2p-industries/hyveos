@@ -1,18 +1,18 @@
-import { Transport } from "@connectrpc/connect";
-import { AbortOnDispose, BaseService } from "./core";
-import { NeighbourEvent, Discovery as Service } from "./gen/script_pb";
+import { Transport } from '@connectrpc/connect';
+import { AbortOnDispose, BaseService } from './core';
+import { NeighbourEvent, Discovery as Service } from './gen/script_pb';
 
 export type Event =
   | {
-      case: "init";
+      case: 'init';
       peers: string[];
     }
   | {
-      case: "discovered";
+      case: 'discovered';
       peer: string;
     }
   | {
-      case: "lost";
+      case: 'lost';
       peer: string;
     };
 
@@ -22,10 +22,7 @@ export class DiscoverySubscription
 {
   stream: AsyncIterable<NeighbourEvent>;
 
-  constructor(
-    stream: AsyncIterable<NeighbourEvent>,
-    abotController: AbortController,
-  ) {
+  constructor(stream: AsyncIterable<NeighbourEvent>, abotController: AbortController) {
     super(abotController);
     this.stream = stream;
   }
@@ -33,15 +30,16 @@ export class DiscoverySubscription
   async *[Symbol.asyncIterator](): AsyncIterator<Event> {
     for await (const { event } of this.stream) {
       switch (event.case) {
-        case "init":
+        case 'init': {
           const peers = event.value.peers.map((peer) => peer.peerId);
-          yield { case: "init", peers };
+          yield { case: 'init', peers };
           break;
-        case "discovered":
-          yield { case: "discovered", peer: event.value.peerId };
+        }
+        case 'discovered':
+          yield { case: 'discovered', peer: event.value.peerId };
           break;
-        case "lost":
-          yield { case: "lost", peer: event.value.peerId };
+        case 'lost':
+          yield { case: 'lost', peer: event.value.peerId };
           break;
       }
     }
@@ -63,8 +61,8 @@ export class Discovery extends BaseService<typeof Service> {
     const stream = this.client.subscribeEvents(
       {},
       {
-        signal: abortController.signal,
-      },
+        signal: abortController.signal
+      }
     );
     return new DiscoverySubscription(stream, abortController);
   }

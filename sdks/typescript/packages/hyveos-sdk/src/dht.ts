@@ -1,11 +1,8 @@
-import { Transport } from "@connectrpc/connect";
-import { AbortOnDispose, BaseService } from "./core";
-import { Peer, DHT as Service } from "./gen/script_pb";
+import { Transport } from '@connectrpc/connect';
+import { AbortOnDispose, BaseService } from './core';
+import { Peer, DHT as Service } from './gen/script_pb';
 
-export class ProvidersStream
-  extends AbortOnDispose
-  implements AsyncIterable<string>, Disposable
-{
+export class ProvidersStream extends AbortOnDispose implements AsyncIterable<string>, Disposable {
   stream: AsyncIterable<Peer>;
 
   constructor(stream: AsyncIterable<Peer>, abortController: AbortController) {
@@ -28,17 +25,17 @@ export class DHT extends BaseService<typeof Service> {
   public async putRecord(key: Uint8Array, data: Uint8Array) {
     await this.client.putRecord({
       key: {
-        key,
+        key
       },
       value: {
-        data,
-      },
+        data
+      }
     });
   }
 
   public async getRecord(key: Uint8Array) {
     const { data } = await this.client.getRecord({
-      key,
+      key
     });
     if (!data) {
       return null;
@@ -48,16 +45,13 @@ export class DHT extends BaseService<typeof Service> {
 
   public async provide(key: Uint8Array) {
     await this.client.provide({
-      key,
+      key
     });
   }
 
   public getProviders(key: Uint8Array) {
     const abortController = new AbortController();
-    const stream = this.client.getProviders(
-      { key },
-      { signal: abortController.signal },
-    );
+    const stream = this.client.getProviders({ key }, { signal: abortController.signal });
     return new ProvidersStream(stream, abortController);
   }
 }

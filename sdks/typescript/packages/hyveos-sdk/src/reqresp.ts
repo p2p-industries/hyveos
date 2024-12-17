@@ -1,6 +1,6 @@
-import { Client, type Transport } from "@connectrpc/connect";
-import { ReqResp as Service, TopicQuery, RecvRequest } from "./gen/script_pb";
-import { AbortOnDispose, BaseService } from "./core";
+import { Client, type Transport } from '@connectrpc/connect';
+import { ReqResp as Service, TopicQuery, RecvRequest } from './gen/script_pb';
+import { AbortOnDispose, BaseService } from './core';
 
 export interface IncomingRequest {
   data: Uint8Array;
@@ -20,7 +20,7 @@ export class IncomingRequestHandle implements IncomingRequest {
     seq: bigint,
     data: Uint8Array,
     peerId: string,
-    topic: string | null,
+    topic: string | null
   ) {
     this.client = client;
     this.seq = seq;
@@ -34,7 +34,7 @@ export class IncomingRequestHandle implements IncomingRequest {
     seq: bigint,
     data: Uint8Array,
     peerId: string,
-    topic: string | null,
+    topic: string | null
   ): IncomingRequestHandle {
     return new IncomingRequestHandle(client, seq, data, peerId, topic);
   }
@@ -45,9 +45,9 @@ export class IncomingRequestHandle implements IncomingRequest {
       response: {
         response: {
           value: message,
-          case: "error",
-        },
-      },
+          case: 'error'
+        }
+      }
     });
   }
 
@@ -57,11 +57,11 @@ export class IncomingRequestHandle implements IncomingRequest {
       response: {
         response: {
           value: {
-            data,
+            data
           },
-          case: "data",
-        },
-      },
+          case: 'data'
+        }
+      }
     });
   }
 }
@@ -76,7 +76,7 @@ export class ReqResSubscription
   constructor(
     stream: AsyncIterable<RecvRequest>,
     client: Client<typeof Service>,
-    abortController: AbortController,
+    abortController: AbortController
   ) {
     super(abortController);
     this.stream = stream;
@@ -86,24 +86,18 @@ export class ReqResSubscription
   async *[Symbol.asyncIterator](): AsyncIterator<IncomingRequestHandle> {
     for await (const { msg, seq, peer } of this.stream) {
       if (!peer) {
-        throw new Error("Missing peer in message");
+        throw new Error('Missing peer in message');
       }
       if (!msg) {
-        throw new Error("Missing message in message");
+        throw new Error('Missing message in message');
       }
       if (!msg.data) {
-        throw new Error("Missing data in message");
+        throw new Error('Missing data in message');
       }
       const topic = msg.topic?.topic?.topic || null;
       const { peerId } = peer;
       const { data } = msg.data;
-      yield IncomingRequestHandle.__create(
-        this.client,
-        seq,
-        data,
-        peerId,
-        topic,
-      );
+      yield IncomingRequestHandle.__create(this.client, seq, data, peerId, topic);
     }
   }
 }
@@ -116,18 +110,18 @@ export class ReqRes extends BaseService<typeof Service> {
   public async request(peerId: string, data: Uint8Array) {
     const { response } = await this.client.send({
       peer: {
-        peerId,
+        peerId
       },
       msg: {
         data: {
-          data,
-        },
-      },
+          data
+        }
+      }
     });
     switch (response.case) {
-      case "data":
+      case 'data':
         return response.value.data;
-      case "error":
+      case 'error':
         throw new Error(`Response with error: ${response.value}`);
       default:
         throw new Error(`Unknown response case: ${response}`);
@@ -135,24 +129,24 @@ export class ReqRes extends BaseService<typeof Service> {
   }
 
   private static filterToQuery(filter: string | RegExp): TopicQuery {
-    if (typeof filter === "string") {
+    if (typeof filter === 'string') {
       return {
         query: {
-          case: "topic",
+          case: 'topic',
           value: {
             topic: filter,
-            $typeName: "script.Topic",
-          },
+            $typeName: 'script.Topic'
+          }
         },
-        $typeName: "script.TopicQuery",
+        $typeName: 'script.TopicQuery'
       };
     } else {
       return {
         query: {
-          case: "regex",
-          value: filter.source,
+          case: 'regex',
+          value: filter.source
         },
-        $typeName: "script.TopicQuery",
+        $typeName: 'script.TopicQuery'
       };
     }
   }
@@ -161,18 +155,18 @@ export class ReqRes extends BaseService<typeof Service> {
     const abortController = new AbortController();
     const stream = this.client.recv(
       {
-        query: ReqRes.filterToQuery(filter),
+        query: ReqRes.filterToQuery(filter)
       },
       {
-        signal: abortController.signal,
-      },
+        signal: abortController.signal
+      }
     );
     return new ReqResSubscription(stream, this.client, abortController);
   }
 
   public async handle(
     filter: string | RegExp,
-    handler: (req: IncomingRequest) => Promise<Uint8Array>,
+    handler: (req: IncomingRequest) => Promise<Uint8Array>
   ) {
     using stream = this.recv(filter);
     for await (const req of stream) {

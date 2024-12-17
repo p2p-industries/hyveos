@@ -1,6 +1,6 @@
-import { Transport } from "@connectrpc/connect";
-import { AbortOnDispose, BaseService } from "./core";
-import { GossipSubRecvMessage, GossipSub as Service } from "./gen/script_pb";
+import { Transport } from '@connectrpc/connect';
+import { AbortOnDispose, BaseService } from './core';
+import { GossipSubRecvMessage, GossipSub as Service } from './gen/script_pb';
 
 export interface IncomingMessage {
   topic: string;
@@ -16,28 +16,25 @@ export class GossipsubSubscription
 {
   stream: AsyncIterable<GossipSubRecvMessage>;
 
-  constructor(
-    stream: AsyncIterable<GossipSubRecvMessage>,
-    abortController: AbortController,
-  ) {
+  constructor(stream: AsyncIterable<GossipSubRecvMessage>, abortController: AbortController) {
     super(abortController);
     this.stream = stream;
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<IncomingMessage> {
     for await (const { msg, msgId, propagationSource, source } of this.stream) {
-      if (!msg?.data) throw new Error("missing data");
-      if (!msg.topic?.topic) throw new Error("missing topic");
-      if (!msgId?.id) throw new Error("missing id");
-      if (!propagationSource) throw new Error("missing propagationSource");
-      if (!source) throw new Error("missing source");
+      if (!msg?.data) throw new Error('missing data');
+      if (!msg.topic?.topic) throw new Error('missing topic');
+      if (!msgId?.id) throw new Error('missing id');
+      if (!propagationSource) throw new Error('missing propagationSource');
+      if (!source) throw new Error('missing source');
 
       yield {
         topic: msg.topic.topic,
         msg: msg.data.data,
         msgId: msgId.id,
         propagationSource: propagationSource.peerId,
-        source: source.peerId,
+        source: source.peerId
       };
     }
   }
@@ -52,11 +49,11 @@ export class GossipSub extends BaseService<typeof Service> {
     const abortController = new AbortController();
     const stream = this.client.subscribe(
       {
-        topic,
+        topic
       },
       {
-        signal: abortController.signal,
-      },
+        signal: abortController.signal
+      }
     );
     return new GossipsubSubscription(stream, abortController);
   }
@@ -71,11 +68,11 @@ export class GossipSub extends BaseService<typeof Service> {
   public async publish(topic: string, data: Uint8Array) {
     const { id } = await this.client.publish({
       topic: {
-        topic,
+        topic
       },
       data: {
-        data,
-      },
+        data
+      }
     });
     return id;
   }

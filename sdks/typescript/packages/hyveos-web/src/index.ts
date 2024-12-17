@@ -1,5 +1,5 @@
-import type { ITransport } from "hyveos-sdk";
-import { createGrpcWebTransport } from "@connectrpc/connect-web";
+import type { ITransport } from 'hyveos-sdk';
+import { createGrpcWebTransport } from '@connectrpc/connect-web';
 
 export class Connection implements ITransport {
   private url: string;
@@ -10,7 +10,7 @@ export class Connection implements ITransport {
 
   transport() {
     return createGrpcWebTransport({
-      baseUrl: this.url,
+      baseUrl: this.url
     });
   }
 }
