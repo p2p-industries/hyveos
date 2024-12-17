@@ -1,17 +1,14 @@
-import {
-  ScriptingClient,
-  GossipSubClient,
-  DHTClient,
-  DBClient,
-  DebugClient,
-  DiscoveryClient,
-} from "./gen/ScriptServiceClientPb";
+import { createClient } from "@connectrpc/connect";
+import { ReqResp } from "./gen/script_pb";
+import { createGrpcTransport } from "@connectrpc/connect-node";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-export default {
-  ScriptingClient,
-  GossipSubClient,
-  DHTClient,
-  DBClient,
-  DebugClient,
-  DiscoveryClient,
-};
+export class Connection {
+  constructor(uri: string) {
+    if (typeof window === "undefined") {
+      createGrpcWebTransport({
+        baseUrl: uri,
+      });
+    }
+  }
+}

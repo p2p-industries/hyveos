@@ -6,21 +6,25 @@
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "gen": "protoc -I=../../protos/ script.proto --js_out=import_style=commonjs:src/gen/ --grpc-web_out=import_style=typescript,mode=grpcweb:src/gen/",
+    "gen": "buf generate",
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "protoc-gen-grpc-web": "^1.5.0",
-    "protoc-gen-js": "^3.21.4",
+    "@bufbuild/buf": "^1.47.2",
+    "@bufbuild/protoc-gen-es": "^2.2.3",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
-    "google-protobuf": "^3.21.4",
-    "grpc-web": "^1.5.0"
+    "@bufbuild/protobuf": "^2.2.3",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.0.0",
+    "@connectrpc/connect-web": "^2.0.0"
   }
 }
