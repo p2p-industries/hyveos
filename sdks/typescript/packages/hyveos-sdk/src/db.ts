@@ -1,6 +1,6 @@
-import { Transport } from '@connectrpc/connect';
-import { BaseService } from './core';
-import { DB as Service } from './gen/script_pb';
+import type { Transport } from 'npm:@connectrpc/connect';
+import { BaseService } from './core.ts';
+import { DB as Service } from './gen/script_pb.ts';
 
 export class LocalDb extends BaseService<typeof Service> {
   public static __create(transport: Transport) {

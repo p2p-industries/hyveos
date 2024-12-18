@@ -1,6 +1,6 @@
-import { Transport } from '@connectrpc/connect';
-import { AbortOnDispose, BaseService } from './core';
-import { Peer, DHT as Service } from './gen/script_pb';
+import type { Transport } from 'npm:@connectrpc/connect';
+import { AbortOnDispose, BaseService } from './core.ts';
+import { DHT as Service, type Peer } from './gen/script_pb.ts';
 
 export class ProvidersStream extends AbortOnDispose implements AsyncIterable<string>, Disposable {
   stream: AsyncIterable<Peer>;
@@ -51,7 +51,12 @@ export class DHT extends BaseService<typeof Service> {
 
   public getProviders(key: Uint8Array) {
     const abortController = new AbortController();
-    const stream = this.client.getProviders({ key }, { signal: abortController.signal });
+    const stream = this.client.getProviders(
+      { key },
+      {
+        signal: abortController.signal
+      }
+    );
     return new ProvidersStream(stream, abortController);
   }
 }

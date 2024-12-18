@@ -1,6 +1,6 @@
-import { Client, type Transport } from '@connectrpc/connect';
-import { ReqResp as Service, TopicQuery, RecvRequest } from './gen/script_pb';
-import { AbortOnDispose, BaseService } from './core';
+import { Client, type Transport } from 'npm:@connectrpc/connect';
+import { RecvRequest, ReqResp as Service, TopicQuery } from './gen/script_pb.ts';
+import { AbortOnDispose, BaseService } from './core.ts';
 
 export interface IncomingRequest {
   data: Uint8Array;

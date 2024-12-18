@@ -1,6 +1,6 @@
-import { Transport } from '@connectrpc/connect';
-import { AbortOnDispose, BaseService } from './core';
-import { NeighbourEvent, Discovery as Service } from './gen/script_pb';
+import type { Transport } from 'npm:@connectrpc/connect';
+import { AbortOnDispose, BaseService } from './core.ts';
+import { Discovery as Service, type NeighbourEvent } from './gen/script_pb.ts';
 
 export type Event =
   | {

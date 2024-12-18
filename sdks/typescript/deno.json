@@ -1,0 +1,4 @@
+{
+	"workspace": ["./packages/hyveos-sdk", "./packages/hyveos-web", "./packages/hyveos-node"],
+	"nodeModulesDir": "auto"
+}

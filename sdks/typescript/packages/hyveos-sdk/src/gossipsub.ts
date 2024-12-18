@@ -1,6 +1,6 @@
-import { Transport } from '@connectrpc/connect';
-import { AbortOnDispose, BaseService } from './core';
-import { GossipSubRecvMessage, GossipSub as Service } from './gen/script_pb';
+import type { Transport } from 'npm:@connectrpc/connect';
+import { AbortOnDispose, BaseService } from './core.ts';
+import { GossipSub as Service, type GossipSubRecvMessage } from './gen/script_pb.ts';
 
 export interface IncomingMessage {
   topic: string;

@@ -1,11 +1,11 @@
-import { Transport } from '@connectrpc/connect';
-import { ReqRes } from './reqresp';
-import { GossipSub } from './gossipsub';
-import { Discovery } from './discovery';
-import { DHT } from './dht';
-import { LocalDb } from './db';
+import type { Transport } from 'npm:@connectrpc/connect';
+import { ReqRes } from './reqresp.ts';
+import { GossipSub } from './gossipsub.ts';
+import { Discovery } from './discovery.ts';
+import { DHT } from './dht.ts';
+import { LocalDb } from './db.ts';
 
-export { ReqRes, GossipSub, Discovery, DHT, LocalDb };
+export { DHT, Discovery, GossipSub, LocalDb, ReqRes };
 
 export interface ITransport {
   transport(): Transport;

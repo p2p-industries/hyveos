@@ -1,5 +1,5 @@
-import { Transport } from '@connectrpc/connect';
-import { createGrpcTransport } from '@connectrpc/connect-node';
+import type { Transport } from 'npm:@connectrpc/connect';
+import { createGrpcTransport } from 'npm:@connectrpc/connect-node';
 import type { ITransport } from 'hyveos-sdk';
 
 export class Connection implements ITransport {

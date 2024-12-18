@@ -1,5 +1,5 @@
-import { DescService } from '@bufbuild/protobuf';
-import { Client, createClient, Transport } from '@connectrpc/connect';
+import type { DescService } from 'npm:@bufbuild/protobuf';
+import { type Client, createClient, type Transport } from 'npm:@connectrpc/connect';
 
 export class BaseService<Service extends DescService> {
   protected client: Client<Service>;
