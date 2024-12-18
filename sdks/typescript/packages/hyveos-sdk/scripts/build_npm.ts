@@ -1,16 +1,16 @@
-import { build, emptyDir } from '@deno/dnt'
+import { build, emptyDir } from '@deno/dnt';
 
-await emptyDir('./npm')
+await emptyDir('./npm');
 
 await build({
-  entryPoints: ['./src/index.ts'],
+  entryPoints: ['./mod.ts'],
   outDir: './npm',
   shims: {
-    deno: true,
+    deno: true
   },
   package: {
     name: 'hyveos-sdk',
     version: Deno.args[0],
-    description: 'HyveOS SDK for the browser and Node.js',
-  },
-})
+    description: 'HyveOS SDK for the browser and Node.js'
+  }
+});
