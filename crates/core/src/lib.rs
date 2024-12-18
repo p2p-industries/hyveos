@@ -34,12 +34,16 @@ pub const DAEMON_NAME: &str = "hyved";
 
 #[must_use]
 pub fn get_runtime_base_path() -> PathBuf {
-    ["/run", "/var/run"]
+    #[cfg(target_os = "linux")]
+    let base = ["/run", "/var/run"]
         .into_iter()
         .map(str::to_string)
         .find_map(|s| PathBuf::from(s).canonicalize().ok())
-        .unwrap_or_else(env::temp_dir)
-        .join(DAEMON_NAME)
+        .unwrap_or_else(env::temp_dir);
+    #[cfg(not(target_os = "linux"))]
+    let base = env::temp_dir();
+
+    base.join(DAEMON_NAME)
 }
 
 impl From<Vec<u8>> for grpc::Data {
