@@ -5,4 +5,4 @@ plugins:
   - local: protoc-gen-es
     opt: target=ts
     include_imports: true
-    out: src/gen
+    out: gen

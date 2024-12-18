@@ -1,13 +1,13 @@
 {
   "workspace": [
-    "./packages/hyveos-sdk",
-    "./packages/hyveos-web",
-    "./packages/hyveos-node"
+    "./hyveos-sdk",
+    "./hyveos-web",
+    "./hyveos-node"
   ],
   "nodeModulesDir": "auto",
   "fmt": {
     "semiColons": false,
     "singleQuote": true,
-    "exclude": ["./packages/hyveos-sdk/src/gen/script_pb.ts"]
+    "exclude": ["./hyveos-sdk/src/gen/script_pb.ts"]
   }
 }
