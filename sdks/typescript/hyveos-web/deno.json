@@ -1,5 +1,8 @@
 {
   "name": "hyveos-web",
   "version": "1.0.0",
-  "exports": "./mod.ts"
+  "exports": "./mod.ts",
+  "imports": {
+    "@deno/dnt": "jsr:@deno/dnt@^0.41.3"
+  }
 }
