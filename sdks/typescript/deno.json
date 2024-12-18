@@ -2,7 +2,7 @@
   "workspace": [
     "./hyveos-sdk",
     "./hyveos-web",
-    "./hyveos-node"
+    "./hyveos-server"
   ],
   "nodeModulesDir": "auto",
   "fmt": {
