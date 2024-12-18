@@ -8,7 +8,10 @@ use std::{net::SocketAddr, str::FromStr};
 use clap::Parser;
 use dirs::data_local_dir;
 use hyveos_core::DAEMON_NAME;
-use hyveos_ifaddr::{if_name_to_index, IfAddr};
+#[cfg(feature = "batman")]
+use hyveos_ifaddr::if_name_to_index;
+#[cfg(feature = "network")]
+use hyveos_ifaddr::IfAddr;
 use hyveos_runtime::{CliConnectionType, LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
 use libp2p::{
     identity::Keypair,
@@ -29,6 +32,7 @@ fn default_store_directory() -> PathBuf {
 struct Config {
     #[serde(default)]
     interfaces: Option<Vec<String>>,
+    #[cfg(feature = "batman")]
     #[serde(default)]
     batman_interface: Option<String>,
     #[serde(default)]
@@ -113,6 +117,7 @@ pub struct Opts {
     /// Set the link-local address of the batman interface. Conflicts with `--batman-interface`.
     ///
     /// Example: `fe80::1%bat0`
+    #[cfg(feature = "batman")]
     #[clap(
         long = "batman-address",
         value_name = "IF_ADDRESS",
@@ -122,6 +127,7 @@ pub struct Opts {
     /// Set the name of the batman interface. Conflicts with `--batman-address`.
     ///
     /// Example: `bat0`
+    #[cfg(feature = "batman")]
     #[clap(long, value_name = "INTERFACE", conflicts_with("batman_addr"))]
     pub batman_interface: Option<String>,
     /// Set the directory to store runtime data in (defaults to $XDG_DATA_HOME/hyved or $HOME/.local/share/hyved).
@@ -150,7 +156,8 @@ pub struct Opts {
     pub log_level: Option<LogFilter>,
     /// Set the path to the CLI socket file, used by `hyvectl` (defaults to $XDG_RUNTIME_DIR/hyved/bridge/bridge.sock).
     /// Conflicts with `--cli-socket-addr`.
-    #[clap(long, value_name = "FILE", conflicts_with("cli_socket_addr"))]
+    #[cfg_attr(feature = "network", clap(conflicts_with("cli_socket_addr")))]
+    #[clap(long, value_name = "FILE")]
     cli_socket_path: Option<PathBuf>,
     /// Set the network address of the CLI socket. Enables `hyvectl` connections over the network. Conflicts with `--cli-socket-path`.
     #[cfg(feature = "network")]
@@ -270,7 +277,9 @@ async fn main() -> anyhow::Result<()> {
         config_file,
         listen_addrs,
         interfaces,
+        #[cfg(feature = "batman")]
         batman_addr,
+        #[cfg(feature = "batman")]
         batman_interface,
         store_directory,
         db_file,
@@ -287,7 +296,8 @@ async fn main() -> anyhow::Result<()> {
 
     let Config {
         interfaces: config_interfaces,
-        batman_interface: config_batman_interface,
+        #[cfg(feature = "batman")]
+            batman_interface: config_batman_interface,
         store_directory: config_store_directory,
         db_file: config_db_file,
         key_file: config_key_file,
@@ -315,6 +325,7 @@ async fn main() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
     println!("Listen addresses: {listen_addrs:?}");
 
+    #[cfg(feature = "batman")]
     let batman_addr = if let Some(addr) = batman_addr.map(|if_addr| if_addr.to_multiaddr(true)) {
         listen_addrs
             .iter()
@@ -406,6 +417,7 @@ async fn main() -> anyhow::Result<()> {
 
     let args = RuntimeArgs {
         listen_addrs,
+        #[cfg(feature = "batman")]
         batman_addr,
         store_directory,
         db_file,
