@@ -25,8 +25,10 @@
     "npm:@bufbuild/protobuf@*": "2.2.3",
     "npm:@bufbuild/protobuf@^2.2.3": "2.2.3",
     "npm:@bufbuild/protoc-gen-es@^2.2.3": "2.2.3_@bufbuild+protobuf@2.2.3",
+    "npm:@connectrpc/connect-node@*": "2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3",
     "npm:@connectrpc/connect-web@*": "2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3",
-    "npm:@connectrpc/connect@*": "2.0.0_@bufbuild+protobuf@2.2.3"
+    "npm:@connectrpc/connect@*": "2.0.0_@bufbuild+protobuf@2.2.3",
+    "npm:@types/node@*": "22.5.4"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {
@@ -149,6 +151,13 @@
         "typescript"
       ]
     },
+    "@connectrpc/connect-node@2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3": {
+      "integrity": "sha512-DoI5T+SUvlS/8QBsxt2iDoUg15dSxqhckegrgZpWOtADtmGohBIVbx1UjtWmjLBrP4RdD0FeBw+XyRUSbpKnJQ==",
+      "dependencies": [
+        "@bufbuild/protobuf",
+        "@connectrpc/connect"
+      ]
+    },
     "@connectrpc/connect-web@2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3": {
       "integrity": "sha512-oeCxqHXLXlWJdmcvp9L3scgAuK+FjNSn+twyhUxc8yvDbTumnt5Io+LnBzSYxAdUdYqTw5yHfTSCJ4hj0QID0g==",
       "dependencies": [
@@ -160,6 +169,12 @@
       "integrity": "sha512-Usm8jgaaULANJU8vVnhWssSA6nrZ4DJEAbkNtXSoZay2YD5fDyMukCxu8NEhCvFzfHvrhxhcjttvgpyhOM7xAQ==",
       "dependencies": [
         "@bufbuild/protobuf"
+      ]
+    },
+    "@types/node@22.5.4": {
+      "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
+      "dependencies": [
+        "undici-types"
       ]
     },
     "@typescript/vfs@1.6.0_typescript@5.4.5": {
@@ -180,6 +195,9 @@
     },
     "typescript@5.4.5": {
       "integrity": "sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ=="
+    },
+    "undici-types@6.19.8": {
+      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     }
   },
   "workspace": {

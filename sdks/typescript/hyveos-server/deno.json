@@ -1,7 +1,7 @@
 {
-  "name": "hyveos-node",
+  "name": "hyveos-server",
   "version": "1.0.0",
-  "exports": "./src/index.ts",
+  "exports": "./mod.ts",
   "imports": {
     "@deno/dnt": "jsr:@deno/dnt@^0.41.3"
   }
