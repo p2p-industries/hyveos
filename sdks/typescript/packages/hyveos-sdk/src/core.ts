@@ -1,25 +1,29 @@
-import type { DescService } from 'npm:@bufbuild/protobuf';
-import { type Client, createClient, type Transport } from 'npm:@connectrpc/connect';
+import type { DescService } from 'npm:@bufbuild/protobuf'
+import {
+  type Client,
+  createClient,
+  type Transport,
+} from 'npm:@connectrpc/connect'
 
 export class BaseService<Service extends DescService> {
-  protected client: Client<Service>;
+  protected client: Client<Service>
 
   constructor(service: Service, transport: Transport) {
-    this.client = createClient(service, transport);
+    this.client = createClient(service, transport)
   }
 }
 
 export abstract class AbortOnDispose implements Disposable {
-  private abortController: AbortController;
+  private abortController: AbortController
   constructor(abortController: AbortController) {
-    this.abortController = abortController;
+    this.abortController = abortController
   }
 
   public cancel() {
-    this.abortController.abort();
+    this.abortController.abort()
   }
 
   [Symbol.dispose](): void {
-    this.cancel();
+    this.cancel()
   }
 }
