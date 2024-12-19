@@ -1,38 +1,44 @@
+use std::fmt;
 use std::io::{Result, Write, ErrorKind};
 use serde::Serialize;
+use hyveos_core::debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType};
+use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::gossipsub::ReceivedMessage;
+use hyveos_core::req_resp::Response;
+use hyveos_sdk::services::req_resp::InboundRequest;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum OutputField {
     String(String),
-    Int(u64),
-    List(Vec<OutputField>),
     GossipMessage(ReceivedMessage),
+    MeshTopologyEvent(MeshTopologyEvent),
+    ServiceDebugEvent(MessageDebugEvent),
+    Request(InboundRequest<Vec<u8>>),
+    Response(Response)
 }
 
-impl OutputField {
-    pub fn to_string(&self) -> String {
+impl fmt::Display for OutputField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OutputField::String(s) => s.clone(),
-            OutputField::Int(i) => i.to_string(),
-            OutputField::List(list) => {
-                let items: Vec<String> = list.iter().map(|item| item.to_string()).collect();
-                format!("[{}]", items.join(", "))
-            }
+            OutputField::String(s) => write!(f, "{}", s),
             OutputField::GossipMessage(m) => {
-                format!(
+                write!(
+                    f,
                     "{{ propagation_source: {}, source: {:?}, message_id: {}, message: {:?} }}",
-                    m.propagation_source,
-                    m.source,
-                    m.message_id,
-                    m.message
+                    m.propagation_source, m.source, m.message_id, m.message
                 )
             }
-
+            OutputField::MeshTopologyEvent(m) => match &m.event {
+                NeighbourEvent::Init(peers) => write!(f, "Init with peers: {:?}", peers),
+                NeighbourEvent::Discovered(peer) => write!(f, "Discovered peer: {:?}", peer),
+                NeighbourEvent::Lost(peers) => write!(f, "Lost peers: {:?}", peers),
+            },
+            OutputField::ServiceDebugEvent(m) => write!(f, "ServiceDebugEvent: {:?}", m),
+            OutputField::Request(r) => write!(f, "InboundRequest: {:?}", r),
+            OutputField::Response(r) => write!(f, "InboundResponse: {:?}", r),
         }
     }
 }
-
 #[derive(Clone, Debug, Serialize)]
 pub struct CommandOutput {
     pub command: &'static str,

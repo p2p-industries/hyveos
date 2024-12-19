@@ -1,6 +1,7 @@
 use hyveos_sdk::Connection;
 use std::error::Error;
-use crate::util::CommandFamily;
+use colored::Colorize;
+use crate::util::{resolve_stream, CommandFamily};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt, TryStreamExt, stream};
 use futures::stream::BoxStream;
@@ -54,13 +55,8 @@ impl CommandFamily for Kv {
             },
             Kv::GetProviders { key, topic } => {
                 let topic = topic.unwrap_or_default();
-                let providers_future = dht.get_providers(topic.clone(), key.clone());
-                let providers_stream = match providers_future.await {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return stream::once(async move { Err(e.into()) }).boxed();
-                    }
-                };
+                let providers_stream = resolve_stream(
+                    dht.get_providers(topic.clone(), key.clone()).await).await;
 
                 providers_stream
                     .map_ok(move |provider_id| {

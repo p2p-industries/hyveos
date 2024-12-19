@@ -1,6 +1,7 @@
 mod util;
 mod families;
 mod output;
+mod color;
 
 use hyveos_sdk::{Connection};
 use std::error::Error;
@@ -18,6 +19,9 @@ impl CommandFamily for Families {
         match self {
             Families::KV(cmd) => cmd.run(connection).await,
             Families::PubSub(cmd) => cmd.run(connection).await,
+            Families::Inspect(cmd) => cmd.run(connection).await,
+            Families::ReqRes(cmd) => cmd.run(connection).await,
+            Families::Whoami => {todo!()}
         }
     }
 }

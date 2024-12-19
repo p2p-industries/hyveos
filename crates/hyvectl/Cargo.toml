@@ -13,3 +13,4 @@ hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+colored = "2.2.0"
