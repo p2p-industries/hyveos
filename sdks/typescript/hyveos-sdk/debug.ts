@@ -1,12 +1,11 @@
 import type { Transport } from 'npm:@connectrpc/connect'
-import { AbortOnDispose, BaseService, createJsonResult } from './core.ts'
+import { AbortOnDispose, BaseService } from './core.ts'
 import type { Event as NeighbourEvent } from './discovery.ts'
 import {
   Debug as Service,
   type MeshTopologyEvent as MeshTopEvent,
   type MessageDebugEvent as MessageDbgEvent,
 } from './gen/script_pb.ts'
-import { blob, bytes, InferInput, object } from 'jsr:@valibot/valibot'
 
 export interface MeshTopologyEvent {
   peer: string

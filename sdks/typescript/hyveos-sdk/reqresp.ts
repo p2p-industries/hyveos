@@ -1,5 +1,9 @@
-import { Client, type Transport } from 'npm:@connectrpc/connect'
-import { RecvRequest, ReqResp as Service, TopicQuery } from './gen/script_pb.ts'
+import type { Client, Transport } from 'npm:@connectrpc/connect'
+import {
+  type RecvRequest,
+  ReqResp as Service,
+  type TopicQuery,
+} from './gen/script_pb.ts'
 import { AbortOnDispose, BaseService } from './core.ts'
 
 export interface IncomingRequest {
@@ -111,7 +115,7 @@ export class ReqRes extends BaseService<typeof Service> {
     return new ReqRes(Service, transport)
   }
 
-  public async request(peerId: string, data: Uint8Array) {
+  public async request(peerId: string, data: Uint8Array): Promise<Uint8Array> {
     const { response } = await this.client.send({
       peer: {
         peerId,
@@ -155,7 +159,7 @@ export class ReqRes extends BaseService<typeof Service> {
     }
   }
 
-  public recv(filter: string | RegExp) {
+  public recv(filter: string | RegExp): ReqResSubscription {
     const abortController = new AbortController()
     const stream = this.client.recv(
       {

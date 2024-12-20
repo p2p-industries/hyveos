@@ -12,7 +12,7 @@ export class Scripting extends BaseService<typeof Service> {
     return new Scripting(Service, transport)
   }
 
-  public async getOwnId() {
+  public async getOwnId(): Promise<string> {
     const { ulid } = await this.client.getOwnId({})
     return ulid
   }
@@ -42,7 +42,7 @@ export class Scripting extends BaseService<typeof Service> {
     local: boolean,
     persistent: boolean,
     peer: string,
-  ) {
+  ): Promise<string> {
     return this.deployScriptInner(script, local, persistent, peer)
   }
 
@@ -50,7 +50,7 @@ export class Scripting extends BaseService<typeof Service> {
     script: DockerScript,
     local: boolean,
     persistent: boolean,
-  ) {
+  ): Promise<string> {
     return this.deployScriptInner(script, local, persistent)
   }
 
@@ -63,11 +63,17 @@ export class Scripting extends BaseService<typeof Service> {
     })
   }
 
-  public listRunningScripts(peer: string) {
+  public listRunningScripts(
+    peer: string,
+  ): Promise<
+    { image: string | undefined; name: string; id: string | undefined }[]
+  > {
     return this.listRunningScriptsInner(peer)
   }
 
-  public listRunningScriptsLocal() {
+  public listRunningScriptsLocal(): Promise<
+    { image: string | undefined; name: string; id: string | undefined }[]
+  > {
     return this.listRunningScriptsInner()
   }
 
@@ -78,11 +84,11 @@ export class Scripting extends BaseService<typeof Service> {
     })
   }
 
-  public stopScript(id: string, peer: string) {
+  public stopScript(id: string, peer: string): Promise<void> {
     return this.stopScriptInner(id, peer)
   }
 
-  public stopScriptLocal(id: string) {
+  public stopScriptLocal(id: string): Promise<void> {
     return this.stopScriptInner(id)
   }
 }

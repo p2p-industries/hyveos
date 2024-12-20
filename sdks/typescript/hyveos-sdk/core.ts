@@ -4,8 +4,8 @@ import {
   createClient,
   type Transport,
 } from 'npm:@connectrpc/connect'
-import { literal, object, string, union } from 'jsr:@valibot/valibot'
-import type { BaseIssue, BaseSchema } from 'jsr:@valibot/valibot'
+import { literal, object, string, union } from 'npm:valibot'
+import type { BaseIssue, BaseSchema } from 'npm:valibot'
 
 export function createJsonResult<
   TInput,

@@ -3,11 +3,11 @@ import { BaseService } from './core.ts'
 import { DB as Service } from './gen/script_pb.ts'
 
 export class LocalDb extends BaseService<typeof Service> {
-  public static __create(transport: Transport) {
+  public static __create(transport: Transport): LocalDb {
     return new LocalDb(Service, transport)
   }
 
-  public async put(key: string, data: Uint8Array) {
+  public async put(key: string, data: Uint8Array): Promise<Uint8Array | null> {
     const resp = await this.client.put({
       key,
       value: {
@@ -17,7 +17,7 @@ export class LocalDb extends BaseService<typeof Service> {
     return resp.data?.data ?? null
   }
 
-  public async get(key: string) {
+  public async get(key: string): Promise<Uint8Array | null> {
     const resp = await this.client.get({ key })
     return resp.data?.data ?? null
   }

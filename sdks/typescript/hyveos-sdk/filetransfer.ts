@@ -11,7 +11,7 @@ import {
   pipe,
   string,
   ulid as ulidParse,
-} from 'jsr:@valibot/valibot'
+} from 'npm:valibot'
 
 const uploadResponse = createJsonResult(object({
   id: pipe(string(), ulidParse()),

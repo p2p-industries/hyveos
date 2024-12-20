@@ -62,14 +62,17 @@ export class GossipSub extends BaseService<typeof Service> {
     return new GossipsubSubscription(stream, abortController)
   }
 
-  public async handle(topic: string, callback: (msg: IncomingMessage) => void) {
+  public async handle(
+    topic: string,
+    callback: (msg: IncomingMessage) => void,
+  ): Promise<void> {
     using subscription = this.subscribe(topic)
     for await (const msg of subscription) {
       callback(msg)
     }
   }
 
-  public async publish(topic: string, data: Uint8Array) {
+  public async publish(topic: string, data: Uint8Array): Promise<Uint8Array> {
     const { id } = await this.client.publish({
       topic: {
         topic,

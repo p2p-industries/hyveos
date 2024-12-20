@@ -8,6 +8,9 @@
   "fmt": {
     "semiColons": false,
     "singleQuote": true,
-    "exclude": ["./hyveos-sdk/src/gen/script_pb.ts"]
+    "exclude": ["./hyveos-sdk/gen/script_pb.ts"]
+  },
+  "lint": {
+    "exclude": ["./hyveos-sdk/gen/script_pb.ts"]
   }
 }

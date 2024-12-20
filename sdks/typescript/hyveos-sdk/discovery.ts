@@ -57,7 +57,7 @@ export class Discovery extends BaseService<typeof Service> {
     return peerId
   }
 
-  public subscribe() {
+  public subscribe(): DiscoverySubscription {
     const abortController = new AbortController()
     const stream = this.client.subscribeEvents(
       {},
