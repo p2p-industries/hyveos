@@ -4,6 +4,26 @@ import {
   createClient,
   type Transport,
 } from 'npm:@connectrpc/connect'
+import { literal, object, string, union } from 'jsr:@valibot/valibot'
+import type { BaseIssue, BaseSchema } from 'jsr:@valibot/valibot'
+
+export function createJsonResult<
+  TInput,
+  TOutput,
+  TIssue extends BaseIssue<TInput>,
+  T extends BaseSchema<TInput, TOutput, TIssue>,
+>(data: T) {
+  return union([
+    object({
+      success: literal(true),
+      data,
+    }),
+    object({
+      success: literal(false),
+      error: string(),
+    }),
+  ])
+}
 
 export class BaseService<Service extends DescService> {
   protected client: Client<Service>

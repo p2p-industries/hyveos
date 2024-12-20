@@ -2,7 +2,7 @@ import type { ITransport } from 'hyveos-sdk'
 import { createGrpcWebTransport } from 'npm:@connectrpc/connect-web'
 
 export class Connection implements ITransport {
-  private url: string
+  public url: string
 
   constructor(url: string) {
     this.url = url
@@ -12,5 +12,9 @@ export class Connection implements ITransport {
     return createGrpcWebTransport({
       baseUrl: this.url,
     })
+  }
+
+  isUnix(): boolean {
+    return false
   }
 }

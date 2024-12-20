@@ -4,11 +4,27 @@ import { GossipSub } from './gossipsub.ts'
 import { Discovery } from './discovery.ts'
 import { DHT } from './dht.ts'
 import { LocalDb } from './db.ts'
+import { FileTransfer } from './filetransfer.ts'
+import { Debug } from './debug.ts'
+import { Scripting } from './scripting.ts'
 
-export { DHT, Discovery, GossipSub, LocalDb, ReqRes }
+export {
+  Debug,
+  DHT,
+  Discovery,
+  FileTransfer,
+  GossipSub,
+  LocalDb,
+  ReqRes,
+  Scripting,
+}
 
 export interface ITransport {
   transport(): Transport
+
+  isUnix(): boolean
+
+  url: string
 }
 
 export class Client<T extends ITransport> {
@@ -36,5 +52,21 @@ export class Client<T extends ITransport> {
 
   public get localdb(): LocalDb {
     return LocalDb.__create(this.transport.transport())
+  }
+
+  public get filetransfer(): FileTransfer {
+    return FileTransfer.__create(
+      this.transport.transport(),
+      this.transport.isUnix(),
+      this.transport.url,
+    )
+  }
+
+  public get debug(): Debug {
+    return Debug.__create(this.transport.transport())
+  }
+
+  public get scripting(): Scripting {
+    return Scripting.__create(this.transport.transport())
   }
 }
