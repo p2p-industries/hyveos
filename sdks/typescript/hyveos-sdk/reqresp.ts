@@ -12,12 +12,29 @@ export interface IncomingRequest {
   topic: string | null
 }
 
+/**
+ * Handle to an incoming request that allows responding to it.
+ *
+ * @example
+ * ```ts
+ *  const stream = client.reqresp.recv('my-topic')
+ *  for await (const req of stream) {
+ * 	 try {
+ *  		const data = await processRequest(req)
+ *  		await req.respond(data)
+ *  	} catch (err) {
+ *  		await req.error(err)
+ *  	}
+ *  }
+ *  ```
+ */
 export class IncomingRequestHandle implements IncomingRequest {
   private client: Client<typeof Service>
   private seq: bigint
-  public data: Uint8Array
-  public peerId: string
-  public topic: string | null
+  private consumed: boolean = false
+  public readonly data: Uint8Array
+  public readonly peerId: string
+  public readonly topic: string | null
 
   private constructor(
     client: Client<typeof Service>,
@@ -33,6 +50,10 @@ export class IncomingRequestHandle implements IncomingRequest {
     this.topic = topic
   }
 
+  /**
+   * @private Internal method to create a new IncomingRequestHandle.
+   * @ignore
+   */
   public static __create(
     client: Client<typeof Service>,
     seq: bigint,
@@ -43,7 +64,22 @@ export class IncomingRequestHandle implements IncomingRequest {
     return new IncomingRequestHandle(client, seq, data, peerId, topic)
   }
 
-  public async error(message: string) {
+  private consume() {
+    if (this.consumed) {
+      throw new Error('Request already consumed')
+    }
+    this.consumed = true
+  }
+
+  /**
+   * Respond to the request with an error message because the processing failed.
+   *
+   * @param error The error message.
+   * @throws If the request has already been responded to.
+   * @returns A promise that resolves when the response has been sent.
+   */
+  public async error(error: Error | string) {
+    const message = error instanceof Error ? error.message : error
     await this.client.respond({
       seq: this.seq,
       response: {
@@ -53,8 +89,16 @@ export class IncomingRequestHandle implements IncomingRequest {
         },
       },
     })
+    this.consume()
   }
 
+  /**
+   * Respond to the request with data.
+   *
+   * @param data The data to send in the response.
+   * @throws If the request has already been responded to.
+   * @returns A promise that resolves when the response has been sent.
+   */
   public async respond(data: Uint8Array) {
     await this.client.respond({
       seq: this.seq,
@@ -67,9 +111,18 @@ export class IncomingRequestHandle implements IncomingRequest {
         },
       },
     })
+    this.consume()
   }
 }
 
+export type HandlerIncomingRequest = Pick<
+  IncomingRequestHandle,
+  'data' | 'topic' | 'peerId'
+>
+
+/** A subscription to incoming requests.
+ * @implements {AsyncIterable<IncomingRequestHandle>}
+ */
 export class ReqResSubscription extends AbortOnDispose
   implements AsyncIterable<IncomingRequestHandle> {
   private stream: AsyncIterable<RecvRequest>
@@ -111,10 +164,19 @@ export class ReqResSubscription extends AbortOnDispose
 }
 
 export class ReqRes extends BaseService<typeof Service> {
+  /** @ignore */
   public static __create(transport: Transport): ReqRes {
     return new ReqRes(Service, transport)
   }
 
+  /**
+   * Send a request to a peer and wait for a response.
+   *
+   * @param peerId The peer to send the request to.
+   * @param data The data to send in the request.
+   * @returns The response data.
+   * @throws If the response is an error.
+   */
   public async request(peerId: string, data: Uint8Array): Promise<Uint8Array> {
     const { response } = await this.client.send({
       peer: {
@@ -159,6 +221,20 @@ export class ReqRes extends BaseService<typeof Service> {
     }
   }
 
+  /**
+   * Subscribe to incoming requests.
+   *
+   * @param filter The filter to apply to incoming requests. Can be a string or a RegExp.
+   * @returns A subscription to incoming requests.
+   *
+   * @example
+   * ```ts
+   * const stream = client.reqresp.recv('my-topic')
+   * for await (const req of stream) {
+   *   console.log(req.data)
+   * }
+   * ```
+   */
   public recv(filter: string | RegExp): ReqResSubscription {
     const abortController = new AbortController()
     const stream = this.client.recv(
@@ -172,9 +248,24 @@ export class ReqRes extends BaseService<typeof Service> {
     return new ReqResSubscription(stream, this.client, abortController)
   }
 
+  /**
+   * Handle incoming requests.
+   *
+   * This is a convenience method over `ReqRes.recv` that allows you to handle incoming requests with a single function.
+   *
+   * @param filter The filter to apply to incoming requests. Can be a string or a RegExp.
+   * @param handler The handler for incoming requests.
+   *
+   * @example
+   * ```ts
+   * client.reqresp.handle('my-topic', async (req) => {
+   *   return new TextEncoder().encode('Hello World')
+   * })
+   * ```
+   */
   public async handle(
     filter: string | RegExp,
-    handler: (req: IncomingRequest) => Promise<Uint8Array>,
+    handler: (req: HandlerIncomingRequest) => Promise<Uint8Array>,
   ) {
     using stream = this.recv(filter)
     for await (const req of stream) {
@@ -183,7 +274,13 @@ export class ReqRes extends BaseService<typeof Service> {
           await req.respond(data)
         })
         .catch(async (err) => {
-          await req.error(err.toString())
+          if (err instanceof Error) {
+            await req.error(err.message)
+          } else if (typeof err === 'string') {
+            await req.error(err)
+          } else {
+            await req.error('Unknown error')
+          }
         })
     }
   }
