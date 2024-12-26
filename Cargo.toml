@@ -4,7 +4,6 @@ members = [
     "crates/libp2p/batman-adv",
     "crates/libp2p/addr-filter",
     "endpoint/data-collector",
-    "endpoint/ws-graph",
     "sdks/rust",
 ]
 exclude = ["crates/libp2p"]
