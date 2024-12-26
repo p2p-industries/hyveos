@@ -43,6 +43,8 @@
     "@fortawesome/free-solid-svg-icons": "^6.7.1",
     "@fortawesome/svelte-fontawesome": "^0.2.3",
     "d3": "^7.9.0",
+    "hyveos-sdk": "file:../sdks/typescript/hyveos-sdk/npm",
+    "hyveos-web": "file:../sdks/typescript/hyveos-web/npm",
     "zod": "^3.23.8"
   }
 }

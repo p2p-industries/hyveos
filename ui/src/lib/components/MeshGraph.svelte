@@ -6,7 +6,7 @@
   import { onMount } from 'svelte';
 
   interface Props {
-    graph: Readable<Graph>;
+    graph: Graph;
   }
 
   let { graph }: Props = $props();
@@ -205,8 +205,8 @@
 
   onMount(() => {
     simulator = new Simulator({ nodes: [], links: [] });
-    graph.subscribe((newGraph) => {
-      simulator!.update(newGraph);
+    $effect(() => {
+      simulator!.update($state.snapshot(graph));
     });
     container?.addEventListener('click', () => {
       simulator!.handleBackgroundClick();
