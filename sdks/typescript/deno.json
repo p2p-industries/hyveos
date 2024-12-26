@@ -12,5 +12,8 @@
   },
   "lint": {
     "exclude": ["./hyveos-sdk/gen/script_pb.ts"]
+  },
+  "imports": {
+	  "jsr:hyveos-sdk": "./hyveos-sdk/mod.ts"
   }
 }

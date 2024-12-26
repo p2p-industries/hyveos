@@ -231,7 +231,8 @@
       },
       "hyveos-web": {
         "dependencies": [
-          "jsr:@deno/dnt@~0.41.3"
+          "jsr:@deno/dnt@~0.41.3",
+          "jsr:hyveos-sdk@1"
         ]
       }
     }
