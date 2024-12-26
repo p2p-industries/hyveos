@@ -2,7 +2,7 @@
   import MeshGraph from '$lib/components/MeshGraph.svelte';
   import type { Message } from '$lib/types';
   import { onMount } from 'svelte';
-  // import { load, nodes, links, peerIdToLabel } from './mesh.svelte';
+  import { load, nodes, links, peerIdToLabel } from './mesh.svelte';
   import { Client } from 'hyveos-sdk';
   import { Connection } from 'hyveos-web';
 
