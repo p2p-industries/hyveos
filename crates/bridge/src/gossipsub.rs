@@ -1,4 +1,4 @@
-use futures::stream::TryStreamExt as _;
+use futures::stream::{StreamExt as _, TryStreamExt as _};
 use hyveos_core::grpc::{self, gossip_sub_server::GossipSub};
 use hyveos_p2p_stack::Client;
 use libp2p::gossipsub::IdentTopic;
@@ -41,9 +41,10 @@ impl GossipSub for GossipSubServer {
 
         let stream = BroadcastStream::new(receiver)
             .map_ok(Into::into)
-            .map_err(|e| Status::internal(e.to_string()));
+            .map_err(|e| Status::internal(e.to_string()))
+            .boxed();
 
-        Ok(TonicResponse::new(Box::pin(stream)))
+        Ok(TonicResponse::new(stream))
     }
 
     async fn publish(

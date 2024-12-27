@@ -1,5 +1,5 @@
 #[cfg(feature = "batman")]
-use futures::stream::TryStreamExt as _;
+use futures::stream::{StreamExt as _, TryStreamExt as _};
 #[cfg(feature = "batman")]
 use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::grpc::{self, discovery_server::Discovery};
@@ -36,9 +36,10 @@ impl Discovery for DiscoveryServer {
             .await
             .map_err(|e| Status::internal(format!("{e:?}")))?
             .map_ok(|event| NeighbourEvent::from(event.as_ref()).into())
-            .map_err(|e| Status::internal(e.to_string()));
+            .map_err(|e| Status::internal(e.to_string()))
+            .boxed();
 
-        Ok(TonicResponse::new(Box::pin(stream)))
+        Ok(TonicResponse::new(stream))
     }
 
     #[cfg(not(feature = "batman"))]
