@@ -54,7 +54,7 @@ regex = { version = "1.11.1", default-features = false, features = [
 ] }
 serde = { version = "1.0.216", features = ["derive", "rc"] }
 hyveos-runtime = { version = "0.1.0", path = "crates/runtime" }
-thiserror = { version = "1" }
+thiserror = { version = "2" }
 tarpc = "0.35.0"
 tokio = { version = "1.38" }
 tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
