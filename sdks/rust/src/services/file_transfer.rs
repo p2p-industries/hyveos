@@ -2,9 +2,15 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-
 #[cfg(feature = "network")]
-use futures::TryStreamExt as _;
+use std::{
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+};
+
+use futures::{Stream, StreamExt as _, TryStreamExt as _};
+pub use hyveos_core::file_transfer::DownloadEvent;
 #[cfg(feature = "network")]
 use hyveos_core::serde::JsonResult;
 use hyveos_core::{
@@ -16,7 +22,10 @@ use hyveos_core::{
 use reqwest::Body;
 use tokio::fs::File;
 #[cfg(feature = "network")]
-use tokio::io::BufWriter;
+use tokio::{
+    io::{BufWriter, ReadBuf},
+    sync::mpsc,
+};
 #[cfg(feature = "network")]
 use tokio_util::io::{ReaderStream, StreamReader};
 use tonic::transport::Channel;
@@ -215,7 +224,6 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_core::file_transfer::Cid;
     /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
@@ -250,7 +258,7 @@ impl Service {
                 let stream = client.get(url).query(&cid).send().await?.bytes_stream();
 
                 let reader = StreamReader::new(
-                    stream.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
+                    stream.map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
                 );
                 futures::pin_mut!(reader);
 
@@ -272,5 +280,179 @@ impl Service {
             .await
             .map(|response| response.into_inner().into())
             .map_err(Into::into)
+    }
+
+    /// Retrieves a file from the mesh network and returns a stream of download events.
+    ///
+    /// When the local runtime doesn't own a copy of this file yet, it downloads it from one of its peers.
+    /// While downloading, it emits events with the download progress as a percentage.
+    /// Afterwards, or if it was already locally available, the file is copied
+    /// into the shared directory, which is defined by the `HYVEOS_BRIDGE_SHARED_DIR` environment
+    /// variable, and the path is emitted as the last event in the stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the RPC call fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use futures::StreamExt as _;
+    /// use hyveos_sdk::{services::file_transfer::DownloadEvent, Connection};
+    /// use indicatif::ProgressBar;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let mut dht_service = connection.dht();
+    /// let cid = dht_service.get_record_json("file", "example").await.unwrap();
+    ///
+    /// if let Some(cid) = cid {
+    ///     let mut file_transfer_service = connection.file_transfer();
+    ///     let mut stream = file_transfer_service
+    ///         .get_file_with_progress(cid)
+    ///         .await
+    ///         .unwrap();
+    ///
+    ///     let progress_bar = ProgressBar::new(100);
+    ///
+    ///     let path = loop {
+    ///         match stream.next().await.unwrap().unwrap() {
+    ///             DownloadEvent::Progress(progress) => {
+    ///                 progress_bar.set_position(progress);
+    ///             }
+    ///             DownloadEvent::Ready(path) => {
+    ///                 progress_bar.finish();
+    ///                 break path;
+    ///             }
+    ///         }
+    ///     };
+    ///
+    ///     println!("File path: {}", path.display());
+    ///
+    ///     let contents = tokio::fs::read_to_string(path).await.unwrap();
+    ///     println!("File length: {}", contents.len());
+    /// } else {
+    ///     println!("File not found");
+    /// }
+    /// # }
+    /// ```
+    #[tracing::instrument(skip(self))]
+    pub async fn get_file_with_progress(
+        &mut self,
+        cid: Cid,
+    ) -> Result<impl Stream<Item = Result<DownloadEvent>>> {
+        #[cfg(not(feature = "network"))]
+        let client = &mut self.client;
+        #[cfg(feature = "network")]
+        let client = match &mut self.client {
+            Client::Local(client) => client,
+            Client::Network(client, url) => {
+                let url = url.join("file-transfer/get-file")?;
+
+                let (sender, receiver) = mpsc::unbounded_channel();
+
+                tokio::spawn({
+                    let client = client.clone();
+                    async move {
+                        let res = async {
+                            let response = client.get(url).query(&cid).send().await?;
+                            let length = response.content_length();
+
+                            let stream = response.bytes_stream();
+
+                            let mut reader: Pin<Box<dyn tokio::io::AsyncRead + Send>> =
+                                Box::pin(StreamReader::new(
+                                    stream.map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
+                                ));
+
+                            if let Some(length) = length {
+                                reader =
+                                    Box::pin(ReadWithProgress::new(reader, length, |progress| {
+                                        let _ = sender.send(Ok(DownloadEvent::Progress(progress)));
+                                    }));
+                            }
+
+                            let (path, file) = env::temp_dir()
+                                .join(cid.id.to_string())
+                                .unique_file()
+                                .await?;
+
+                            let mut file = BufWriter::new(file);
+
+                            tokio::io::copy(&mut reader, &mut file).await?;
+
+                            Ok(DownloadEvent::Ready(path))
+                        }
+                        .await;
+
+                        let _ = sender.send(res);
+                    }
+                });
+
+                let stream =
+                    tokio_stream::wrappers::UnboundedReceiverStream::new(receiver).right_stream();
+
+                return Ok(stream);
+            }
+        };
+
+        client
+            .get_file_with_progress(grpc::Cid::from(cid))
+            .await
+            .map(|response| {
+                let stream = response
+                    .into_inner()
+                    .map_ok(TryInto::try_into)
+                    .map(|res| res?.map_err(Into::into));
+
+                #[cfg(feature = "network")]
+                let stream = stream.left_stream();
+
+                stream
+            })
+            .map_err(Into::into)
+    }
+}
+
+#[cfg(feature = "network")]
+#[pin_project::pin_project]
+struct ReadWithProgress<R, F> {
+    #[pin]
+    inner: R,
+    total_length: u64,
+    progress: F,
+}
+
+#[cfg(feature = "network")]
+impl<R, F> ReadWithProgress<R, F> {
+    fn new(inner: R, total_length: u64, progress: F) -> Self {
+        Self {
+            inner,
+            total_length,
+            progress,
+        }
+    }
+}
+
+#[cfg(feature = "network")]
+impl<R, F> tokio::io::AsyncRead for ReadWithProgress<R, F>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    F: FnMut(u64),
+{
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        let this = self.project();
+        match this.inner.poll_read(cx, buf) {
+            Poll::Ready(Ok(())) => {
+                (this.progress)(buf.filled().len() as u64 * 100 / *this.total_length);
+                Poll::Ready(Ok(()))
+            }
+            other => other,
+        }
     }
 }

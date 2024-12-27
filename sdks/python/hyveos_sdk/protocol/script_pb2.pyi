@@ -187,6 +187,14 @@ class CID(_message.Message):
     id: ID
     def __init__(self, hash: _Optional[bytes] = ..., id: _Optional[_Union[ID, _Mapping]] = ...) -> None: ...
 
+class DownloadEvent(_message.Message):
+    __slots__ = ("progress", "ready")
+    PROGRESS_FIELD_NUMBER: _ClassVar[int]
+    READY_FIELD_NUMBER: _ClassVar[int]
+    progress: int
+    ready: FilePath
+    def __init__(self, progress: _Optional[int] = ..., ready: _Optional[_Union[FilePath, _Mapping]] = ...) -> None: ...
+
 class MeshTopologyEvent(_message.Message):
     __slots__ = ("peer", "event")
     PEER_FIELD_NUMBER: _ClassVar[int]

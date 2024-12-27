@@ -1,5 +1,5 @@
 use drop_stream::DropStream;
-use futures::TryStreamExt as _;
+use futures::{StreamExt as _, TryStreamExt as _};
 use hyveos_core::grpc::{self, debug_server::Debug};
 use hyveos_p2p_stack::DebugClientCommand;
 use tokio::sync::{mpsc, oneshot};
@@ -52,9 +52,10 @@ impl Debug for DebugServer {
                     .send(DebugClientCommand::UnsubscribeNeighbourEvents)
                     .await;
             });
-        });
+        })
+        .boxed();
 
-        Ok(TonicResponse::new(Box::pin(drop_stream)))
+        Ok(TonicResponse::new(drop_stream))
     }
 
     async fn subscribe_messages(
@@ -86,8 +87,9 @@ impl Debug for DebugServer {
                     .send(DebugClientCommand::UnsubscribeMessageEvents)
                     .await;
             });
-        });
+        })
+        .boxed();
 
-        Ok(TonicResponse::new(Box::pin(drop_stream)))
+        Ok(TonicResponse::new(drop_stream))
     }
 }

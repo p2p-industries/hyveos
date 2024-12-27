@@ -3,11 +3,9 @@
 
 #[cfg(feature = "network")]
 use std::net::SocketAddr;
-use std::{io, path::PathBuf, pin::Pin};
+use std::{io, path::PathBuf};
 
-#[cfg(feature = "network")]
-use file_transfer::FileTransferHTTPServer;
-use futures::stream::Stream;
+use futures::stream::BoxStream;
 use hyveos_core::grpc;
 use hyveos_p2p_stack::Client;
 #[cfg(feature = "batman")]
@@ -46,7 +44,7 @@ pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 
 type TonicResult<T> = tonic::Result<tonic::Response<T>>;
 
-type ServerStream<T> = Pin<Box<dyn Stream<Item = tonic::Result<T>> + Send>>;
+type ServerStream<T> = BoxStream<'static, tonic::Result<T>>;
 
 #[cfg(feature = "batman")]
 pub type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
@@ -262,8 +260,9 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
         let db = DbServer::new(self.db_client);
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());
+        let file_transfer = FileTransferServer::new(self.client.clone(), self.shared_dir_path);
         let gossipsub = GossipSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client.clone());
+        let req_resp = ReqRespServer::new(self.client);
         let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
 
         #[cfg(feature = "batman")]
@@ -273,8 +272,6 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
 
         match self.connection {
             Connection::Local(socket) => {
-                let file_transfer = FileTransferServer::new(self.client, self.shared_dir_path);
-
                 let router = build_tonic!(
                     TonicServer::builder(),
                     db,
@@ -299,17 +296,14 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
             }
             #[cfg(feature = "network")]
             Connection::Network(listener) => {
-                // TODO: We should support tls/https here
-                let file_transfer = FileTransferHTTPServer::new(self.client, self.shared_dir_path);
-
                 let router = axum::Router::new()
                     .route(
                         "/file-transfer/publish-file/:file_name",
-                        axum::routing::post(FileTransferHTTPServer::publish_file),
+                        axum::routing::post(FileTransferServer::publish_file_http),
                     )
                     .route(
                         "/file-transfer/get-file",
-                        axum::routing::get(FileTransferHTTPServer::get_file),
+                        axum::routing::get(FileTransferServer::get_file_http),
                     )
                     .with_state(file_transfer);
 

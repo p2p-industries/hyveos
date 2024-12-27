@@ -10,9 +10,12 @@ use std::{
 use async_once_cell::OnceCell;
 use asynchronous_codec::{CborCodec, CborCodecError, Framed, FramedParts};
 use base64_simd::{Out, URL_SAFE};
-use futures::{SinkExt, Stream, StreamExt};
-use hyveos_core::file_transfer::{read_only_hard_link, Cid};
-use indicatif::ProgressFinish;
+use futures::{
+    future,
+    stream::{self, BoxStream},
+    SinkExt, Stream, StreamExt as _, TryStreamExt as _,
+};
+use hyveos_core::file_transfer::{read_only_hard_link, Cid, DownloadEvent};
 use libp2p::{
     kad::{AddProviderError, GetProvidersOk, RecordKey},
     PeerId, StreamProtocol,
@@ -24,9 +27,12 @@ use sha2::{Digest, Sha256};
 use tokio::{
     fs::File,
     io::{split, AsyncReadExt, AsyncWriteExt, ReadBuf},
-    sync::{oneshot, Mutex},
+    sync::{mpsc, oneshot, Mutex},
 };
-use tokio_stream::{iter, wrappers::ReadDirStream};
+use tokio_stream::{
+    iter,
+    wrappers::{ReadDirStream, UnboundedReceiverStream},
+};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use ulid::Ulid;
 
@@ -207,6 +213,8 @@ pub enum ClientError {
     Codec(#[from] CborCodecError),
     #[error("No providers found")]
     NoProviders,
+    #[error("File download didn't finish")]
+    DownloadDidNotFinish,
     #[error("Hash mismatch: expected `{expected:?}`, actual `{actual:?}`")]
     HashMismatch {
         expected: [u8; 32],
@@ -439,8 +447,27 @@ impl Client {
     }
 
     pub async fn get_cid(&self, cid: Cid) -> Result<PathBuf, ClientError> {
+        self.get_cid_with_progress(cid)
+            .await?
+            .try_filter_map(|event| {
+                future::ok(if let DownloadEvent::Ready(path) = event {
+                    Some(path)
+                } else {
+                    None
+                })
+            })
+            .next()
+            .await
+            .ok_or(ClientError::DownloadDidNotFinish)?
+    }
+
+    pub async fn get_cid_with_progress(
+        &self,
+        cid: Cid,
+    ) -> Result<BoxStream<'static, Result<DownloadEvent, ClientError>>, ClientError> {
         if (self.get_local_file(cid).await?).is_some() {
-            return Ok(self.get_directory().await?.join(cid.to_path()));
+            let path = self.get_directory().await?.join(cid.to_path());
+            return Ok(stream::once(future::ready(Ok(DownloadEvent::Ready(path)))).boxed());
         }
 
         let (neighbours, non_neighbours) = self.get_all_providers(cid).await?;
@@ -483,48 +510,46 @@ impl Client {
         file.sync_all().await?;
         let mut framed = Framed::from_parts(parts);
         framed.send(Request::StartStream).await?;
-        let mut parts = framed.into_parts();
-        let (reader, writer) = split(parts.io.compat());
-        let reader = parts.read_buffer.as_mut().chain(reader).take(length);
-        let mut hasher = HashingRead::new(reader);
 
-        let multi = indicatif::MultiProgress::new();
-        multi.add(indicatif::ProgressBar::new_spinner());
-        let mut file_tracked = multi
-            .add(indicatif::ProgressBar::new(length))
-            .with_prefix("File")
-            .with_style(bar_style())
-            .with_message("🚚 Loading...")
-            .with_finish(ProgressFinish::WithMessage("✅ Done".into()))
-            .wrap_async_write(&mut file);
-        let mut stream_tracked = multi
-            .add(indicatif::ProgressBar::new(length))
-            .with_prefix("Network")
-            .with_style(bar_style())
-            .with_message("🚚 Loading...")
-            .with_finish(ProgressFinish::WithMessage("✅ Done".into()))
-            .wrap_async_read(&mut hasher);
+        let (sender, receiver) = mpsc::unbounded_channel();
 
-        ack_reader(&mut stream_tracked, writer, &mut file_tracked).await?;
+        tokio::spawn({
+            let this = self.clone();
+            async move {
+                let mut parts = framed.into_parts();
+                let (reader, writer) = split(parts.io.compat());
+                let reader = parts.read_buffer.as_mut().chain(reader).take(length);
+                let mut hasher = HashingReadWithProgress::new(reader, length, |progress| {
+                    let _ = sender.send(Ok(DownloadEvent::Progress(progress)));
+                });
 
-        let _ = multi.clear();
+                let res = async move {
+                    ack_reader(&mut hasher, writer, &mut file).await?;
 
-        file.flush().await?;
-        let hash = hasher.finalize();
-        if hash != cid.hash {
-            tracing::warn!(actual = ?hash, correct = ?cid.hash, "Hash mismatch");
-            tokio::fs::remove_file(&path).await?;
-            return Err(ClientError::HashMismatch {
-                expected: cid.hash,
-                actual: hash,
-            });
-        }
-        file.sync_all().await?;
-        file.shutdown().await?;
+                    file.flush().await?;
+                    let hash = hasher.finalize_hash();
+                    if hash != cid.hash {
+                        tracing::warn!(actual = ?hash, correct = ?cid.hash, "Hash mismatch");
+                        tokio::fs::remove_file(&path).await?;
+                        return Err(ClientError::HashMismatch {
+                            expected: cid.hash,
+                            actual: hash,
+                        });
+                    }
+                    file.sync_all().await?;
+                    file.shutdown().await?;
 
-        self.provide_cid(cid).await?;
+                    this.provide_cid(cid).await?;
 
-        Ok(path)
+                    Ok(DownloadEvent::Ready(path))
+                }
+                .await;
+
+                let _ = sender.send(res);
+            }
+        });
+
+        Ok(UnboundedReceiverStream::new(receiver).boxed())
     }
 
     pub async fn list(&self) -> Result<impl Stream<Item = io::Result<Cid>>, ClientError> {
@@ -575,28 +600,33 @@ async fn retrieve_cid(
 }
 
 #[pin_project]
-struct HashingRead<R> {
+struct HashingReadWithProgress<R, F> {
     #[pin]
     inner: R,
     hasher: sha2::Sha256,
+    total_length: u64,
+    progress: F,
 }
 
-impl<R> HashingRead<R> {
-    fn new(inner: R) -> Self {
+impl<R, F> HashingReadWithProgress<R, F> {
+    fn new(inner: R, total_length: u64, progress: F) -> Self {
         Self {
             inner,
             hasher: Sha256::new(),
+            total_length,
+            progress,
         }
     }
 
-    fn finalize(self) -> [u8; 32] {
+    fn finalize_hash(self) -> [u8; 32] {
         self.hasher.finalize().into()
     }
 }
 
-impl<R> tokio::io::AsyncRead for HashingRead<R>
+impl<R, F> tokio::io::AsyncRead for HashingReadWithProgress<R, F>
 where
     R: tokio::io::AsyncRead + Unpin,
+    F: FnMut(u64),
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -604,10 +634,12 @@ where
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
         let this = self.project();
-        let filled_len = buf.filled().len();
+        let prev_len = buf.filled().len();
         match this.inner.poll_read(cx, buf) {
             Poll::Ready(Ok(())) => {
-                this.hasher.update(&buf.filled()[filled_len..]);
+                (this.progress)(buf.filled().len() as u64 * 100 / *this.total_length);
+
+                this.hasher.update(&buf.filled()[prev_len..]);
                 Poll::Ready(Ok(()))
             }
             other => other,
