@@ -116,8 +116,9 @@ impl Dht for DhtServer {
                 ))
             })
             .map_err(|e| Status::internal(e.to_string()))
-            .try_flatten();
+            .try_flatten()
+            .boxed();
 
-        Ok(TonicResponse::new(Box::pin(stream)))
+        Ok(TonicResponse::new(stream))
     }
 }
