@@ -126,13 +126,19 @@ impl Service {
 
     /// Publishes a file in the mesh network and returns its content ID.
     ///
-    /// Before it's published, the file is copied to the shared directory if it is not already
+    /// Before it's published, the file is linked to the shared directory if it is not already
     /// there. The shared directory is defined by the `HYVEOS_BRIDGE_SHARED_DIR` environment
     /// variable ([`hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR`]).
     ///
+    /// # Important
+    ///
+    /// The file is linked to the shared directory, not copied. To make sure the file is unchanged
+    /// every file you publish will be made read-only. If you need to modify the file, you need to
+    /// copy it to a different location.
+    ///
     /// # Errors
     ///
-    /// Returns an error if the RPC call fails.
+    /// Returns an error if the RPC call fails or the passed path is not a file.
     ///
     /// # Example
     ///
@@ -156,6 +162,10 @@ impl Service {
     /// ```
     #[tracing::instrument(skip(self, path), fields(path = %path.as_ref().display()))]
     pub async fn publish_file(&mut self, path: impl AsRef<Path>) -> Result<Cid> {
+        let metadata = tokio::fs::metadata(&path).await?;
+        if !metadata.is_file() {
+            return Err(Error::NotAFile(path.as_ref().to_owned()));
+        }
         let path = path.as_ref().canonicalize()?;
 
         let Some(file_name) = path.file_name() else {

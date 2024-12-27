@@ -31,6 +31,8 @@ class FileTransferService(ABC):
     async def publish_file(self, file_path: str) -> FileToken:
         """
         Publishes a file to the p2p network
+        
+        The file will be made read-only to ensure its integrity.
         :param file_path: The local path to the file
         :return: A CID token that can be used by other peers to download the file
         """
@@ -66,6 +68,10 @@ class NetworkFileTransferService(FileTransferService):
         self.session = session
 
     async def publish_file(self, file_path: str) -> FileToken:
+        # Check if file is a file (not a directory or symlink)
+        if not os.path.isfile(file_path):
+            raise ValueError(f'File {file_path} is not a file')
+
         file_name = os.path.basename(file_path)
         url = self.base_url.joinpath('file-transfer/publish-file').joinpath(file_name)
 
