@@ -66,7 +66,8 @@ class ReqRespServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Recv(self, request, context):
-        """Receive requests from peers that either have no topic or have a topic that has been subscribed to
+        """Receive requests from peers that either have no topic or have a topic that
+        has been subscribed to
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -217,7 +218,8 @@ class DiscoveryServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SubscribeEvents(self, request, context):
-        """Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
+        """Subscribe to neighbour discovery events to get notified when new neighbour
+        peers are discovered or lost
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -468,7 +470,8 @@ class DHTServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetRecord(self, request, context):
-        """Get a record from the DHT. The value of the record will be empty if the key is not found.
+        """Get a record from the DHT. The value of the record will be empty if the key
+        is not found.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -656,7 +659,8 @@ class DBServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Put(self, request, context):
-        """Put a record into the key-value store and get the previous value if it exists
+        """Put a record into the key-value store and get the previous value if it
+        exists
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -767,6 +771,11 @@ class FileTransferStub(object):
                 request_serializer=script__pb2.CID.SerializeToString,
                 response_deserializer=script__pb2.FilePath.FromString,
                 _registered_method=True)
+        self.GetFileWithProgress = channel.unary_stream(
+                '/script.FileTransfer/GetFileWithProgress',
+                request_serializer=script__pb2.CID.SerializeToString,
+                response_deserializer=script__pb2.DownloadEvent.FromString,
+                _registered_method=True)
 
 
 class FileTransferServicer(object):
@@ -786,6 +795,14 @@ class FileTransferServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetFileWithProgress(self, request, context):
+        """Request a file with a cid from the runtime and get notified about the
+        download progress
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_FileTransferServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -798,6 +815,11 @@ def add_FileTransferServicer_to_server(servicer, server):
                     servicer.GetFile,
                     request_deserializer=script__pb2.CID.FromString,
                     response_serializer=script__pb2.FilePath.SerializeToString,
+            ),
+            'GetFileWithProgress': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetFileWithProgress,
+                    request_deserializer=script__pb2.CID.FromString,
+                    response_serializer=script__pb2.DownloadEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -864,6 +886,33 @@ class FileTransfer(object):
             metadata,
             _registered_method=True)
 
+    @staticmethod
+    def GetFileWithProgress(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/script.FileTransfer/GetFileWithProgress',
+            script__pb2.CID.SerializeToString,
+            script__pb2.DownloadEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
 
 class DebugStub(object):
     """Missing associated documentation comment in .proto file."""
@@ -890,7 +939,8 @@ class DebugServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SubscribeMeshTopology(self, request, context):
-        """Subscribe to mesh topology events to get notified when the mesh topology changes
+        """Subscribe to mesh topology events to get notified when the mesh topology
+        changes
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
