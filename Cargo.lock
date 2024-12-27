@@ -417,7 +417,7 @@ dependencies = [
  "hyveos-macaddress",
  "serde",
  "tarpc",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
 ]
 
 [[package]]
@@ -1738,7 +1738,7 @@ dependencies = [
  "prost",
  "regex",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -1757,7 +1757,7 @@ dependencies = [
  "prost",
  "regex",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
  "tonic",
  "tonic-build",
  "ulid",
@@ -1789,7 +1789,7 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "multiaddr",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
 ]
 
 [[package]]
@@ -1830,7 +1830,7 @@ dependencies = [
  "serde",
  "socket2",
  "tarpc",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -1842,7 +1842,7 @@ name = "hyveos-macaddress"
 version = "0.1.0"
 dependencies = [
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
 ]
 
 [[package]]
@@ -1868,7 +1868,7 @@ dependencies = [
  "rand",
  "serde",
  "sha2",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -1894,7 +1894,7 @@ dependencies = [
  "pin-project",
  "redb",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-util",
  "tracing",
@@ -1922,7 +1922,7 @@ dependencies = [
  "serde",
  "serde_cbor",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror 2.0.4",
  "tokio",
  "tokio-stream",
  "tokio-util",
