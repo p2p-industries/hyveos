@@ -52,7 +52,7 @@ regex = { version = "1.11.1", default-features = false, features = [
     "perf",
     "std",
 ] }
-serde = { version = "1.0.215", features = ["derive", "rc"] }
+serde = { version = "1.0.216", features = ["derive", "rc"] }
 hyveos-runtime = { version = "0.1.0", path = "crates/runtime" }
 thiserror = { version = "1" }
 tarpc = "0.35.0"
