@@ -1,5 +1,6 @@
+use std::fmt;
 use std::path::{Path, PathBuf};
-
+use std::str::FromStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
@@ -33,6 +34,36 @@ impl TryFrom<grpc::Cid> for Cid {
             hash: cid.hash.try_into().map_err(|_| Error::InvalidFileHash)?,
             id: cid.id.try_into()?,
         })
+    }
+}
+
+impl fmt::Display for Cid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ulid_str = self.id.to_string();
+        let hash_hex = hex::encode(self.hash);
+        write!(f, "{}-{}", ulid_str, hash_hex)
+    }
+}
+
+impl FromStr for Cid {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut parts = s.splitn(2, '-');
+        let ulid_part = parts.next().ok_or(Error::InvalidCidFormat)?;
+        let hash_part = parts.next().ok_or(Error::InvalidCidFormat)?;
+
+        let id = Ulid::from_string(ulid_part).map_err(|_| Error::InvalidCidFormat)?;
+
+        let hash_bytes = hex::decode(hash_part).map_err(|_| Error::InvalidCidFormat)?;
+        if hash_bytes.len() != 32 {
+            return Err(Error::InvalidCidFormat);
+        }
+
+        let mut hash_array = [0u8; 32];
+        hash_array.copy_from_slice(&hash_bytes);
+
+        Ok(Cid { id, hash: hash_array })
     }
 }
 
