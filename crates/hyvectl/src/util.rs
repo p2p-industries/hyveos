@@ -4,16 +4,18 @@ use futures::{stream, Stream, StreamExt, TryStreamExt};
 use futures::stream::BoxStream;
 use crate::output::CommandOutput;
 
+pub type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
 pub trait CommandFamily {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>>;
+    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>>;
 }
 
 pub async fn resolve_stream<S, T, E>(
     stream_future: Result<S, E>,
-) -> BoxStream<'static, Result<T, Box<dyn Error>>>
+) -> BoxStream<'static, Result<T, DynError>>
 where
     S: Stream<Item = Result<T, E>> + Send + 'static,
-    E: Into<Box<dyn Error>> + Send + 'static,
+    E: Into<DynError> + Send + 'static,
 {
     match stream_future {
         Ok(stream) => stream.map_err(|e| e.into()).boxed(),

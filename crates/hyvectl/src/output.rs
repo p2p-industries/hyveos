@@ -45,37 +45,79 @@ impl fmt::Display for OutputField {
         }
     }
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub enum CommandOutputType {
+    Message(String),
+    Result {
+        fields: Vec<(&'static str, OutputField)>,
+        #[serde(skip_serializing)]
+        human_readable_template: Option<String>,
+    },
+    Progress(u64),
+    Error(String),
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct CommandOutput {
     pub command: &'static str,
     pub success: bool,
-    pub fields: Vec<(&'static str, OutputField)>,
-    #[serde(skip_serializing)]
-    pub human_readable_template: Option<String>,
+    pub output: CommandOutputType
 }
 
 impl CommandOutput {
-    pub fn new(command: &'static str) -> Self {
+
+    pub fn new_message(command: &'static str, message: &str) -> Self {
         Self {
             command,
             success: true,
-            fields: Vec::new(),
-            human_readable_template: None,
+            output: CommandOutputType::Message(message.into())
         }
     }
 
-    pub fn add_field(mut self, key: &'static str, value: OutputField) -> Self {
-        self.fields.push((key, value));
+    pub fn new_result(command: &'static str) -> Self {
+        Self {
+            command,
+            success: true,
+            output: CommandOutputType::Result {
+                fields: vec![],
+                human_readable_template: None,
+            }
+        }
+    }
+
+    pub fn new_progress(command: &'static str, progress: u64) -> Self {
+        Self {
+            command,
+            success: true,
+            output: CommandOutputType::Progress(progress)
+        }
+    }
+
+    pub fn new_error(command: &'static str, message: &str) -> Self {
+        Self {
+            command,
+            success: false,
+            output: CommandOutputType::Error(message.into())
+        }
+    }
+
+
+    pub fn with_field(mut self, key: &'static str, value: OutputField) -> Self {
+        match &mut self.output {
+            CommandOutputType::Result { fields, .. } => {fields.push((key, value));},
+            _ => {}
+        }
         self
     }
 
     pub fn with_human_readable_template(mut self, template: &'static str) -> Self {
-        self.human_readable_template = Some(template.to_string());
-        self
-    }
-
-    pub fn with_success(mut self) -> Self {
-        self.success = true;
+        match &mut self.output {
+            CommandOutputType::Result { human_readable_template, .. } => {
+                *human_readable_template = Some(template.into());
+            }
+            _ => {}
+        }
         self
     }
 
@@ -83,27 +125,32 @@ impl CommandOutput {
         writeln!(output_stream, "{}", line)
     }
 
-    pub fn write_impl(&self, output_stream: &mut dyn Write) -> Result<()> {
-        if let Some(template) = &self.human_readable_template {
-            let mut output = template.clone();
-            for (key, value) in &self.fields {
-                let placeholder = format!("{{{}}}", key);
-                output = output.replace(&placeholder, &value.to_string());
+    pub fn write(&self, output_stream: &mut dyn Write) -> Result<()> {
+        match &self.output {
+            CommandOutputType::Message(message) => {
+                self.safe_write_line(output_stream, message)
             }
-            self.safe_write_line(output_stream, &output)?;
-        } else {
-            self.safe_write_line(output_stream, &format!("{} Result:", self.command))?;
-            self.safe_write_line(output_stream, &format!("  Success: {}", self.success))?;
-            for (key, value) in &self.fields {
-                self.safe_write_line(output_stream, &format!("  {}: {}", key, value.to_string()))?;
+            CommandOutputType::Result { fields, human_readable_template } => {
+                if let Some(template) = human_readable_template {
+                    let mut output = template.clone();
+                    for (key, value) in fields.clone() {
+                        let placeholder = format!("{{{}}}", key);
+                        output = output.replace(&placeholder, &value.to_string());
+                    }
+                    Ok(self.safe_write_line(output_stream, &output)?)
+                } else {
+                    self.safe_write_line(output_stream, &format!("{} Result:", self.command))?;
+                    self.safe_write_line(output_stream, &format!("  Success: {}", self.success))?;
+                    Ok(for (key, value) in fields {
+                        self.safe_write_line(output_stream, &format!("  {}: {}", key, value.to_string()))?;
+                    })
+                }
+            },
+            CommandOutputType::Progress(_) => {Ok(())}
+            CommandOutputType::Error(message) => {
+                let line = format!("ERROR ({}): {}", self.command, message);
+                self.safe_write_line(output_stream, &line)
             }
         }
-
-        Ok(())
-    }
-
-    pub fn write(&self, output_stream: &mut dyn Write) -> Result<()> {
-        self.write_impl(output_stream)?;
-        Ok(())
     }
 }

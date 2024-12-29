@@ -14,3 +14,5 @@ tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 colored = "2.2.0"
+async-stream = "0.3.6"
+indicatif = "0.17.9"

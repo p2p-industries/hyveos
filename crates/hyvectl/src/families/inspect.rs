@@ -1,6 +1,6 @@
 use hyveos_sdk::Connection;
 use std::error::Error;
-use crate::util::{resolve_stream, CommandFamily};
+use crate::util::{resolve_stream, CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt, TryStreamExt, FutureExt};
 use futures::stream::BoxStream;
@@ -8,7 +8,7 @@ use hyvectl_commands::families::inspect::Inspect;
 
 
 impl CommandFamily for Inspect {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, Box<dyn Error>>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
         let mut debug = connection.debug();
 
         match self {
@@ -18,8 +18,8 @@ impl CommandFamily for Inspect {
 
                 mesh_stream
                     .map_ok(move |event| {
-                        CommandOutput::new("Inspect Mesh")
-                            .add_field("event", OutputField::MeshTopologyEvent(event))
+                        CommandOutput::new_result("Inspect Mesh")
+                            .with_field("event", OutputField::MeshTopologyEvent(event))
                             .with_human_readable_template("Mesh Topology changed: {event}")
                     }).map_err(|e| e.into())
                     .boxed()
@@ -31,8 +31,8 @@ impl CommandFamily for Inspect {
 
                 debug_stream
                     .map_ok(move |event| {
-                        CommandOutput::new("Inspect Services")
-                            .add_field("event", OutputField::ServiceDebugEvent(event))
+                        CommandOutput::new_result("Inspect Services")
+                            .with_field("event", OutputField::ServiceDebugEvent(event))
                             .with_human_readable_template("Service event: {event}")
                     }).map_err(|e| e.into())
                     .boxed()
