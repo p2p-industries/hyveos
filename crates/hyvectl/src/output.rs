@@ -3,8 +3,10 @@ use std::io::{Result, Write, ErrorKind};
 use serde::Serialize;
 use hyveos_core::debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType};
 use hyveos_core::discovery::NeighbourEvent;
+use hyveos_core::file_transfer::Cid;
 use hyveos_core::gossipsub::ReceivedMessage;
 use hyveos_core::req_resp::Response;
+use hyveos_core::scripting::RunningScript;
 use hyveos_sdk::services::req_resp::InboundRequest;
 
 #[derive(Clone, Debug, Serialize)]
@@ -14,7 +16,9 @@ pub enum OutputField {
     MeshTopologyEvent(MeshTopologyEvent),
     ServiceDebugEvent(MessageDebugEvent),
     Request(InboundRequest<Vec<u8>>),
-    Response(Response)
+    Response(Response),
+    RunningScripts(Vec<RunningScript>),
+    Cid(Cid)
 }
 
 impl fmt::Display for OutputField {
@@ -36,6 +40,8 @@ impl fmt::Display for OutputField {
             OutputField::ServiceDebugEvent(m) => write!(f, "ServiceDebugEvent: {:?}", m),
             OutputField::Request(r) => write!(f, "InboundRequest: {:?}", r),
             OutputField::Response(r) => write!(f, "InboundResponse: {:?}", r),
+            OutputField::RunningScripts(r) => todo!(),
+            OutputField::Cid(r) => todo!()
         }
     }
 }

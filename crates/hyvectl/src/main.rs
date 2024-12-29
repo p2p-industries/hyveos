@@ -21,6 +21,7 @@ impl CommandFamily for Families {
             Families::PubSub(cmd) => cmd.run(connection).await,
             Families::Inspect(cmd) => cmd.run(connection).await,
             Families::ReqRes(cmd) => cmd.run(connection).await,
+            Families::File(cmd) => cmd.run(connection).await,
             Families::Whoami => {todo!()}
         }
     }

@@ -20,3 +20,14 @@ where
         Err(e) => { stream::once(async move { Err(e.into()) }).boxed() }
     }
 }
+
+#[macro_export]
+macro_rules! single_output_stream {
+    ($body:expr) => {{
+
+        stream::once(async move {
+            Ok($body)
+        })
+        .boxed()
+    }};
+}

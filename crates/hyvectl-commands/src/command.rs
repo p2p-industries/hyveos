@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use crate::families::{kv, pubsub, inspect, reqres};
+use crate::families::{kv, pubsub, inspect, reqres, file};
 
 #[derive(Parser)]
 #[command(name = "hyvectl", about = "Hyvectl")]
@@ -18,7 +18,8 @@ pub enum Families {
     Inspect(inspect::Inspect),
     #[command(subcommand, about = "Request-Response Service")]
     ReqRes(reqres::ReqRes),
-
-    #[command(subcommand, about = "Prints the nodes Peer-id")]
+    #[command(subcommand, about = "File Transfer Service")]
+    File(file::File),
+    #[command(subcommand, about = "Prints the local Peer-id")]
     Whoami
 }

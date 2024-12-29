@@ -12,7 +12,7 @@ impl CommandFamily for Inspect {
         let mut debug = connection.debug();
 
         match self {
-            Inspect::Mesh => {
+            Inspect::Mesh { local } => {
               let mesh_stream = resolve_stream(debug.subscribe_mesh_topology()
                   .await).await;
 

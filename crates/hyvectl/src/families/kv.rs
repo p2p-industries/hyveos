@@ -1,6 +1,5 @@
 use hyveos_sdk::Connection;
 use std::error::Error;
-use colored::Colorize;
 use crate::util::{resolve_stream, CommandFamily};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt, TryStreamExt, stream};

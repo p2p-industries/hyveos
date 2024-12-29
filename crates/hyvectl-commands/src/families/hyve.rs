@@ -5,21 +5,43 @@ pub enum Hyve {
     #[command(about = "Starts an application on a given node")]
     Start {
         image: String,
-        #[arg(help = "Peer-Id of the target node", long)]
-        peer: String,
-        #[arg(help = "Deploys the image locally", long)]
-        local: Option<bool>,
-        #[arg(help = "Ports to expose from target to application", long)]
-        ports: Vec<u16>,
 
+        /// Peer-Id of the target node
+        #[arg(long, conflicts_with = "local")]
+        peer: Option<String>,
+
+        /// Deploy the image locally
+        #[arg(long, conflicts_with = "peer")]
+        local: bool,
+
+        /// Ports to expose from target to application
+        #[arg(long)]
+        ports: Vec<u16>,
     },
+
     #[command(about = "List running applications on a given node")]
     List {
-        peer: String
+        /// Peer-Id of the target node
+        #[arg(long, conflicts_with = "local")]
+        peer: Option<String>,
+
+        /// List local running scripts
+        #[arg(long, conflicts_with = "peer")]
+        local: bool,
     },
-    #[command(about = "Stops an application on a give node")]
+
+    #[command(about = "Stops an application on a given node")]
     Stop {
-        peer: String,
-        container: String,
+        /// Peer-Id of the target node
+        #[arg(long, conflicts_with = "local")]
+        peer: Option<String>,
+
+        /// List local running scripts
+        #[arg(long, conflicts_with = "peer")]
+        local: bool,
+
+        /// Identifier of the script to stop
+        #[arg(long)]
+        id: String,
     }
 }
