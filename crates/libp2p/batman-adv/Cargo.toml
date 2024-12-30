@@ -14,7 +14,7 @@ hashlink = "0.10.0"
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true }
 itertools = "0.13.0"
-libc = "0.2.153"
+libc = "0.2.169"
 libp2p = { workspace = true, features = ["serde"] }
 hyveos-macaddress = { workspace = true }
 rand = { workspace = true }
