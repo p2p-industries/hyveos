@@ -72,7 +72,13 @@ export class GossipSub extends BaseService<typeof Service> {
     }
   }
 
-  public async publish(topic: string, data: Uint8Array): Promise<Uint8Array> {
+  public async publish(
+    topic: string,
+    data: Uint8Array | string,
+  ): Promise<Uint8Array> {
+    if (typeof data === 'string') {
+      data = new TextEncoder().encode(data)
+    }
     const { id } = await this.client.publish({
       topic: {
         topic,

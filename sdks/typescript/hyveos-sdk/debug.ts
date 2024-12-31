@@ -55,6 +55,7 @@ export class MeshTopologySubscription extends AbortOnDispose
 
 export type InnerDebugEvent = {
   case: 'req'
+  receiver: string
   id: string
   topic?: string
   data: Uint8Array
@@ -64,8 +65,9 @@ export type InnerDebugEvent = {
   topic: string
 } | {
   case: 'res'
+  id: string
   response: {
-    success: boolean
+    success: true
     data: Uint8Array
   } | {
     success: false
@@ -102,9 +104,11 @@ export class MessageSubscription extends AbortOnDispose {
           const topic = value.msg?.topic?.topic?.topic
           const data = value.msg?.data?.data
           if (!data) continue
+          const receiver = value.receiver?.peerId
+          if (!receiver) continue
           yield {
             sender: senderPeer,
-            event: { case: 'req', id: ulid, topic, data },
+            event: { case: 'req', id: ulid, topic, data, receiver },
           }
           break
         }
@@ -130,6 +134,7 @@ export class MessageSubscription extends AbortOnDispose {
                 sender: senderPeer,
                 event: {
                   case: 'res',
+                  id: ulid,
                   response: { success: true, data: response.value.data },
                 },
               }
@@ -141,6 +146,7 @@ export class MessageSubscription extends AbortOnDispose {
                 sender: senderPeer,
                 event: {
                   case: 'res',
+                  id: ulid,
                   response: { success: false, error },
                 },
               }

@@ -177,7 +177,13 @@ export class ReqRes extends BaseService<typeof Service> {
    * @returns The response data.
    * @throws If the response is an error.
    */
-  public async request(peerId: string, data: Uint8Array): Promise<Uint8Array> {
+  public async request(
+    peerId: string,
+    data: Uint8Array | string,
+  ): Promise<Uint8Array> {
+    if (typeof data === 'string') {
+      data = new TextEncoder().encode(data)
+    }
     const { response } = await this.client.send({
       peer: {
         peerId,

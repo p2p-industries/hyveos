@@ -14,6 +14,6 @@
     "exclude": ["./hyveos-sdk/gen/script_pb.ts"]
   },
   "imports": {
-	  "jsr:hyveos-sdk": "./hyveos-sdk/mod.ts"
+    "jsr:hyveos-sdk": "./hyveos-sdk/mod.ts"
   }
 }

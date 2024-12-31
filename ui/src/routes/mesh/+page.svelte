@@ -1,5 +1,6 @@
 <script lang="ts">
   import MeshGraph from '$lib/components/MeshGraph.svelte';
+  import DataViewer from '$lib/components/DataViewer.svelte';
   import type { Message } from '$lib/types';
   import { onMount } from 'svelte';
   import { load, nodes, links, peerIdToLabel } from './mesh.svelte';
@@ -27,6 +28,29 @@
               message: btoa(decoder.decode(event.data))
             }
           });
+        } else if (event.case === 'req') {
+          const { data, topic, id, receiver } = event;
+          if (!topic) continue;
+          messages.push({
+            sender,
+            data: {
+              type: 'req_resp',
+              id,
+              topic,
+              data,
+              receiver
+            }
+          });
+        } else if (event.case === 'res') {
+          const { id, response } = event;
+          const messageIdx = messages.findIndex(({ data }) => {
+            return data.type === 'req_resp' && data.id === id;
+          });
+          if (messageIdx !== -1) {
+            if (messages[messageIdx].data.type === 'req_resp') {
+              messages[messageIdx].data.response = response;
+            }
+          }
         }
       }
     } catch (e) {
@@ -53,17 +77,19 @@
               {/if}
             </p>
             {#if message.data.type === 'req_resp'}
+              {@const data = message.data.data}
               <div class="flex flex-row w-full">
                 <p class="w-6">&rarr;</p>
                 <p class="w-[calc(100%-1.5rem)] text-gray-400 break-words">
-                  {message.data.request}
+                  <DataViewer {data} />
                 </p>
               </div>
-              {#if message.data.response}
+              {#if message.data.response?.success}
+                {@const responseData = message.data.response.data}
                 <div class="flex flex-row w-full">
                   <p class="w-6">&larr;</p>
                   <p class="w-[calc(100%-1.5rem)] text-gray-400 break-words">
-                    {message.data.response}
+                    <DataViewer data={responseData} />
                   </p>
                 </div>
               {/if}

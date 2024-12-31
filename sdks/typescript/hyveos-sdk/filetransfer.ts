@@ -94,7 +94,6 @@ export class FileTransfer extends BaseService<typeof Service> {
         id: id?.ulid,
       }
     } else if (
-      !this.isUnix &&
       (file instanceof Blob || file instanceof ReadableStream) && fileName
     ) {
       return this.uploadFileFromBlob(file, fileName)
