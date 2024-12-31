@@ -60,9 +60,10 @@ impl ReqResp for ReqRespServer {
             tokio::spawn(async move {
                 let _ = client.req_resp().unsubscribe(id).await;
             });
-        });
+        })
+        .boxed();
 
-        Ok(TonicResponse::new(Box::pin(drop_stream)))
+        Ok(TonicResponse::new(drop_stream))
     }
 
     async fn respond(&self, request: TonicRequest<grpc::SendResponse>) -> TonicResult<grpc::Empty> {
