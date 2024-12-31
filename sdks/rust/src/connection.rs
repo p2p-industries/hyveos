@@ -1,6 +1,7 @@
 use std::{env, path::PathBuf, sync::Arc};
 
 use hyper_util::rt::TokioIo;
+use hyveos_core::BRIDGE_SOCKET_ENV_VAR;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::net::UnixStream;
@@ -24,13 +25,12 @@ use crate::{
 mod internal {
     use std::future::Future;
 
-    use tonic::transport::Channel;
-
+    use super::Connection;
     use crate::error::Result;
 
     pub trait ConnectionType {
         // We can promise `Send` here, so let's do it.
-        fn connect(self) -> impl Future<Output = Result<Channel>> + Send;
+        fn connect(self) -> impl Future<Output = Result<Connection>> + Send;
     }
 }
 
@@ -50,19 +50,24 @@ pub struct BridgeConnection {
 }
 
 impl internal::ConnectionType for BridgeConnection {
-    async fn connect(self) -> Result<Channel> {
-        Endpoint::try_from("http://[::]:50051")?
+    async fn connect(self) -> Result<Connection> {
+        let channel = Endpoint::try_from("http://[::]:50051")?
             .connect_with_connector(service_fn(|_: Uri| async {
-                let path = env::var(hyveos_core::BRIDGE_SOCKET_ENV_VAR)
-                    .map_err(|e| Error::EnvVarMissing(hyveos_core::BRIDGE_SOCKET_ENV_VAR, e))?;
+                let path = env::var(BRIDGE_SOCKET_ENV_VAR)
+                    .map_err(|e| Error::EnvVarMissing(BRIDGE_SOCKET_ENV_VAR, e))?;
 
                 UnixStream::connect(path)
                     .await
                     .map_err(Error::from)
                     .map(TokioIo::new)
             }))
-            .await
-            .map_err(Into::into)
+            .await?;
+
+        Ok(Connection {
+            channel,
+            #[cfg(feature = "network")]
+            reqwest_client_and_url: None,
+        })
     }
 }
 
@@ -73,9 +78,9 @@ pub struct CustomSocketConnection {
 }
 
 impl internal::ConnectionType for CustomSocketConnection {
-    async fn connect(self) -> Result<Channel> {
+    async fn connect(self) -> Result<Connection> {
         let socket_path = Arc::new(self.socket_path);
-        Endpoint::try_from("http://[::]:50051")?
+        let channel = Endpoint::try_from("http://[::]:50051")?
             .connect_with_connector(service_fn(move |_: Uri| {
                 let socket_path = socket_path.clone();
                 async move {
@@ -85,21 +90,70 @@ impl internal::ConnectionType for CustomSocketConnection {
                         .map(TokioIo::new)
                 }
             }))
-            .await
-            .map_err(Into::into)
+            .await?;
+
+        Ok(Connection {
+            channel,
+            #[cfg(feature = "network")]
+            reqwest_client_and_url: None,
+        })
     }
 }
 
 /// A connection over the network to a HyveOS runtime listening at a given URI.
+#[cfg(feature = "network")]
 #[derive(Debug, Clone)]
 pub struct UriConnection {
     uri: Uri,
 }
 
+#[cfg(feature = "network")]
 impl internal::ConnectionType for UriConnection {
-    async fn connect(self) -> Result<Channel> {
-        Endpoint::from(self.uri).connect().await.map_err(Into::into)
+    async fn connect(self) -> Result<Connection> {
+        let (url, if_name) = uri_to_url_and_if_name(self.uri.clone())?;
+        let channel = Endpoint::from(self.uri).connect().await?;
+
+        let mut client_builder = reqwest::Client::builder();
+
+        if let Some(if_name) = if_name {
+            client_builder = client_builder.interface(&if_name);
+        }
+
+        let client = client_builder.build()?;
+
+        Ok(Connection {
+            channel,
+            reqwest_client_and_url: Some((client, url)),
+        })
     }
+}
+
+#[cfg(feature = "network")]
+fn uri_to_url_and_if_name(uri: Uri) -> Result<(reqwest::Url, Option<String>)> {
+    let mut parts = uri.into_parts();
+    let mut if_name = None;
+    if let Some(authority) = &parts.authority {
+        let authority = authority.as_str();
+
+        if let Some(ipv6_start) = authority.find('[') {
+            if let Some(start) = authority[ipv6_start..].find('%') {
+                if let Some(end) = authority[start..].find(']') {
+                    let zone = &authority[start + 1..end];
+                    let name = zone
+                        .parse()
+                        .ok()
+                        .and_then(|index| hyveos_ifaddr::if_index_to_name(index).ok())
+                        .unwrap_or_else(|| zone.to_string());
+                    if_name = Some(name);
+                    let mut authority = authority.to_string();
+                    authority.replace_range(start..end, "");
+                    parts.authority = Some(authority.parse()?);
+                }
+            }
+        }
+    }
+
+    Ok((Uri::try_from(parts)?.to_string().parse()?, if_name))
 }
 
 /// A builder for configuring a connection to the HyveOS runtime.
@@ -166,6 +220,9 @@ impl ConnectionBuilder<BridgeConnection> {
     /// The URI should be in the format `http://<host>:<port>`.
     /// A HyveOS runtime should be listening at the given address.
     ///
+    /// > **Note**: If the provided URI's path is not just `/` (e.g. `http://example.com:12345/foo/bar/`),
+    /// > make sure that it ends with a slash!
+    ///
     /// # Example
     ///
     /// ```no_run
@@ -185,6 +242,7 @@ impl ConnectionBuilder<BridgeConnection> {
     /// println!("My peer id: {peer_id}");
     /// # }
     /// ```
+    #[cfg(feature = "network")]
     pub fn uri(self, uri: Uri) -> ConnectionBuilder<UriConnection> {
         ConnectionBuilder {
             connection_type: UriConnection { uri },
@@ -218,8 +276,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
     /// # }
     /// ```
     pub async fn connect(self) -> Result<Connection> {
-        let channel = self.connection_type.connect().await?;
-        Ok(Connection { channel })
+        self.connection_type.connect().await
     }
 }
 
@@ -250,6 +307,8 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
 /// ```
 pub struct Connection {
     pub(crate) channel: Channel,
+    #[cfg(feature = "network")]
+    pub(crate) reqwest_client_and_url: Option<(reqwest::Client, reqwest::Url)>,
 }
 
 impl Connection {
@@ -417,7 +476,7 @@ impl Connection {
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let shared_dir = std::env::var("P2P_INDUSTRIES_SHARED_DIR").unwrap();
+    /// let shared_dir = std::env::var(hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR).unwrap();
     /// let file_path = Path::new(&shared_dir).join("example.txt");
     /// tokio::fs::write(&file_path, "Hello, world!").await.unwrap();
     ///

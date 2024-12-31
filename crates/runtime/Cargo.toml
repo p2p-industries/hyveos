@@ -21,10 +21,11 @@ libp2p = { workspace = true, features = ["identify", "gossipsub"] }
 pin-project = { workspace = true }
 hyveos-core = { workspace = true }
 hyveos-p2p-stack = { workspace = true }
-redb = "2.1.1"
+redb = "2.3.0"
 serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "time"] }
@@ -34,5 +35,6 @@ ulid = { workspace = true }
 batman = ["hyveos-bridge/batman", "hyveos-p2p-stack/batman"]
 clap = ["dep:clap"]
 console-subscriber = ["dep:console-subscriber"]
+network = ["hyveos-bridge/network"]
 mdns = ["hyveos-p2p-stack/mdns"]
 serde = ["dep:serde"]

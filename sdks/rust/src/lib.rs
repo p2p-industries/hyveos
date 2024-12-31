@@ -46,8 +46,9 @@
 //! }
 //! ```
 
+#[cfg(feature = "network")]
+pub use http::Uri;
 pub use libp2p_identity::PeerId;
-pub use tonic::transport::Uri;
 
 #[doc(inline)]
 pub use crate::{connection::Connection, error::Error};
