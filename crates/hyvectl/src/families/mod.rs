@@ -4,3 +4,4 @@ pub mod inspect;
 pub mod reqres;
 mod hyve;
 mod file;
+mod whoami;

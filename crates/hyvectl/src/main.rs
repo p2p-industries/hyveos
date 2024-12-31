@@ -23,7 +23,7 @@ impl CommandFamily for Families {
             Families::Inspect(cmd) => cmd.run(connection).await,
             Families::ReqRes(cmd) => cmd.run(connection).await,
             Families::File(cmd) => cmd.run(connection).await,
-            Families::Whoami => {todo!()}
+            Families::Whoami(cmd) => cmd.run(connection).await
         }
     }
 }
