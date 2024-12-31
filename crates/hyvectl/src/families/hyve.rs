@@ -26,7 +26,7 @@ impl CommandFamily for Hyve {
 
                     scripting_service.deploy_script(config).await?;
 
-                    yield CommandOutput::new_result("Hyve Start")
+                    yield CommandOutput::result("Hyve Start")
                         .with_field("image", OutputField::String(image))
                         .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
                         .with_human_readable_template("Deployed {image} on {peer}")
@@ -41,7 +41,7 @@ impl CommandFamily for Hyve {
 
                     let scripts = scripting_service.list_running_scripts(peer_parsed).await?;
 
-                    yield CommandOutput::new_result("Hyve List")
+                    yield CommandOutput::result("Hyve List")
                             .with_field("scripts", OutputField::RunningScripts(scripts))
                             .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
                             .with_human_readable_template("Running scripts on {peer} : {scripts}")
@@ -56,7 +56,7 @@ impl CommandFamily for Hyve {
 
                     scripting_service.stop_script(id.parse()?, peer_parsed).await?;
 
-                    yield CommandOutput::new_result("Hyve Stop")
+                    yield CommandOutput::result("Hyve Stop")
                             .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
                             .with_field("id", OutputField::String(id))
                             .with_human_readable_template("Stopped {id} on {peer}")

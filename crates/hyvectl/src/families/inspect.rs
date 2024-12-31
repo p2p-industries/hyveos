@@ -18,12 +18,12 @@ impl CommandFamily for Inspect {
                     while let Some(event) = stream.next().await {
                         match event {
                             Ok(message) => {
-                                yield CommandOutput::new_result("Inspect Mesh")
+                                yield CommandOutput::result("Inspect Mesh")
                                     .with_field("event", OutputField::MeshTopologyEvent(message))
                                     .with_human_readable_template("Mesh Topology changed: {event}")
                             },
                             Err(e) => {
-                                yield CommandOutput::new_error("Inspect Mesh", &e.to_string())
+                                yield CommandOutput::error("Inspect Mesh", &e.to_string())
                             }
                         }
                     }
@@ -36,12 +36,12 @@ impl CommandFamily for Inspect {
                     while let Some(event) = stream.next().await {
                         match event {
                             Ok(message) => {
-                                yield CommandOutput::new_result("Inspect Services")
+                                yield CommandOutput::result("Inspect Services")
                                     .with_field("event", OutputField::ServiceDebugEvent(message))
                                     .with_human_readable_template("Service event: {event}")
                             },
                             Err(e) => {
-                                yield CommandOutput::new_error("Inspect Services", &e.to_string())
+                                yield CommandOutput::error("Inspect Services", &e.to_string())
                             }
                         }
                     }

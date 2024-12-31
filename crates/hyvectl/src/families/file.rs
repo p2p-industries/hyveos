@@ -19,7 +19,7 @@ impl CommandFamily for File {
                     let cid = file_transfer_service.publish_file(Path::new(&path))
                     .await?;
 
-                    yield CommandOutput::new_result("File Publish")
+                    yield CommandOutput::result("File Publish")
                     .with_field("cid", OutputField::String(cid.to_string()))
                     .with_human_readable_template("Published file under cid {cid}")
                 }
@@ -30,21 +30,21 @@ impl CommandFamily for File {
                         .get_file_with_progress(cid.parse::<Cid>()?)
                         .await?;
 
-                    yield CommandOutput::new_message("File Get", "Starting Download...");
+                    yield CommandOutput::message("File Get", "Starting Download...");
 
                     while let Some(event) = download_stream.next().await {
 
                         let event: DownloadEvent = match event {
                             Ok(e) => e,
-                            Err(e) => { yield CommandOutput::new_error("File Get", "Download stream returned None"); continue; },
+                            Err(e) => { yield CommandOutput::error("File Get", "Download stream returned None"); continue; },
                         };
 
                         match event {
                             DownloadEvent::Progress(p) => {
-                                yield CommandOutput::new_progress("File Get", p)
+                                yield CommandOutput::progress("File Get", p)
                             }
                             DownloadEvent::Ready(path) => {
-                                yield CommandOutput::new_result("File Get")
+                                yield CommandOutput::result("File Get")
                                 .with_field("cid", OutputField::String(cid.to_string()))
                                 .with_field("local_path", OutputField::String(path.display().to_string()))
                                 .with_human_readable_template("Downloaded file with cid {cid} to {local_path}");

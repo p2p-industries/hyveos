@@ -67,7 +67,7 @@ pub struct CommandOutput {
 
 impl CommandOutput {
 
-    pub fn new_message(command: &'static str, message: &str) -> Self {
+    pub fn message(command: &'static str, message: &str) -> Self {
         Self {
             command,
             success: true,
@@ -75,7 +75,7 @@ impl CommandOutput {
         }
     }
 
-    pub fn new_result(command: &'static str) -> Self {
+    pub fn result(command: &'static str) -> Self {
         Self {
             command,
             success: true,
@@ -86,7 +86,7 @@ impl CommandOutput {
         }
     }
 
-    pub fn new_progress(command: &'static str, progress: u64) -> Self {
+    pub fn progress(command: &'static str, progress: u64) -> Self {
         Self {
             command,
             success: true,
@@ -94,7 +94,7 @@ impl CommandOutput {
         }
     }
 
-    pub fn new_error(command: &'static str, message: &str) -> Self {
+    pub fn error(command: &'static str, message: &str) -> Self {
         Self {
             command,
             success: false,

@@ -12,16 +12,16 @@ pub enum PubSub {
     Get {
         topic: String,
 
+        /// Number of messages to retrieve
         #[arg(short,
             required_unless_present = "follow",
-            conflicts_with = "follow",
-            help = "Number of messages to retrieve")]
+            conflicts_with = "follow")]
         n: Option<u64>,
 
+        /// Continuously retrieve messages
         #[arg(long, short,
             required_unless_present = "n",
-            conflicts_with = "n",
-            help = "Continuously retrieve messages")]
+            conflicts_with = "n")]
         follow: bool,
     },
 }
