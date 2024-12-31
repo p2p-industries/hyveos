@@ -1,12 +1,13 @@
 use std::path::Path;
-use futures::{stream, StreamExt};
+use futures::{stream, FutureExt, Stream, StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use crate::util::{CommandFamily, DynError};
 use hyveos_sdk::Connection;
+use crate::boxed_try_stream;
 use crate::output::{CommandOutput, OutputField};
-use crate::single_output_stream;
+
 
 impl CommandFamily for File {
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
@@ -14,25 +15,29 @@ impl CommandFamily for File {
 
         match self {
             File::Publish {path} => {
-                let cid = file_transfer_service.publish_file(Path::new(&path))
-                    .await.unwrap();
+                boxed_try_stream! {
+                    let cid = file_transfer_service.publish_file(Path::new(&path))
+                    .await?;
 
-                single_output_stream!(
-                    CommandOutput::new_result("File Publish")
+                    yield CommandOutput::new_result("File Publish")
                     .with_field("cid", OutputField::String(cid.to_string()))
                     .with_human_readable_template("Published file under cid {cid}")
-                )
+                }
             }
             File::Get {cid, out } => {
-                let output_stream = async_stream::try_stream! {
+                boxed_try_stream! {
                     let mut download_stream = file_transfer_service
-                        .get_file_with_progress(cid.parse::<Cid>().unwrap())
-                        .await.unwrap();
+                        .get_file_with_progress(cid.parse::<Cid>()?)
+                        .await?;
 
                     yield CommandOutput::new_message("File Get", "Starting Download...");
 
                     while let Some(event) = download_stream.next().await {
-                        let event = event?;
+
+                        let event: DownloadEvent = match event {
+                            Ok(e) => e,
+                            Err(e) => { yield CommandOutput::new_error("File Get", "Download stream returned None"); continue; },
+                        };
 
                         match event {
                             DownloadEvent::Progress(p) => {
@@ -46,9 +51,7 @@ impl CommandFamily for File {
                             }
                         }
                     }
-                };
-
-                output_stream.boxed()
+                }
             }
         }
     }

@@ -1,11 +1,10 @@
 use hyveos_sdk::Connection;
-use std::error::Error;
-use crate::util::{resolve_stream, CommandFamily, DynError};
+use crate::util::{CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
-use futures::{StreamExt, TryStreamExt, FutureExt};
+use futures::{StreamExt, FutureExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::inspect::Inspect;
-
+use crate::boxed_try_stream;
 
 impl CommandFamily for Inspect {
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
@@ -13,29 +12,40 @@ impl CommandFamily for Inspect {
 
         match self {
             Inspect::Mesh { local } => {
-              let mesh_stream = resolve_stream(debug.subscribe_mesh_topology()
-                  .await).await;
+                boxed_try_stream! {
+                    let mut stream = debug.subscribe_mesh_topology().await?;
 
-                mesh_stream
-                    .map_ok(move |event| {
-                        CommandOutput::new_result("Inspect Mesh")
-                            .with_field("event", OutputField::MeshTopologyEvent(event))
-                            .with_human_readable_template("Mesh Topology changed: {event}")
-                    }).map_err(|e| e.into())
-                    .boxed()
-
+                    while let Some(event) = stream.next().await {
+                        match event {
+                            Ok(message) => {
+                                yield CommandOutput::new_result("Inspect Mesh")
+                                    .with_field("event", OutputField::MeshTopologyEvent(message))
+                                    .with_human_readable_template("Mesh Topology changed: {event}")
+                            },
+                            Err(e) => {
+                                yield CommandOutput::new_error("Inspect Mesh", &e.to_string())
+                            }
+                        }
+                    }
+                }
             },
             Inspect::Services => {
-                let debug_stream = resolve_stream(debug.subscribe_messages()
-                    .await).await;
+                boxed_try_stream! {
+                    let mut stream = debug.subscribe_messages().await?;
 
-                debug_stream
-                    .map_ok(move |event| {
-                        CommandOutput::new_result("Inspect Services")
-                            .with_field("event", OutputField::ServiceDebugEvent(event))
-                            .with_human_readable_template("Service event: {event}")
-                    }).map_err(|e| e.into())
-                    .boxed()
+                    while let Some(event) = stream.next().await {
+                        match event {
+                            Ok(message) => {
+                                yield CommandOutput::new_result("Inspect Services")
+                                    .with_field("event", OutputField::ServiceDebugEvent(message))
+                                    .with_human_readable_template("Service event: {event}")
+                            },
+                            Err(e) => {
+                                yield CommandOutput::new_error("Inspect Services", &e.to_string())
+                            }
+                        }
+                    }
+                }
             }
         }
     }

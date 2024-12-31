@@ -33,3 +33,9 @@ macro_rules! single_output_stream {
         .boxed()
     }};
 }
+#[macro_export]
+macro_rules! boxed_try_stream {
+    ($($body:tt)*) => {
+        async_stream::try_stream!{ $($body)* }.boxed()
+    }
+}

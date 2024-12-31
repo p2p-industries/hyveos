@@ -3,7 +3,7 @@ use hyveos_sdk::Connection;
 use std::error::Error;
 use crate::util::{resolve_stream, CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
-use futures::{StreamExt, TryStreamExt, stream};
+use futures::{StreamExt, TryStreamExt, stream, FutureExt};
 use futures::stream::BoxStream;
 
 impl CommandFamily for PubSub {
@@ -12,30 +12,45 @@ impl CommandFamily for PubSub {
 
         match self {
             PubSub::Publish { topic, message } => {
-                stream::once(async move {
+                let stream = async_stream::try_stream! {
                     pubsub.publish(topic.clone(), message.clone()).await?;
-                    Ok(CommandOutput::new_result("PubSub Publish")
-                        .with_field("topic", OutputField::String(topic))
-                        .with_field("message", OutputField::String(message))
-                        .with_human_readable_template("Published {message} to topic {topic}"))
-                }).boxed()
-            },
-            PubSub::Get { topic, n, follow } => {
-                let subscription_stream = resolve_stream(
-                    pubsub.subscribe(topic.clone()).await).await;
 
-                let subscription_stream = match n {
-                    Some(n) => { subscription_stream.take(n as usize).boxed() }
-                    None => { subscription_stream.boxed() }
+                    yield CommandOutput::new_result("PubSub Publish")
+                        .with_field("topic", OutputField::String(topic.clone()))
+                        .with_field("message", OutputField::String(message.clone()))
+                        .with_human_readable_template("Published {message} to topic {topic}")
                 };
 
-                subscription_stream
-                    .map_ok(move |message|
-                        {CommandOutput::new_result("PubSub Subscribe")
-                            .with_field("message", OutputField::GossipMessage(message.clone()))
-                            .with_human_readable_template("Received message {message}")})
-                    .map_err(|e| e.into())
-                    .boxed()
+                stream.boxed()
+            },
+            PubSub::Get { topic, n, follow } => {
+                let stream = async_stream::try_stream! {
+                    let mut message_stream = pubsub.subscribe(topic.clone()).await?;
+                    let mut count = 0;
+
+                    yield CommandOutput::new_message("PubSub Subscribe", "Listening on Topic");
+
+                    while let Some(event) = message_stream.next().await {
+                        if let Some(limit) = n {
+                            if count >= limit {
+                                break;
+                            }
+                        }
+
+                        match event {
+                            Ok(message) => {
+                                yield CommandOutput::new_result("PubSub Subscribe")
+                                        .with_field("message", OutputField::GossipMessage(message.clone()))
+                                        .with_human_readable_template("Received message {message}");
+                                count += 1;
+                            },
+                            Err(e) =>
+                                yield CommandOutput::new_error("PubSub Subscribe", &e.to_string())
+                        }
+                    }
+                };
+
+                stream.boxed()
             }
         }
     }
