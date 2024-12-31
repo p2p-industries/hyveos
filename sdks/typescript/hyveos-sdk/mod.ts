@@ -35,7 +35,7 @@ import { Scripting } from './scripting.ts'
 export * from './scripting.ts'
 
 /**
- * Interface for the transport layer. Typically optained through the `hyveos-server` or `hyveos-web` package.
+ * Interface for the transport layer. Typically obtained through the `hyveos-server` or `hyveos-web` package.
  */
 export interface ITransport {
   /**
