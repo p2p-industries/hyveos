@@ -56,6 +56,8 @@ pub enum Error {
     /// Got an error response from a HTTP request.
     #[error("Got an error response: {0}")]
     Response(String),
+    #[error("Not a file: {0}")]
+    NotAFile(PathBuf),
 }
 
 /// Alias for a `Result` that defaults to [`Error`] as the error type.

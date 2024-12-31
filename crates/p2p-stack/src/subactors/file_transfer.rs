@@ -15,7 +15,7 @@ use futures::{
     stream::{self, BoxStream},
     SinkExt, Stream, StreamExt as _, TryStreamExt as _,
 };
-use hyveos_core::file_transfer::{Cid, DownloadEvent};
+use hyveos_core::file_transfer::{read_only_hard_link, Cid, DownloadEvent};
 use libp2p::{
     kad::{AddProviderError, GetProvidersOk, RecordKey},
     PeerId, StreamProtocol,
@@ -296,7 +296,7 @@ impl Client {
         if !file.exists() {
             return Err(io::Error::from(io::ErrorKind::NotFound).into());
         }
-        tokio::fs::copy(file, path).await?;
+        read_only_hard_link(file, &path).await?;
         self.provide_cid(cid).await?;
         Ok(())
     }

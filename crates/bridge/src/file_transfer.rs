@@ -15,12 +15,13 @@ use axum::{
 };
 use const_format::concatcp;
 #[cfg(feature = "network")]
+
 use futures::Stream;
 use futures::{future, StreamExt as _, TryStreamExt as _};
 #[cfg(feature = "network")]
 use hyveos_core::{file_transfer::Cid, serde::JsonResult};
 use hyveos_core::{
-    file_transfer::DownloadEvent,
+    file_transfer::{DownloadEvent, read_only_hard_link},
     grpc::{self, file_transfer_server::FileTransfer},
 };
 #[cfg(feature = "network")]
@@ -53,7 +54,7 @@ impl FileTransferServer {
         ulid_string: impl AsRef<Path>,
         shared_dir_path: impl AsRef<Path>,
     ) -> std::io::Result<PathBuf> {
-        tokio::fs::copy(path, shared_dir_path.as_ref().join(&ulid_string)).await?;
+        read_only_hard_link(&path, shared_dir_path.as_ref().join(&ulid_string)).await?;
 
         Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
     }
