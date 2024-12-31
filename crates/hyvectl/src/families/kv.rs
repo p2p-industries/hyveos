@@ -8,7 +8,6 @@ use hyvectl_commands::families::kv::Kv;
 use crate::boxed_try_stream;
 
 impl CommandFamily for Kv {
-    //noinspection ALL
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
         let mut dht = connection.dht();
 

@@ -9,7 +9,6 @@ use crate::output::{CommandOutput, OutputField};
 use crate::boxed_try_stream;
 
 impl CommandFamily for Hyve {
-    //noinspection ALL
     async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
         let mut scripting_service = connection.scripting();
 
