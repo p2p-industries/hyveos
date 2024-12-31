@@ -60,6 +60,7 @@ impl From<LogFilter> for LevelFilter {
     }
 }
 
+#[derive(Debug)]
 pub enum CliConnectionType {
     Local(PathBuf),
     #[cfg(feature = "network")]
@@ -72,8 +73,10 @@ pub struct Clients {
     pub scripting_client: ScriptingClient,
 }
 
+#[derive(Debug)]
 pub struct RuntimeArgs {
     pub listen_addrs: Vec<Multiaddr>,
+    #[cfg(feature = "batman")]
     pub batman_addr: Multiaddr,
     pub store_directory: PathBuf,
     pub db_file: PathBuf,
@@ -141,6 +144,7 @@ impl Runtime {
     pub async fn new(args: RuntimeArgs) -> anyhow::Result<Runtime> {
         let RuntimeArgs {
             listen_addrs,
+            #[cfg(feature = "batman")]
             batman_addr,
             store_directory,
             db_file,
@@ -180,9 +184,15 @@ impl Runtime {
 
         let (p2p_client, mut actor) = FullActor::build(keypair);
 
-        actor.setup(listen_addrs.into_iter(), Some(batman_addr));
+        #[cfg(feature = "batman")]
+        let opt_batman_addr = Some(batman_addr);
+        #[cfg(not(feature = "batman"))]
+        let opt_batman_addr = None;
+
+        actor.setup(listen_addrs.into_iter(), opt_batman_addr);
 
         let actor_task = tokio::spawn(async move {
+            tracing::trace!("Starting actor");
             Box::pin(actor.drive()).await;
         });
 
@@ -215,9 +225,11 @@ impl Runtime {
         );
 
         let (scripting_manager, scripting_client) = builder.build();
+        tracing::trace!("Starting scripting manager");
         let scripting_manager_task = tokio::spawn(scripting_manager.run());
 
         for (image, ports) in db_client.get_startup_scripts()? {
+            tracing::trace!(?image, ?ports, "Deploying image");
             scripting_client
                 .self_deploy_image(&image, true, false, ports, false)
                 .await?;
@@ -228,6 +240,7 @@ impl Runtime {
         let cli_bridge_base_path = runtime_base_path.join("bridge");
         let (cli_bridge_task, cli_bridge_cancellation_token) = match cli_connection {
             CliConnectionType::Local(socket_path) => {
+                tracing::trace!(?socket_path, "Starting local bridge");
                 let Bridge {
                     client,
                     cancellation_token,
@@ -248,6 +261,7 @@ impl Runtime {
             }
             #[cfg(feature = "network")]
             CliConnectionType::Network(socket_addr) => {
+                tracing::trace!(?socket_addr, "Starting network bridge");
                 let NetworkBridge {
                     client,
                     cancellation_token,
