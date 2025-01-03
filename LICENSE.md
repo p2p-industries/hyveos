@@ -1,3 +1,12 @@
+Copyright (c) 2024-present P2P Industries Inc.
+
+Portions of this software are licensed as follows:
+
+* All content that resides under https://github.com/p2p-industries/hyveos/tree/main/sdks/python directory of this repository is licensed under the license defined in "python/LICENSE.md".
+* All content that resides under https://github.com/p2p-industries/hyveos/tree/main/sdks/rust directory of this repository is licensed under the license defined in "rust/LICENSE.md".
+* All third party components incorporated into the P2P Industries Inc. Software are licensed under the original license provided by the owner of the applicable component.
+* Content outside of the above mentioned directories or restrictions above is available under the "Functional Source License, Version 1.1, MIT Future License" license as defined below.
+
 # Functional Source License, Version 1.1, MIT Future License
 
 ## Abbreviation
@@ -6,7 +15,7 @@ FSL-1.1-MIT
 
 ## Notice
 
-Copyright 2025 P2P Industries Inc.
+Copyright 2024-present P2P Industries Inc.
 
 ## Terms and Conditions
 
