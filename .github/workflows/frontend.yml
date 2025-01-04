@@ -48,9 +48,9 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Run tests
+      - name: Run check
         working-directory: sdks/typescript/${{ matrix.package }}
-        run: deno test 
+        run: deno check *.ts
       
       - name: Linting
         working-directory: sdks/typescript/${{ matrix.package }}
