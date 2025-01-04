@@ -8,6 +8,7 @@ use hyveos_core::gossipsub::ReceivedMessage;
 use hyveos_core::req_resp::Response;
 use hyveos_core::scripting::RunningScript;
 use hyveos_sdk::services::req_resp::InboundRequest;
+use crate::color::Theme;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum OutputField {
@@ -52,7 +53,7 @@ pub enum CommandOutputType {
     Result {
         fields: Vec<(&'static str, OutputField)>,
         #[serde(skip_serializing)]
-        human_readable_template: Option<String>,
+        human_readable_template: String,
     },
     Progress(u64),
     Error(String),
@@ -81,7 +82,7 @@ impl CommandOutput {
             success: true,
             output: CommandOutputType::Result {
                 fields: vec![],
-                human_readable_template: None,
+                human_readable_template: String::default(),
             }
         }
     }
@@ -114,7 +115,7 @@ impl CommandOutput {
     pub fn with_human_readable_template(mut self, template: &'static str) -> Self {
         match &mut self.output {
             CommandOutputType::Result { human_readable_template, .. } => {
-                *human_readable_template = Some(template.into());
+                *human_readable_template = template.into();
             }
             _ => {}
         }
@@ -125,32 +126,58 @@ impl CommandOutput {
         writeln!(output_stream, "{}", line)
     }
 
-    pub fn write(&self, output_stream: &mut dyn Write) -> Result<()> {
-        match &self.output {
-            CommandOutputType::Message(message) => {
-                self.safe_write_line(output_stream, message)
-            }
-            CommandOutputType::Result { fields, human_readable_template } => {
-                if let Some(template) = human_readable_template {
-                    let mut output = template.clone();
-                    for (key, value) in fields.clone() {
+        pub fn write(
+            &self,
+            output_stream: &mut dyn std::io::Write,
+            theme: &Option<Theme>
+        ) -> std::io::Result<()> {
+            match &self.output {
+                CommandOutputType::Message(message) => {
+                    let styled_msg = if let Some(t) = theme {
+                        t.info_msg(message.clone()).to_string()
+                    } else {
+                        message.to_string()
+                    };
+                    self.safe_write_line(output_stream, &styled_msg)
+                },
+                CommandOutputType::Result { fields, human_readable_template } => {
+                    let mut output = human_readable_template.clone();
+                    for (key, value) in fields {
                         let placeholder = format!("{{{}}}", key);
-                        output = output.replace(&placeholder, &value.to_string());
+                        let formatted_value = match value {
+                            OutputField::String(s) => {
+                                if let Some(t) = theme.clone() {
+                                    t.field(s.clone()).to_string()
+                                } else {
+                                    s.clone()
+                                }
+                            },
+                            _ => value.to_string(),
+                        };
+                        output = output.replace(&placeholder, &formatted_value);
                     }
-                    Ok(self.safe_write_line(output_stream, &output)?)
-                } else {
-                    self.safe_write_line(output_stream, &format!("{} Result:", self.command))?;
-                    self.safe_write_line(output_stream, &format!("  Success: {}", self.success))?;
-                    Ok(for (key, value) in fields {
-                        self.safe_write_line(output_stream, &format!("  {}: {}", key, value.to_string()))?;
-                    })
+
+                    let final_line = if let Some(t) = theme {
+                        t.result_msg(output).to_string()
+                    } else {
+                        output
+                    };
+                    self.safe_write_line(output_stream, &final_line)?;
+
+                    Ok(())
+                },
+                CommandOutputType::Progress(_) => {
+                    Ok(())
+                },
+                CommandOutputType::Error(message) => {
+                    let line = format!("ERROR ({}): {}", self.command, message);
+                    let colored_line = if let Some(t) = theme {
+                        t.error_msg(line).to_string()
+                    } else {
+                        line
+                    };
+                    self.safe_write_line(output_stream, &colored_line)
                 }
-            },
-            CommandOutputType::Progress(_) => {Ok(())}
-            CommandOutputType::Error(message) => {
-                let line = format!("ERROR ({}): {}", self.command, message);
-                self.safe_write_line(output_stream, &line)
             }
         }
-    }
 }

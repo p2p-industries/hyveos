@@ -44,6 +44,8 @@ async fn main() -> Result<(), DynError> {
     let is_tty = stdout().is_terminal();
     let mut stdout = stdout().lock();
 
+    let theme = if is_tty {Some(color::Theme::default())} else {None};
+
     let mut output_stream = cli.command.run(&connection).await;
 
     let mut progress_bar = None;
@@ -65,7 +67,7 @@ async fn main() -> Result<(), DynError> {
                 }
             },
             _ => {
-                command_output.write(&mut stdout)?;
+                command_output.write(&mut stdout, &theme)?;
             }
         }
 
