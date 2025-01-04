@@ -5,7 +5,7 @@ COPY --from=node:23-slim /usr/local/bin /usr/local/bin
 # Get npm
 COPY --from=node:23-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-RUN npm install -g npm@11.0.0
+RUN npm install -g npm
 
 COPY sdks/typescript /app/sdks/typescript
 
