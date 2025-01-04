@@ -9,6 +9,8 @@ RUN npm install -g npm@11.0.0
 
 COPY sdks/typescript /app/sdks/typescript
 
+RUN deno cache sdks/typescript/*/scripts/build_npm.ts
+
 WORKDIR /app/sdks/typescript/hyveos-sdk
 
 RUN deno run -A scripts/build_npm.ts 1.0.0 
@@ -23,8 +25,8 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-COPY sdks/typescript/hyveos-sdk/npm /app/sdks/typescript/hyveos-sdk/npm
-COPY sdks/typescript/hyveos-web/npm /app/sdks/typescript/hyveos-web/npm
+COPY --from=deno-builder /app/sdks/typescript/hyveos-sdk/npm /app/sdks/typescript/hyveos-sdk/npm
+COPY --from=deno-builder /app/sdks/typescript/hyveos-web/npm /app/sdks/typescript/hyveos-web/npm
 
 COPY ui /app/ui
 WORKDIR /app/ui

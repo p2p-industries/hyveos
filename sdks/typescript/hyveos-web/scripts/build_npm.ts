@@ -1,4 +1,4 @@
-import { build, emptyDir } from '@deno/dnt'
+import { build, emptyDir } from 'jsr:@deno/dnt'
 
 await emptyDir('./npm')
 
@@ -8,6 +8,9 @@ await build({
   importMap: '../deno.json',
   shims: {
     deno: false,
+  },
+  compilerOptions: {
+    lib: ['ESNext', 'DOM'],
   },
   package: {
     name: 'hyveos-web',
