@@ -39,6 +39,7 @@ mod file_transfer;
 mod gossipsub;
 mod req_resp;
 mod scripting;
+mod version;
 
 pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 

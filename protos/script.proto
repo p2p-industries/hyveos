@@ -235,6 +235,13 @@ message StopScriptRequest {
   optional Peer peer = 2;
 }
 
+message Version {
+  required uint64 major = 1;
+  required uint64 minor = 2;
+  required uint64 patch = 3;
+  optional string pre = 4;
+}
+
 // ----- SERVICES -----
 
 service ReqResp {
@@ -323,4 +330,9 @@ service Scripting {
 
   // Get the id of the current script
   rpc GetOwnId(Empty) returns (ID) {}
+}
+
+service BridgeInfo {
+  // Get the version of the runtime
+  rpc GetVersion(Empty) returns (Version) {}
 }
