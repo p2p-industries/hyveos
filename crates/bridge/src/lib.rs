@@ -3,7 +3,7 @@
 
 #[cfg(feature = "network")]
 use std::net::SocketAddr;
-use std::{io, path::PathBuf};
+use std::{io, os::unix::fs::PermissionsExt as _, path::PathBuf};
 
 use futures::stream::BoxStream;
 use hyveos_core::grpc;
@@ -86,6 +86,10 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         }
 
         let socket = UnixListener::bind(&socket_path)?;
+
+        let mut permissions = socket_path.metadata()?.permissions();
+        permissions.set_mode(0o775);
+        tokio::fs::set_permissions(&socket_path, permissions).await?;
 
         let cancellation_token = CancellationToken::new();
 
