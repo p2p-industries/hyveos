@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { Readable } from 'svelte/store';
   import * as d3 from 'd3';
   import type { SimulationNodeDatum, SimulationLinkDatum } from 'd3';
   import type { Node, Graph } from '$lib/types';
