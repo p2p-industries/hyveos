@@ -45,7 +45,7 @@ jobs:
       DENO_DIR: /tmp/${{ matrix.package }}-cache
     steps:
       - name: Cache Deno dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ env.DENO_DIR }}
           key: deno-cache-${{ matrix.package }}-build
@@ -81,7 +81,7 @@ jobs:
       DENO_DIR: /tmp/${{ matrix.package }}-cache
     steps:
       - name: Cache Deno dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ env.DENO_DIR }}
           key: deno-cache-${{ matrix.package }}-test
