@@ -1,9 +1,11 @@
+FROM --platform=$BUILDPLATFORM node:23-slim AS node-source
+
 FROM --platform=$BUILDPLATFORM denoland/deno:2.1.4 AS deno-builder
 
 # Get NodeJS
-COPY --from=node:23-slim /usr/local/bin /usr/local/bin
+COPY --from=node-source /usr/local/bin /usr/local/bin
 # Get npm
-COPY --from=node:23-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node-source /usr/local/lib/node_modules /usr/local/lib/node_modules
 
 RUN npm install -g npm
 
