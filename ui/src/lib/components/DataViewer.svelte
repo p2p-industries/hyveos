@@ -10,7 +10,7 @@
     };
 
     // Check if the input is valid UTF-8 or UTF-16 (ASCII subset)
-    const isUtf8OrUtf16Ascii = (): boolean => {
+    const isUtf8Ascii = (): boolean => {
       for (let i = 0; i < data.length; i++) {
         if (!isValidAscii(data[i])) {
           return false;
@@ -20,7 +20,7 @@
     };
 
     // Decode as UTF-8 if valid
-    if (isUtf8OrUtf16Ascii()) {
+    if (isUtf8Ascii()) {
       try {
         const utf8Decoder = new TextDecoder('utf-8');
         return utf8Decoder.decode(data);

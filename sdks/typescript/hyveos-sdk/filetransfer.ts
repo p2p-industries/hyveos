@@ -12,7 +12,6 @@ import {
   string,
   ulid as ulidParse,
 } from 'npm:valibot'
-import { walk } from 'jsr:@std/fs@1/walk'
 
 const uploadResponse = createJsonResult(object({
   id: pipe(string(), ulidParse()),
@@ -86,42 +85,27 @@ export class FileTransfer extends BaseService<typeof Service> {
     file: string | Uint8Array | Blob | ReadableStream<Uint8Array>,
     fileName?: string,
   ): Promise<Cid> {
-    if (this.isUnix) {
-      let path = ''
-      if (typeof file !== 'string' && !fileName) {
-        throw new Error('fileName is required when file is not a string')
-      } else if (typeof file !== 'string' && fileName) {
-        const tmpDir = await Deno.makeTempDir()
-        const tmpFile = `${tmpDir}/${fileName}`
-        if (file instanceof Blob) {
-          const blob = await file.arrayBuffer()
-          await Deno.writeFile(tmpFile, new Uint8Array(blob))
-        } else if (file instanceof Uint8Array) {
-          await Deno.writeFile(tmpFile, file)
-        } else {
-          await Deno.writeFile(
-            tmpFile,
-            // @ts-ignore This doesn't work when we compile to npm
-            file,
-          )
-        }
-        path = tmpFile
-      } else if (typeof file === 'string') {
-        path = file
-      }
+    if (this.isUnix && typeof file !== 'string') {
+      throw new Error(
+        'This method is only available when not using unix sockets, you need to provide a file path',
+      )
+    }
+    if (!this.isUnix && typeof file === 'string') {
+      throw new Error(
+        'This method is only available when using unix sockets, you need to provide a file blob',
+      )
+    }
+    if (typeof file === 'string') {
       const { hash, id } = await this.client.publishFile({
-        path,
+        path: file,
       })
       return {
         hash,
         id: id?.ulid,
       }
     } else {
-      if (typeof file === 'string') {
-        throw new Error('This method is only available when using unix sockets')
-      }
       if (!fileName) {
-        throw new Error('fileName is required when file is not a string')
+        throw new Error('fileName is required when uploading a file blob')
       }
       return this.uploadFileFromBlob(file, fileName)
     }
