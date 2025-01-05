@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import script_pb2 as script__pb2
+import script_pb2 as script__pb2
 
 GRPC_GENERATED_VERSION = '1.68.1'
 GRPC_VERSION = grpc.__version__
@@ -1226,6 +1226,79 @@ class Scripting(object):
             '/script.Scripting/GetOwnId',
             script__pb2.Empty.SerializeToString,
             script__pb2.ID.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class BridgeInfoStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.GetVersion = channel.unary_unary(
+                '/script.BridgeInfo/GetVersion',
+                request_serializer=script__pb2.Empty.SerializeToString,
+                response_deserializer=script__pb2.Version.FromString,
+                _registered_method=True)
+
+
+class BridgeInfoServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def GetVersion(self, request, context):
+        """Get the version of the runtime
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_BridgeInfoServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'GetVersion': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetVersion,
+                    request_deserializer=script__pb2.Empty.FromString,
+                    response_serializer=script__pb2.Version.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'script.BridgeInfo', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('script.BridgeInfo', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class BridgeInfo(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def GetVersion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.BridgeInfo/GetVersion',
+            script__pb2.Empty.SerializeToString,
+            script__pb2.Version.FromString,
             options,
             channel_credentials,
             insecure,

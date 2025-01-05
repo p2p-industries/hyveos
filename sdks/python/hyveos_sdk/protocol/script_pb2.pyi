@@ -288,3 +288,15 @@ class StopScriptRequest(_message.Message):
     id: ID
     peer: Peer
     def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
+
+class Version(_message.Message):
+    __slots__ = ("major", "minor", "patch", "pre")
+    MAJOR_FIELD_NUMBER: _ClassVar[int]
+    MINOR_FIELD_NUMBER: _ClassVar[int]
+    PATCH_FIELD_NUMBER: _ClassVar[int]
+    PRE_FIELD_NUMBER: _ClassVar[int]
+    major: int
+    minor: int
+    patch: int
+    pre: str
+    def __init__(self, major: _Optional[int] = ..., minor: _Optional[int] = ..., patch: _Optional[int] = ..., pre: _Optional[str] = ...) -> None: ...

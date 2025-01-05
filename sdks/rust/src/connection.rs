@@ -18,7 +18,7 @@ use crate::{
     error::{Error, Result},
     services::{
         DbService, DebugService, DhtService, DiscoveryService, FileTransferService,
-        GossipSubService, ReqRespService,
+        GossipSubService, ReqRespService, VersionService,
     },
 };
 
@@ -680,5 +680,23 @@ impl Connection {
     #[must_use]
     pub fn scripting(&self) -> ScriptingService {
         ScriptingService::new(self)
+    }
+
+    /// Returns a handle to the version service.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    /// use semver::Version;
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let version = connection.version().get_version().await.unwrap();
+    /// println!("Bridge version: {version}");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn version(&self) -> VersionService {
+        VersionService::new(self)
     }
 }

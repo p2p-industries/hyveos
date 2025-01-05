@@ -3,6 +3,8 @@ import grpc
 import os
 from typing import Optional
 
+from hyveos_sdk.services.version import VersionService
+
 from .services.db import DBService
 from .services.debug import DebugService
 from .services.dht import DHTService
@@ -225,3 +227,15 @@ class OpenedConnection:
         """
 
         return RequestResponseService(self._conn)
+
+    def get_version_service(self) -> VersionService:
+        """
+        Returns a handle to the version service.
+
+        Returns
+        -------
+        VersionService
+            A handle to the version service.
+        """
+
+        return VersionService(self._conn)

@@ -14,6 +14,7 @@ pub use self::{
     db::Service as DbService, debug::Service as DebugService, dht::Service as DhtService,
     discovery::Service as DiscoveryService, file_transfer::Service as FileTransferService,
     gossipsub::Service as GossipSubService, req_resp::Service as ReqRespService,
+    version::Service as VersionService,
 };
 
 pub mod db;
@@ -26,3 +27,4 @@ pub mod req_resp;
 #[doc(hidden)]
 #[cfg(feature = "scripting")]
 pub mod scripting;
+pub mod version;
