@@ -39,19 +39,17 @@ export class Scripting extends BaseService<typeof Service> {
 
   public deployScript(
     script: DockerScript,
-    local: boolean,
     persistent: boolean,
     peer: string,
   ): Promise<string> {
-    return this.deployScriptInner(script, local, persistent, peer)
+    return this.deployScriptInner(script, false, persistent, peer)
   }
 
   public deployScriptLocal(
     script: DockerScript,
-    local: boolean,
     persistent: boolean,
   ): Promise<string> {
-    return this.deployScriptInner(script, local, persistent)
+    return this.deployScriptInner(script, true, persistent)
   }
 
   private async listRunningScriptsInner(peer?: string) {

@@ -12,6 +12,7 @@ import {
   string,
   ulid as ulidParse,
 } from 'npm:valibot'
+import { walk } from 'jsr:@std/fs@1/walk'
 
 const uploadResponse = createJsonResult(object({
   id: pipe(string(), ulidParse()),
@@ -66,7 +67,7 @@ export class FileTransfer extends BaseService<typeof Service> {
   }
 
   private async uploadFileFromBlob(
-    blob: Blob | ReadableStream,
+    blob: Blob | ReadableStream<Uint8Array> | Uint8Array,
     fileName: string,
   ): Promise<Cid> {
     const uploadUrl = `${this.url}/file-transfer/upload/${fileName}`
@@ -82,23 +83,47 @@ export class FileTransfer extends BaseService<typeof Service> {
   }
 
   public async publishFile(
-    file: string | Blob | ReadableStream,
+    file: string | Uint8Array | Blob | ReadableStream<Uint8Array>,
     fileName?: string,
   ): Promise<Cid> {
-    if (this.isUnix && typeof file === 'string') {
+    if (this.isUnix) {
+      let path = ''
+      if (typeof file !== 'string' && !fileName) {
+        throw new Error('fileName is required when file is not a string')
+      } else if (typeof file !== 'string' && fileName) {
+        const tmpDir = await Deno.makeTempDir()
+        const tmpFile = `${tmpDir}/${fileName}`
+        if (file instanceof Blob) {
+          const blob = await file.arrayBuffer()
+          await Deno.writeFile(tmpFile, new Uint8Array(blob))
+        } else if (file instanceof Uint8Array) {
+          await Deno.writeFile(tmpFile, file)
+        } else {
+          await Deno.writeFile(
+            tmpFile,
+            // @ts-ignore This doesn't work when we compile to npm
+            file,
+          )
+        }
+        path = tmpFile
+      } else if (typeof file === 'string') {
+        path = file
+      }
       const { hash, id } = await this.client.publishFile({
-        path: file,
+        path,
       })
       return {
         hash,
         id: id?.ulid,
       }
-    } else if (
-      (file instanceof Blob || file instanceof ReadableStream) && fileName
-    ) {
-      return this.uploadFileFromBlob(file, fileName)
     } else {
-      throw new Error('Invalid arguments')
+      if (typeof file === 'string') {
+        throw new Error('This method is only available when using unix sockets')
+      }
+      if (!fileName) {
+        throw new Error('fileName is required when file is not a string')
+      }
+      return this.uploadFileFromBlob(file, fileName)
     }
   }
 
@@ -116,6 +141,11 @@ export class FileTransfer extends BaseService<typeof Service> {
   }
 
   public async getFile({ id, hash }: Cid): Promise<ReadableStream> {
+    if (this.isUnix) {
+      throw new Error(
+        'This method is only available when not using unix sockets',
+      )
+    }
     const url = new URL(`${this.url}/file-transfer/get-file`)
     if (id) {
       url.searchParams.set('id', id)

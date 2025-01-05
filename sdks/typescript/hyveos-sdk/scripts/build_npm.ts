@@ -6,7 +6,7 @@ await build({
   entryPoints: ['./mod.ts'],
   outDir: './npm',
   shims: {
-    deno: false,
+    deno: true,
   },
   compilerOptions: {
     lib: ['ESNext', 'DOM'],

@@ -75,43 +75,49 @@ export class IncomingRequestHandle implements IncomingRequest {
    * Respond to the request with an error message because the processing failed.
    *
    * @param error The error message.
-   * @throws If the request has already been responded to.
+   * @throws If the request has already been responded to or the grpc call fails.
    * @returns A promise that resolves when the response has been sent.
    */
   public async error(error: Error | string) {
     const message = error instanceof Error ? error.message : error
-    await this.client.respond({
-      seq: this.seq,
-      response: {
+    try {
+      await this.client.respond({
+        seq: this.seq,
         response: {
-          value: message,
-          case: 'error',
+          response: {
+            value: message,
+            case: 'error',
+          },
         },
-      },
-    })
-    this.consume()
+      })
+    } finally {
+      this.consume()
+    }
   }
 
   /**
    * Respond to the request with data.
    *
    * @param data The data to send in the response.
-   * @throws If the request has already been responded to.
+   * @throws If the request has already been responded to or the grpc call fails.
    * @returns A promise that resolves when the response has been sent.
    */
   public async respond(data: Uint8Array) {
-    await this.client.respond({
-      seq: this.seq,
-      response: {
+    try {
+      await this.client.respond({
+        seq: this.seq,
         response: {
-          value: {
-            data,
+          response: {
+            value: {
+              data,
+            },
+            case: 'data',
           },
-          case: 'data',
         },
-      },
-    })
-    this.consume()
+      })
+    } finally {
+      this.consume()
+    }
   }
 }
 

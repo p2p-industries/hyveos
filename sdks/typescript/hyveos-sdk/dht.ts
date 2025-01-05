@@ -57,16 +57,24 @@ export class DHT extends BaseService<typeof Service> {
     return data.data
   }
 
-  public async provide(key: Uint8Array): Promise<void> {
+  public async provide(topic: string, key: Uint8Array): Promise<void> {
     await this.client.provide({
+      topic: {
+        topic,
+      },
       key,
     })
   }
 
-  public getProviders(key: Uint8Array): ProvidersStream {
+  public getProviders(topic: string, key: Uint8Array): ProvidersStream {
     const abortController = new AbortController()
     const stream = this.client.getProviders(
-      { key },
+      {
+        topic: {
+          topic,
+        },
+        key,
+      },
       {
         signal: abortController.signal,
       },
