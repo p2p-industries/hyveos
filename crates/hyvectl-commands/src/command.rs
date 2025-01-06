@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, Command, CommandFactory};
 use crate::families::{kv, pubsub, inspect, reqres, file, whoami, hyve};
 
 #[derive(Parser)]
@@ -33,4 +33,8 @@ pub enum Families {
     File(file::File),
     /// Prints the local Peer-id
     Whoami(whoami::Whoami),
+}
+
+pub fn build_cli() -> Command {
+    Cli::command()
 }

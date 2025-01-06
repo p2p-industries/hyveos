@@ -23,8 +23,7 @@ impl CommandFamily for PubSub {
             },
             PubSub::Get { topic } => {
                 boxed_try_stream! {
-                     let mut message_stream = pubsub.subscribe(topic.clone()).await?;
-                    let mut count = 0;
+                    let mut message_stream = pubsub.subscribe(topic.clone()).await?;
 
                     yield CommandOutput::spinner("Waiting for Messages...", &["◐", "◒", "◑", "◓"]);
 
@@ -34,7 +33,6 @@ impl CommandFamily for PubSub {
                                 yield CommandOutput::result("pub-sub/get")
                                         .with_field("message", OutputField::ReceivedGossipMessage(message.clone()))
                                         .with_human_readable_template("📨 {message}");
-                                count += 1;
                             },
                             Err(e) =>
                                 yield CommandOutput::error("pub-sub/get", &e.to_string())

@@ -1,4 +1,4 @@
-use futures::{stream, StreamExt};
+use futures::{StreamExt};
 use futures::stream::BoxStream;
 use crate::util::{CommandFamily, DynError};
 use hyvectl_commands::families::hyve::Hyve;
@@ -13,7 +13,7 @@ impl CommandFamily for Hyve {
         let mut scripting_service = connection.scripting();
 
         match self {
-            Hyve::Start {image, peer, local, ports} => {
+            Hyve::Start { image, peer, ports, .. } => {
                 boxed_try_stream! {
                     let mut config = ScriptingConfig::new(&image);
 
@@ -34,7 +34,7 @@ impl CommandFamily for Hyve {
                         .with_human_readable_template("Deployed {image} on {peer}")
                 }
             },
-            Hyve::List {peer, local } => {
+            Hyve::List {peer, .. } => {
                 boxed_try_stream! {
                     let peer_parsed = match peer.clone() {
                         Some (p) => Some(p.parse::<PeerId>()?),
@@ -49,7 +49,7 @@ impl CommandFamily for Hyve {
                             .with_human_readable_template("Running scripts on {peer} : {scripts}")
                 }
             },
-            Hyve::Stop {peer, local, id} => {
+            Hyve::Stop {peer, id, .. } => {
                 boxed_try_stream! {
 
                     let peer_parsed = match peer.clone() {

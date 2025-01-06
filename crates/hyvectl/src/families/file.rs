@@ -1,11 +1,11 @@
 use std::path::Path;
-use futures::{stream, FutureExt, Stream, StreamExt};
+use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
-use crate::util::{CommandFamily, DynError};
 use hyveos_sdk::Connection;
-use crate::boxed_try_stream;
+use crate::{boxed_try_stream};
+use crate::util::{CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
 
 
@@ -36,7 +36,7 @@ impl CommandFamily for File {
 
                         let event: DownloadEvent = match event {
                             Ok(e) => e,
-                            Err(e) => { yield CommandOutput::error("file/get", "Download stream returned None"); continue; },
+                            Err(_) => { yield CommandOutput::error("file/get", "Download stream returned None"); continue; },
                         };
 
                         match event {

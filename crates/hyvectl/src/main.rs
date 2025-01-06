@@ -3,12 +3,10 @@ mod families;
 mod output;
 mod color;
 
-use std::io;
 use hyveos_sdk::{Connection};
-use std::error::Error;
-use std::io::{stdin, stdout, IsTerminal, Write};
+use std::io::{stdout, IsTerminal, Write};
 use std::time::Duration;
-use clap::{command, Parser};
+use clap::{Parser};
 use util::CommandFamily;
 use futures::stream::BoxStream;
 use futures::StreamExt;
@@ -52,8 +50,6 @@ async fn main() -> Result<(), DynError> {
 
     let is_tty = stdout().is_terminal();
     let mut stdout = stdout().lock();
-
-    let mut out = stdout;
 
     let theme = if is_tty {Some(color::Theme::default())} else {None};
 
@@ -102,19 +98,19 @@ async fn main() -> Result<(), DynError> {
             },
             _ => {
                 if cli.json {
-                    command_output.write_json(&mut out)?;
+                    command_output.write_json(&mut stdout)?;
                 } else {
                     if let Some(sp) = &spinner {
                         command_output.write_to_spinner(sp, &theme)?;
                     } else {
-                        command_output.write(&mut out, &theme)?;
+                        command_output.write(&mut stdout, &theme)?;
                     }
                 }
             }
         }
 
         if !is_tty {
-            match out.flush() {
+            match stdout.flush() {
                 Ok(_) => {},
                 Err(e) => {
                     if e.kind() == std::io::ErrorKind::BrokenPipe {

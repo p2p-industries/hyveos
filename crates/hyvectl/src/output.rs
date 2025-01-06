@@ -1,9 +1,8 @@
 use std::fmt;
-use std::io::{Result, Write, ErrorKind, Error};
-use std::ptr::write;
+use std::io::{Result, Write};
 use serde::Serialize;
 use indicatif::ProgressBar;
-use hyveos_core::debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType};
+use hyveos_core::debug::{MeshTopologyEvent};
 use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::file_transfer::Cid;
 use hyveos_core::gossipsub::{Message, ReceivedMessage};

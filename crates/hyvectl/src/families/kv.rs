@@ -1,5 +1,4 @@
 use hyveos_sdk::Connection;
-use std::error::Error;
 use crate::util::{CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt};
@@ -19,9 +18,9 @@ impl CommandFamily for Kv {
                     dht.put_record(topic.clone(), key.clone(), value.clone()).await?;
 
                     yield CommandOutput::result("kv/put")
+                        .with_field("topic", OutputField::String(topic))
                         .with_field("key", OutputField::String(key.clone()))
                         .with_field("value", OutputField::String(value.clone()))
-                        .with_field("topic", OutputField::String(topic))
                         .with_human_readable_template("Added {value} to {key} under topic {topic}");
                 }
             },
@@ -32,13 +31,13 @@ impl CommandFamily for Kv {
 
                     match result {
                         Some(res) => yield CommandOutput::result("kv/get")
-                            .with_field("key", OutputField::String(key))
                             .with_field("topic", OutputField::String(topic))
+                            .with_field("key", OutputField::String(key))
                             .with_field("value", OutputField::String(String::from_utf8(res)?))
                             .with_human_readable_template("Retrieved {value} for {key} in topic {topic}"),
                         None => yield CommandOutput::result("kv/get")
-                            .with_field("key", OutputField::String(key))
                             .with_field("topic", OutputField::String(topic))
+                            .with_field("key", OutputField::String(key))
                             .with_human_readable_template("Unable to retrieve key {key} in topic {topic}")
                     }
                 }
@@ -50,8 +49,8 @@ impl CommandFamily for Kv {
                     dht.provide(topic.clone(), key.clone()).await?;
 
                     yield CommandOutput::result("kv/provide")
-                        .with_field("key", OutputField::String(key))
                         .with_field("topic", OutputField::String(topic))
+                        .with_field("key", OutputField::String(key))
                         .with_human_readable_template("Started providing key {key} in topic {topic}")
                 }
             },
@@ -67,9 +66,9 @@ impl CommandFamily for Kv {
 
                         match event {
                             Ok(provider) => yield CommandOutput::result("kv/get-providers")
+                                .with_field("topic", OutputField::String(topic.clone()))
                                 .with_field("key", OutputField::String(key.clone()))
                                 .with_field("provider", OutputField::PeerId(provider))
-                                .with_field("topic", OutputField::String(topic.clone()))
                                 .with_human_readable_template("🤖 {provider}"),
                             Err(e) => yield CommandOutput::error("kv/get-providers", &e.to_string())
                         }

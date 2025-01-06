@@ -1,7 +1,7 @@
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
-use futures::{StreamExt, FutureExt};
+use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::inspect::Inspect;
 use crate::boxed_try_stream;
@@ -12,7 +12,7 @@ impl CommandFamily for Inspect {
         let mut debug = connection.debug();
 
         match self {
-            Inspect::Mesh { local } => {
+            Inspect::Mesh { .. } => {
                 boxed_try_stream! {
                     let mut stream = debug.subscribe_mesh_topology().await?;
 

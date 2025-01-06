@@ -1,9 +1,8 @@
 use hyvectl_commands::families::whoami::Whoami;
 use hyveos_sdk::Connection;
-use std::error::Error;
 use crate::util::{CommandFamily, DynError};
 use crate::output::{CommandOutput, OutputField};
-use futures::{StreamExt, TryStreamExt, stream, FutureExt};
+use futures::{StreamExt};
 use futures::stream::BoxStream;
 use crate::boxed_try_stream;
 
