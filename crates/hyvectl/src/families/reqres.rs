@@ -19,13 +19,12 @@ impl CommandFamily for ReqRes {
 
                     yield CommandOutput::spinner("Waiting for Response", &["◐", "◒", "◑", "◓"]);
 
-                    reqres.send_request(peer_id, message.clone(), topic.clone()).await?;
+                    let response = reqres.send_request(peer_id, message.clone(), topic.clone()).await?;
 
                     yield CommandOutput::result("reqres/req")
-                    .with_field("to", OutputField::PeerId(peer_id))
-                    .with_field("topic", OutputField::String(topic.unwrap_or_default()))
-                    .with_field("request", OutputField::String(message))
-                    .with_human_readable_template("Sent {request} to {to}")
+                    .with_field("from", OutputField::PeerId(peer_id))
+                    .with_field("response", OutputField::Response(response))
+                    .with_human_readable_template("🗨  {from}: {response}")
                 }
             }
             ReqRes::Receive {} => {
@@ -47,7 +46,7 @@ impl CommandFamily for ReqRes {
                     yield CommandOutput::result("reqres/res")
                     .with_field("id", OutputField::String(id.to_string()))
                     .with_field("response", OutputField::String(message))
-                    .with_human_readable_template("🗨 {response}")
+                    .with_human_readable_template("Sent {response} for {id}")
                 }
             }
         }

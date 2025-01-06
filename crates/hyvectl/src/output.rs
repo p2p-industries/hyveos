@@ -53,11 +53,11 @@ impl fmt::Display for OutputField {
             OutputField::InboundRequest(request) => {
                 write!(f, "{{ from: {}, topic: {}, message: {} }}", request.peer_id.to_string(), request.clone().topic.unwrap_or_default(), String::from_utf8(request.clone().data).map_err(|_| std::fmt::Error)?)
             },
-            OutputField::Request(r) => write!(f, "{{ topic: {}, message: {} }}", r.clone().topic.unwrap_or_default(),  String::from_utf8(r.clone().data).map_err(|_| std::fmt::Error)?),
+            OutputField::Request(r) => write!(f, "{{ topic: {}, request: {} }}", r.clone().topic.unwrap_or_default(),  String::from_utf8(r.clone().data).map_err(|_| std::fmt::Error)?),
             OutputField::Response(r) => {
                 match r {
                     Response::Data(data) => {
-                        write!(f, "{{ message: {} }}", String::from_utf8(data.clone()).map_err(|_| std::fmt::Error)?)
+                        write!(f, "{{ response: {} }}", String::from_utf8(data.clone()).map_err(|_| std::fmt::Error)?)
                     }
                     Response::Error(err) => {
                         write!(f, "{{ error: {} }}", err)
@@ -198,7 +198,11 @@ impl CommandOutput {
                             "peers": [peer.to_string()]
                         }),
                         },
-                        OutputField::InboundRequest(r) => json!(format!("{r:?}")),
+                        OutputField::InboundRequest(r) => json!({
+                            "from": r.peer_id.to_string(),
+                            "topic": r.topic,
+                            "data": String::from_utf8_lossy(&r.data)
+                        }),
                         OutputField::Request(r) => json!({
                         "topic": r.topic.as_deref().unwrap_or(""),
                         "data": String::from_utf8_lossy(&r.data)
