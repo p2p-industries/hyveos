@@ -1,4 +1,2 @@
-use clap::Subcommand;
-
-#[derive(Subcommand)]
-pub enum Whoami {}
+#[derive(clap::Args, Debug)]
+pub struct Whoami {}

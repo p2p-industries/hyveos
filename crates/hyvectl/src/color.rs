@@ -11,10 +11,10 @@ pub struct Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self {
-            info_color: Color::Black,
-            result_color: Color::Black,
-            error_color: Color::Red,
-            field_color: Color::Blue,
+            info_color: Color::BrightBlack,
+            result_color: Color::BrightBlack,
+            error_color: Color::BrightBlue,
+            field_color: Color::BrightBlue,
         }
     }
 }

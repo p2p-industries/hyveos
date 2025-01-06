@@ -18,7 +18,7 @@ impl CommandFamily for Kv {
 
                     dht.put_record(topic.clone(), key.clone(), value.clone()).await?;
 
-                    yield CommandOutput::result("KV Put")
+                    yield CommandOutput::result("kv/put")
                         .with_field("key", OutputField::String(key.clone()))
                         .with_field("value", OutputField::String(value.clone()))
                         .with_field("topic", OutputField::String(topic))
@@ -31,12 +31,12 @@ impl CommandFamily for Kv {
                     let result = dht.get_record(topic.clone(), key.clone()).await?;
 
                     match result {
-                        Some(res) => yield CommandOutput::result("KV Get")
+                        Some(res) => yield CommandOutput::result("kv/get")
                             .with_field("key", OutputField::String(key))
                             .with_field("topic", OutputField::String(topic))
                             .with_field("value", OutputField::String(String::from_utf8(res)?))
                             .with_human_readable_template("Retrieved {value} for {key} in topic {topic}"),
-                        None => yield CommandOutput::result("KV Get")
+                        None => yield CommandOutput::result("kv/get")
                             .with_field("key", OutputField::String(key))
                             .with_field("topic", OutputField::String(topic))
                             .with_human_readable_template("Unable to retrieve key {key} in topic {topic}")
@@ -49,7 +49,7 @@ impl CommandFamily for Kv {
 
                     dht.provide(topic.clone(), key.clone()).await?;
 
-                    yield CommandOutput::result("KV Provide")
+                    yield CommandOutput::result("kv/provide")
                         .with_field("key", OutputField::String(key))
                         .with_field("topic", OutputField::String(topic))
                         .with_human_readable_template("Started providing key {key} in topic {topic}")
@@ -61,15 +61,17 @@ impl CommandFamily for Kv {
 
                     let mut providers_stream = dht.get_providers(topic.clone(), key.clone()).await?;
 
+                    yield CommandOutput::spinner("Waiting for Providers...", &["◐", "◑", "◒", "◓"]);
+
                     while let Some(event) = providers_stream.next().await {
 
                         match event {
-                            Ok(provider) => yield CommandOutput::result("KV GetProviders")
+                            Ok(provider) => yield CommandOutput::result("kv/get-providers")
                                 .with_field("key", OutputField::String(key.clone()))
-                                .with_field("provider", OutputField::String(provider.to_string()))
+                                .with_field("provider", OutputField::PeerId(provider))
                                 .with_field("topic", OutputField::String(topic.clone()))
-                                .with_human_readable_template("Provider {provider} found for {key} in topic {topic}"),
-                            Err(e) => yield CommandOutput::error("KV GetProviders", &e.to_string())
+                                .with_human_readable_template("🤖 {provider}"),
+                            Err(e) => yield CommandOutput::error("kv/get-providers", &e.to_string())
                         }
                     }
                 }

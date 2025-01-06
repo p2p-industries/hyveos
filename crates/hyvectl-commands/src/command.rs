@@ -1,25 +1,35 @@
 use clap::{Parser, Subcommand};
-use crate::families::{kv, pubsub, inspect, reqres, file, whoami};
+use crate::families::{kv, pubsub, inspect, reqres, file, whoami, hyve};
 
 #[derive(Parser)]
 #[command(name = "hyvectl", about = "Hyvectl")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Families,
+    /// Output results in JSON format
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Subcommand)]
 pub enum Families {
-    #[command(subcommand, about = "Key-Value Store")]
+    /// Key-Value Store
+    #[command(subcommand)]
     KV(kv::Kv),
-    #[command(subcommand, about = "Publisher Subscriber Service")]
+    /// Publisher Subscriber Service
+    #[command(subcommand)]
     PubSub(pubsub::PubSub),
-    #[command(subcommand, about = "Publisher Subscriber Service")]
+    /// Publisher Subscriber Service
+    #[command(subcommand)]
     Inspect(inspect::Inspect),
-    #[command(subcommand, about = "Request-Response Service")]
+    /// Request-Response Service
+    #[command(subcommand)]
     ReqRes(reqres::ReqRes),
-    #[command(subcommand, about = "File Transfer Service")]
+    #[command(subcommand)]
+    Hyve(hyve::Hyve),
+    /// File Transfer Service
+    #[command(subcommand)]
     File(file::File),
-    #[command(subcommand, about = "Prints the local Peer-id")]
+    /// Prints the local Peer-id
     Whoami(whoami::Whoami),
 }
