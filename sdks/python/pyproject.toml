@@ -17,9 +17,9 @@ aiohttp = "^3.11.10"
 yarl = "^1.18.3"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.4.5"
+ruff = "^0.8.6"
 grpcio-tools = "^1.68.0"
-pdoc3 = "^0.11.3"
+pdoc3 = "^0.11.5"
 
 [tool.ruff]
 exclude = ['protocol']
