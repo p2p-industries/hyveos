@@ -35,6 +35,7 @@ ulid = { workspace = true }
 url = { version = "2.5.4", optional = true }
 
 [dev-dependencies]
+anyhow.workspace = true
 hyveos-sdk = { path = ".", features = ["cbor", "json"] }
 indicatif = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
