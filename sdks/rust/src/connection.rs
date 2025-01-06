@@ -67,7 +67,6 @@ impl internal::ConnectionType for BridgeConnection {
             channel,
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
-            use_bridge_shared_dir: true,
         })
     }
 }
@@ -97,7 +96,6 @@ impl internal::ConnectionType for CustomSocketConnection {
             channel,
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
-            use_bridge_shared_dir: false,
         })
     }
 }
@@ -126,7 +124,6 @@ impl internal::ConnectionType for UriConnection {
         Ok(Connection {
             channel,
             reqwest_client_and_url: Some((client, url)),
-            use_bridge_shared_dir: false,
         })
     }
 }
@@ -312,7 +309,6 @@ pub struct Connection {
     pub(crate) channel: Channel,
     #[cfg(feature = "network")]
     pub(crate) reqwest_client_and_url: Option<(reqwest::Client, reqwest::Url)>,
-    pub(crate) use_bridge_shared_dir: bool,
 }
 
 impl Connection {
