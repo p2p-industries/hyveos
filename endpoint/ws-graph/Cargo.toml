@@ -11,7 +11,7 @@ hyveos-sdk = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
 tokio-stream = { workspace = true }
 serde = { workspace = true }
-serde_json = "1.0.125"
+serde_json = "1.0.134"
 anyhow = { workspace = true }
 futures = { workspace = true }
 libp2p-identity = { workspace = true, optional = true, features = ["rand"] }

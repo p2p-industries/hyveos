@@ -45,19 +45,19 @@ hyveos-macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
 hyveos-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
-pin-project = { version = "1.1.7" }
+pin-project = { version = "1.1.8" }
 prost = { version = "0.13.4" }
 rand = { version = "0.8.5" }
 regex = { version = "1.11.1", default-features = false, features = [
     "perf",
     "std",
 ] }
-serde = { version = "1.0.216", features = ["derive", "rc"] }
+serde = { version = "1.0.217", features = ["derive", "rc"] }
 hyveos-runtime = { version = "0.1.0", path = "crates/runtime" }
 thiserror = { version = "2" }
 tarpc = "0.35.0"
 tokio = { version = "1.38" }
-tokio-stream = { version = "0.1.15", features = ["net", "sync"] }
+tokio-stream = { version = "0.1.17", features = ["net", "sync"] }
 tokio-util = { version = "0.7.11" }
 tonic = { version = "0.12.2" }
 tracing = { version = "0.1.40" }

@@ -6,6 +6,6 @@ rust-version = { workspace = true }
 publish = { workspace = true }
 
 [dependencies]
-libc = "0.2.153"
+libc = "0.2.169"
 multiaddr = { workspace = true }
 thiserror = { workspace = true }
