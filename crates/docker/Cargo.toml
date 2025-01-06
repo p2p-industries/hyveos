@@ -12,7 +12,7 @@ bollard = "0.18.1"
 bytes = { workspace = true }
 futures = { workspace = true }
 indicatif = { workspace = true }
-lazy-regex = "3.1.0"
+lazy-regex = "3.4.1"
 pin-project = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["time", "io-util", "macros", "sync"] }
