@@ -6,7 +6,7 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-axum = { version = "0.7.5", features = ["http2", "ws"] }
+axum = { version = "0.8.1", features = ["http2", "ws"] }
 hyveos-sdk = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
 tokio-stream = { workspace = true }
