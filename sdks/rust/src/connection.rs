@@ -67,17 +67,19 @@ impl internal::ConnectionType for BridgeConnection {
             channel,
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
+            shared_dir_path: None,
         })
     }
 }
 
 /// A connection to the HyveOS runtime through a custom Unix domain socket.
 #[derive(Debug, Clone)]
-pub struct CustomSocketConnection {
+pub struct CustomConnection {
     socket_path: PathBuf,
+    shared_dir_path: PathBuf,
 }
 
-impl internal::ConnectionType for CustomSocketConnection {
+impl internal::ConnectionType for CustomConnection {
     async fn connect(self) -> Result<Connection> {
         let socket_path = Arc::new(self.socket_path);
         let channel = Endpoint::try_from("http://[::]:50051")?
@@ -96,6 +98,7 @@ impl internal::ConnectionType for CustomSocketConnection {
             channel,
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
+            shared_dir_path: Some(Arc::new(self.shared_dir_path)),
         })
     }
 }
@@ -124,6 +127,7 @@ impl internal::ConnectionType for UriConnection {
         Ok(Connection {
             channel,
             reqwest_client_and_url: Some((client, url)),
+            shared_dir_path: None,
         })
     }
 }
@@ -174,7 +178,7 @@ impl ConnectionBuilder<BridgeConnection> {
     /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
-    /// If another connection type is desired, use the [`custom_socket`] or [`uri`] methods.
+    /// If another connection type is desired, use the [`custom`] or [`uri`] methods.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -185,6 +189,7 @@ impl ConnectionBuilder<BridgeConnection> {
     /// Specifies a custom Unix domain socket to connect to.
     ///
     /// The socket path should point to a Unix domain socket that the HyveOS runtime is listening on.
+    /// The shared directory path should point to the shared directory that the HyveOS runtime is using.
     ///
     /// # Example
     ///
@@ -194,7 +199,7 @@ impl ConnectionBuilder<BridgeConnection> {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::builder()
-    ///     .custom_socket("/path/to/hyveos.sock")
+    ///     .custom("/path/to/hyveos.sock", "/path/to/shared/dir")
     ///     .connect()
     ///     .await
     ///     .unwrap();
@@ -204,13 +209,15 @@ impl ConnectionBuilder<BridgeConnection> {
     /// println!("My peer id: {peer_id}");
     /// # }
     /// ```
-    pub fn custom_socket(
+    pub fn custom(
         self,
         socket_path: impl Into<PathBuf>,
-    ) -> ConnectionBuilder<CustomSocketConnection> {
+        shared_dir_path: impl Into<PathBuf>,
+    ) -> ConnectionBuilder<CustomConnection> {
         ConnectionBuilder {
-            connection_type: CustomSocketConnection {
+            connection_type: CustomConnection {
                 socket_path: socket_path.into(),
+                shared_dir_path: shared_dir_path.into(),
             },
         }
     }
@@ -265,7 +272,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::builder()
-    ///     .custom_socket("/path/to/hyveos.sock")
+    ///     .custom("/path/to/hyveos.sock", "/path/to/shared/dir")
     ///     .connect()
     ///     .await
     ///     .unwrap();
@@ -288,7 +295,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
 /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
 /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
 /// If another connection type is desired, use the [`builder`] function to get a
-/// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom_socket`] or
+/// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom`] or
 /// [`ConnectionBuilder::uri`] methods.
 ///
 /// # Example
@@ -309,6 +316,7 @@ pub struct Connection {
     pub(crate) channel: Channel,
     #[cfg(feature = "network")]
     pub(crate) reqwest_client_and_url: Option<(reqwest::Client, reqwest::Url)>,
+    pub(crate) shared_dir_path: Option<Arc<PathBuf>>,
 }
 
 impl Connection {
@@ -317,7 +325,7 @@ impl Connection {
     /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
     /// If another connection type is desired, use the [`builder`] function to get a
-    /// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom_socket`] or
+    /// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom`] or
     /// [`ConnectionBuilder::uri`] methods.
     ///
     /// # Errors
@@ -347,7 +355,7 @@ impl Connection {
     /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
-    /// If another connection type is desired, use the [`ConnectionBuilder::custom_socket`] or
+    /// If another connection type is desired, use the [`ConnectionBuilder::custom`] or
     /// [`ConnectionBuilder::uri`] methods.
     ///
     /// # Example
@@ -358,7 +366,7 @@ impl Connection {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::builder()
-    ///     .custom_socket("/path/to/hyveos.sock")
+    ///     .custom("/path/to/hyveos.sock", "/path/to/shared/dir")
     ///     .connect()
     ///     .await
     ///     .unwrap();
