@@ -1,5 +1,5 @@
 use std::fmt;
-use std::io::{Result, Write, ErrorKind};
+use std::io::{Result, Write, ErrorKind, Error};
 use std::ptr::write;
 use serde::Serialize;
 use indicatif::ProgressBar;
@@ -168,9 +168,68 @@ impl CommandOutput {
     }
 
     fn to_json(&self) -> Result<String> {
-        serde_json::to_string(self)
-            .map_err(|e| e.into())
+        use serde_json::{Value, Map, json};
+
+        match &self.output {
+            CommandOutputType::Result { fields, .. } => {
+                let mut obj = Map::new();
+
+                for (key, field) in fields {
+                    let val: Value = match field {
+                        OutputField::String(s) => json!(s),
+                        OutputField::PeerId(pid) => json!(pid.to_string()),
+                        OutputField::ReceivedGossipMessage(m) => json!({
+                        "from": m.source.map(|pid| pid.to_string()),
+                        "data": String::from_utf8_lossy(&m.message.data)
+                    }),
+                        OutputField::GossipMessage(m) => json!({
+                        "topic": m.topic,
+                        "data": String::from_utf8_lossy(&m.data)
+                    }),
+                        OutputField::MeshTopologyEvent(mte) => match &mte.event {
+                            NeighbourEvent::Init(peers) => json!({
+                            "type": "Init",
+                            "peers": peers.iter().map(|p| p.to_string()).collect::<Vec<_>>()
+                        }),
+                            NeighbourEvent::Discovered(peer) => json!({
+                            "type": "Discovered",
+                            "peers": [peer.to_string()]
+                        }),
+                            NeighbourEvent::Lost(peer) => json!({
+                            "type": "Lost",
+                            "peers": [peer.to_string()]
+                        }),
+                        },
+                        OutputField::InboundRequest(r) => json!(format!("{r:?}")),
+                        OutputField::Request(r) => json!({
+                        "topic": r.topic.as_deref().unwrap_or(""),
+                        "data": String::from_utf8_lossy(&r.data)
+                    }),
+                        OutputField::Response(r) => match r {
+                            Response::Data(d) => json!(String::from_utf8_lossy(d)),
+                            Response::Error(err) => json!({ "error": err }),
+                        },
+                        OutputField::RunningScripts(rs) => {
+                            let scripts = rs.iter()
+                                .map(|script| script.id.to_string())
+                                .collect::<Vec<_>>();
+                            json!(scripts)
+                        },
+                        OutputField::Cid(cid) => json!(cid.to_string()),
+                    };
+
+                    obj.insert(key.to_string(), val);
+                }
+
+                let s = serde_json::to_string_pretty(&serde_json::Value::Object(obj))?;
+                Ok(s)
+            },
+            _ => {
+                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Non-Result JSON not supported"))
+            }
+        }
     }
+
 
     fn safe_write_line(&self, output_stream: &mut dyn Write, line: &str) -> Result<()> {
         match writeln!(output_stream, "{}", line) {

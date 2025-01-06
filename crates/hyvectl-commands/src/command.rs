@@ -16,15 +16,16 @@ pub enum Families {
     /// Key-Value Store
     #[command(subcommand)]
     KV(kv::Kv),
-    /// Publisher Subscriber Service
+    /// Publisher-Subscriber Service
     #[command(subcommand)]
     PubSub(pubsub::PubSub),
-    /// Publisher Subscriber Service
+    /// Network Inspection Service
     #[command(subcommand)]
     Inspect(inspect::Inspect),
     /// Request-Response Service
     #[command(subcommand)]
     ReqRes(reqres::ReqRes),
+    /// Distributed Application Service
     #[command(subcommand)]
     Hyve(hyve::Hyve),
     /// File Transfer Service

@@ -653,6 +653,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
+name = "colored"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
+dependencies = [
+ "lazy_static",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1704,6 +1714,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyvectl"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "clap",
+ "colored",
+ "futures",
+ "hyvectl-commands",
+ "hyveos-core",
+ "hyveos-sdk",
+ "indicatif",
+ "serde",
+ "serde_json",
+ "tokio",
+ "ulid",
+]
+
+[[package]]
+name = "hyvectl-commands"
+version = "0.1.0"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "hyved"
 version = "0.1.0"
 dependencies = [
@@ -1752,6 +1787,7 @@ dependencies = [
 name = "hyveos-core"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "hex_fmt",
  "libp2p-identity",
  "prost",
