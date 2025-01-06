@@ -51,7 +51,10 @@ pub use http::Uri;
 pub use libp2p_identity::PeerId;
 
 #[doc(inline)]
-pub use crate::{connection::Connection, error::Error};
+pub use crate::{
+    connection::{Connection, ConnectionBuilder},
+    error::Error,
+};
 
 pub mod connection;
 pub mod error;
