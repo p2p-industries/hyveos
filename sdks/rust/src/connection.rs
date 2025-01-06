@@ -112,13 +112,17 @@ pub struct UriConnection {
 #[cfg(feature = "network")]
 impl internal::ConnectionType for UriConnection {
     async fn connect(self) -> Result<Connection> {
-        let (url, if_name) = uri_to_url_and_if_name(self.uri.clone())?;
+        let (url, _if_name) = uri_to_url_and_if_name(self.uri.clone())?;
         let channel = Endpoint::from(self.uri).connect().await?;
 
+        #[cfg(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))]
         let mut client_builder = reqwest::Client::builder();
+        #[cfg(not(any(target_os = "android", target_os = "fuchsia", target_os = "linux")))]
+        let client_builder = reqwest::Client::builder();
 
+        #[cfg(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))]
         if let Some(if_name) = if_name {
-            client_builder = client_builder.interface(&if_name);
+            client_builder = client_builder.interface(&_if_name);
         }
 
         let client = client_builder.build()?;
@@ -177,7 +181,7 @@ impl ConnectionBuilder<BridgeConnection> {
     /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
-    /// If another connection type is desired, use the [`custom_socket`] or [`uri`] methods.
+    /// If another connection type is desired, use the [`custom_socket`](ConnectionBuilder::custom_socket) or [`uri`](ConnectionBuilder::uri) methods.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -290,9 +294,10 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
 /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
 /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
 /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
-/// If another connection type is desired, use the [`builder`] function to get a
-/// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom_socket`] or
-/// [`ConnectionBuilder::uri`] methods.
+/// If another connection type is desired, use the [`builder`](Connection::builder) function to get a
+/// [`ConnectionBuilder`] and use the
+/// [`custom_socket`](ConnectionBuilder::custom_socket) or
+/// [`uri`](ConnectionBuilder::uri) methods.
 ///
 /// # Example
 ///
@@ -320,7 +325,7 @@ impl Connection {
     ///
     /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
-    /// If another connection type is desired, use the [`builder`] function to get a
+    /// If another connection type is desired, use the [`builder`](Connection::builder) function to get a
     /// [`ConnectionBuilder`] and use the [`ConnectionBuilder::custom_socket`] or
     /// [`ConnectionBuilder::uri`] methods.
     ///
