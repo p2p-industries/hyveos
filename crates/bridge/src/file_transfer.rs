@@ -1,7 +1,6 @@
 #[cfg(feature = "network")]
 use std::ffi::OsString;
 use std::{
-    borrow::Cow,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -184,6 +183,8 @@ impl FileTransferServer {
     where
         E: Into<BoxError>,
     {
+        use std::borrow::Cow;
+
         let file_name = PathBuf::from(file_name);
         let file_stem = file_name.file_stem().unwrap_or_default().to_os_string();
         let file_ext = file_name.extension().map(OsString::from);
