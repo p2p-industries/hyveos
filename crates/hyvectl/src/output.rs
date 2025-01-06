@@ -4,7 +4,6 @@ use serde::Serialize;
 use indicatif::ProgressBar;
 use hyveos_core::debug::{MeshTopologyEvent};
 use hyveos_core::discovery::NeighbourEvent;
-use hyveos_core::file_transfer::Cid;
 use hyveos_core::gossipsub::{Message, ReceivedMessage};
 use hyveos_core::req_resp::{Request, Response};
 use hyveos_core::scripting::RunningScript;
@@ -23,7 +22,6 @@ pub enum OutputField {
     Request(Request),
     Response(Response),
     RunningScripts(Vec<RunningScript>),
-    Cid(Cid)
 }
 
 impl fmt::Display for OutputField {
@@ -52,7 +50,9 @@ impl fmt::Display for OutputField {
             },
             OutputField::GossipMessage(message) => {write!(f, "{{ topic: {}, message: {} }}", message.topic,
                                                            String::from_utf8(message.clone().data).map_err(|_| std::fmt::Error)?)},
-            OutputField::InboundRequest(request) => {write!(f, "Inbound Request{:?}", request)},
+            OutputField::InboundRequest(request) => {
+                write!(f, "{{ from: {}, topic: {}, message: {} }}", request.peer_id.to_string(), request.clone().topic.unwrap_or_default(), String::from_utf8(request.clone().data).map_err(|_| std::fmt::Error)?)
+            },
             OutputField::Request(r) => write!(f, "{{ topic: {}, message: {} }}", r.clone().topic.unwrap_or_default(),  String::from_utf8(r.clone().data).map_err(|_| std::fmt::Error)?),
             OutputField::Response(r) => {
                 match r {
@@ -69,7 +69,6 @@ impl fmt::Display for OutputField {
                     writeln!(f, "{}", script.id.to_string())?
                 })
             },
-            OutputField::Cid(r) => write!(f, "Cid: {:?}", r),
         }
     }
 }
@@ -214,7 +213,6 @@ impl CommandOutput {
                                 .collect::<Vec<_>>();
                             json!(scripts)
                         },
-                        OutputField::Cid(cid) => json!(cid.to_string()),
                     };
 
                     obj.insert(key.to_string(), val);

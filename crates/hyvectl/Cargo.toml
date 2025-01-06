@@ -8,7 +8,7 @@ build = "build.rs"
 
 [dependencies]
 clap = { workspace = true }
-hyveos-sdk = { workspace = true, features = ["scripting"] }
+hyveos-sdk = { workspace = true, features = ["scripting", "network"] }
 hyveos-core = { workspace = true }
 hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::file::File;
@@ -44,6 +44,15 @@ impl CommandFamily for File {
                                 yield CommandOutput::progress("file/get", p)
                             }
                             DownloadEvent::Ready(path) => {
+                                let path = match out.clone() {
+                                    Some(o) => {
+                                        let o = PathBuf::from(o);
+                                        tokio::fs::copy(path, &o).await?;
+                                        o
+                                    },
+                                    None => path
+                                };
+
                                 yield CommandOutput::result("file/get")
                                 .with_field("cid", OutputField::String(cid.to_string()))
                                 .with_field("local_path", OutputField::String(path.display().to_string()))

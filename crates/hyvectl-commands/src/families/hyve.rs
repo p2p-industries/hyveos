@@ -2,27 +2,28 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum Hyve {
-    #[command(about = "Starts an application on a given node")]
+    /// Starts an application on a given node
     Start {
+        /// Image to deploy
         image: String,
 
         /// Peer-Id of the target node
-        #[arg(long, conflicts_with = "local")]
+        #[arg(conflicts_with = "local")]
         peer: Option<String>,
-
-        /// Deploy the image locally
-        #[arg(long, conflicts_with = "peer")]
-        local: bool,
 
         /// Ports to expose from target to application
         #[arg(long)]
         ports: Vec<u16>,
+
+        /// Deploy the image locally
+        #[arg(long, conflicts_with = "peer")]
+        local: bool,
     },
 
-    #[command(about = "List running applications on a given node")]
+    /// List running applications on a given node
     List {
         /// Peer-Id of the target node
-        #[arg(long, conflicts_with = "local")]
+        #[arg(conflicts_with = "local")]
         peer: Option<String>,
 
         /// List local running scripts
@@ -30,18 +31,16 @@ pub enum Hyve {
         local: bool,
     },
 
-    #[command(about = "Stops an application on a given node")]
+    /// Stops an application on a given node
     Stop {
+        /// Identifier of the script to stop
+        id: String,
+
         /// Peer-Id of the target node
-        #[arg(long, conflicts_with = "local")]
         peer: Option<String>,
 
         /// List local running scripts
         #[arg(long, conflicts_with = "peer")]
         local: bool,
-
-        /// Identifier of the script to stop
-        #[arg(long)]
-        id: String,
     }
 }

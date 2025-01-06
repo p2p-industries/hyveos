@@ -2,14 +2,17 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum PubSub {
-    #[command(about = "Publish the message to the given topic")]
+    /// Publish the message to the given topic
     Publish {
+        /// Topic in which to publish
         topic: String,
+        /// Message to publish
         message: String
     },
 
-    #[command(about = "Retrieve messages from the given topic")]
+    /// Retrieve messages from the given topic
     Get {
+        /// Topic in which to listen for messages
         topic: String,
     },
 }

@@ -2,13 +2,16 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum File {
-    #[command(about = "Publishes a file into the file network")]
+    /// Publishes a file into the file network
     Publish {
+        /// Path to file
         path: String
     },
-    #[command(about = "Retrieves a file from the file network")]
+    /// Retrieves a file from the file network
     Get {
+        /// Cid of file in network
         cid: String,
+        /// Output path
         #[arg(long)]
         out: Option<String>,
     }

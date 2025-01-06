@@ -2,21 +2,26 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum ReqRes {
-    #[command(about = "Send the message to a given peer")]
+    /// Send the message to a given peer and returns its response
     Send {
+        /// Target peer
         peer: String,
-        message: String,
+        /// Request
+        request: String,
+        /// Topic under which to send the request
         #[arg(long)]
         topic: Option<String>,
     },
 
-    #[command(about = "Retrieve a stream of messages from peers")]
+    /// Retrieve a stream of messages from peers
     Receive {},
 
-    #[command(about = "Respond to messages from peers")]
+    /// Respond to messages from peers
     Respond {
+        /// ID of the associated request
         id: u64,
-        message: String,
+        /// Response
+        response: String,
     }
 }
 
