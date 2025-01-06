@@ -61,7 +61,6 @@ enum Connection {
 pub struct Bridge<Db, Scripting> {
     pub client: BridgeClient<Db, Scripting>,
     pub cancellation_token: CancellationToken,
-    pub shared_dir_path: PathBuf,
 }
 
 impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
@@ -70,19 +69,20 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         db_client: Db,
         base_path: PathBuf,
         socket_path: PathBuf,
+        shared_dir_path: Option<PathBuf>,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
-        let shared_dir_path = base_path.join("files");
-
         if socket_path.exists() {
             tokio::fs::remove_file(&socket_path).await?;
         }
 
-        if !shared_dir_path.exists() {
-            tokio::fs::create_dir(&shared_dir_path).await?;
+        if let Some(shared_dir_path) = &shared_dir_path {
+            if !shared_dir_path.exists() {
+                tokio::fs::create_dir_all(&shared_dir_path).await?;
+            }
         }
 
         let socket = UnixListener::bind(&socket_path)?;
@@ -99,7 +99,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
             cancellation_token: cancellation_token.clone(),
             ulid: None,
             base_path,
-            shared_dir_path: shared_dir_path.clone(),
+            shared_dir_path,
             connection: Connection::Local(socket),
             #[cfg(feature = "batman")]
             debug_command_sender,
@@ -109,7 +109,6 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         Ok(Self {
             client,
             cancellation_token,
-            shared_dir_path,
         })
     }
 }
@@ -132,12 +131,6 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
-        let shared_dir_path = base_path.join("files");
-
-        if !shared_dir_path.exists() {
-            tokio::fs::create_dir(&shared_dir_path).await?;
-        }
-
         let socket = TcpListener::bind(socket_addr).await?;
 
         let cancellation_token = CancellationToken::new();
@@ -148,7 +141,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
             cancellation_token: cancellation_token.clone(),
             ulid: None,
             base_path,
-            shared_dir_path,
+            shared_dir_path: None,
             connection: Connection::Network(socket),
             #[cfg(feature = "batman")]
             debug_command_sender,
@@ -184,16 +177,17 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
         tracing::debug!(id=%ulid, path=%base_path.display(), "Creating bridge");
 
         let socket_path = base_path.join("bridge.sock");
+        let shared_dir_path = base_path.join("files");
 
         let Bridge {
             mut client,
             cancellation_token,
-            shared_dir_path,
         } = Bridge::new(
             client,
             db_client,
             base_path,
             socket_path.clone(),
+            Some(shared_dir_path.clone()),
             #[cfg(feature = "batman")]
             debug_command_sender,
             scripting_client,
@@ -226,7 +220,7 @@ pub struct BridgeClient<Db, Scripting> {
     cancellation_token: CancellationToken,
     ulid: Option<Ulid>,
     base_path: PathBuf,
-    shared_dir_path: PathBuf,
+    shared_dir_path: Option<PathBuf>,
     connection: Connection,
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
