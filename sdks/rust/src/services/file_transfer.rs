@@ -108,6 +108,7 @@ enum Client {
 #[derive(Debug, Clone)]
 pub struct Service {
     client: Client,
+    use_bridge_shared_dir: bool,
 }
 
 impl Service {
@@ -121,7 +122,10 @@ impl Service {
             Client::Local(FileTransferClient::new(connection.channel.clone()))
         };
 
-        Self { client }
+        Self {
+            client,
+            use_bridge_shared_dir: connection.use_bridge_shared_dir,
+        }
     }
 
     /// Publishes a file in the mesh network and returns its content ID.
@@ -189,21 +193,25 @@ impl Service {
             }
         };
 
-        let shared_dir = env::var(BRIDGE_SHARED_DIR_ENV_VAR)
-            .map_err(|e| Error::EnvVarMissing(BRIDGE_SHARED_DIR_ENV_VAR, e))?;
+        let path = if self.use_bridge_shared_dir {
+            let shared_dir = env::var(BRIDGE_SHARED_DIR_ENV_VAR)
+                .map_err(|e| Error::EnvVarMissing(BRIDGE_SHARED_DIR_ENV_VAR, e))?;
 
-        let path: FilePath = if path.starts_with(&shared_dir) {
-            path.try_into()
+            if path.starts_with(&shared_dir) {
+                path
+            } else {
+                let (shared_path, _) = Path::new(&shared_dir).join(file_name).unique_file().await?;
+
+                tokio::fs::copy(&path, &shared_path).await?;
+
+                shared_path
+            }
         } else {
-            let (shared_path, _) = Path::new(&shared_dir).join(file_name).unique_file().await?;
-
-            tokio::fs::copy(&path, &shared_path).await?;
-
-            shared_path.try_into()
-        }?;
+            path
+        };
 
         client
-            .publish_file(path)
+            .publish_file(<PathBuf as TryInto<FilePath>>::try_into(path)?)
             .await?
             .into_inner()
             .try_into()
