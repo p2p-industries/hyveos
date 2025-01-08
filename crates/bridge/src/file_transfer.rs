@@ -37,11 +37,11 @@ use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
 #[derive(Clone)]
 pub struct FileTransferServer {
     client: Client,
-    shared_dir_path: Option<PathBuf>,
+    shared_dir_path: PathBuf,
 }
 
 impl FileTransferServer {
-    pub fn new(client: Client, shared_dir_path: Option<PathBuf>) -> Self {
+    pub fn new(client: Client, shared_dir_path: PathBuf) -> Self {
         Self {
             client,
             shared_dir_path,
@@ -68,19 +68,19 @@ impl FileTransfer for FileTransferServer {
 
         tracing::debug!(request=?file_path, "Received publish_file request");
 
-        let file_path = PathBuf::from(file_path);
+        let container_file_path = PathBuf::from(file_path);
 
-        let file_path = if let Some(shared_dir_path) = &self.shared_dir_path {
-            shared_dir_path.join(file_path.strip_prefix(CONTAINER_SHARED_DIR).map_err(|_| {
-                Status::invalid_argument(concatcp!(
-                    "File must be in shared directory (",
-                    CONTAINER_SHARED_DIR,
-                    ")"
-                ))
-            })?)
-        } else {
-            file_path
-        };
+        let file_path = self.shared_dir_path.join(
+            container_file_path
+                .strip_prefix(CONTAINER_SHARED_DIR)
+                .map_err(|_| {
+                    Status::invalid_argument(concatcp!(
+                        "File must be in shared directory (",
+                        CONTAINER_SHARED_DIR,
+                        ")"
+                    ))
+                })?,
+        );
 
         self.client
             .file_transfer()
@@ -105,15 +105,11 @@ impl FileTransfer for FileTransferServer {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let file_path = if let Some(shared_dir_path) = &self.shared_dir_path {
-            Self::copy_file(store_path, &ulid_string, shared_dir_path)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?
-        } else {
-            store_path
-        };
+        let container_file_path = Self::copy_file(store_path, &ulid_string, &self.shared_dir_path)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(TonicResponse::new(file_path.try_into()?))
+        Ok(TonicResponse::new(container_file_path.try_into()?))
     }
 
     async fn get_file_with_progress(
@@ -139,15 +135,15 @@ impl FileTransfer for FileTransferServer {
                 let ulid_string = ulid_string.clone();
                 async move {
                     if let DownloadEvent::Ready(store_path) = event {
-                        let file_path = if let Some(shared_dir_path) = shared_dir_path.as_ref() {
-                            Self::copy_file(store_path, ulid_string.as_str(), shared_dir_path)
-                                .await
-                                .map_err(|e| Status::internal(e.to_string()))?
-                        } else {
-                            store_path
-                        };
+                        let container_file_path = Self::copy_file(
+                            store_path,
+                            ulid_string.as_str(),
+                            shared_dir_path.as_path(),
+                        )
+                        .await
+                        .map_err(|e| Status::internal(e.to_string()))?;
 
-                        Ok(DownloadEvent::Ready(file_path))
+                        Ok(DownloadEvent::Ready(container_file_path))
                     } else {
                         Ok(event)
                     }
@@ -183,21 +179,11 @@ impl FileTransferServer {
     where
         E: Into<BoxError>,
     {
-        use std::borrow::Cow;
-
         let file_name = PathBuf::from(file_name);
         let file_stem = file_name.file_stem().unwrap_or_default().to_os_string();
         let file_ext = file_name.extension().map(OsString::from);
 
-        let dir = if let Some(shared_dir_path) = &self.shared_dir_path {
-            Cow::Borrowed(shared_dir_path)
-        } else {
-            let temp_dir = std::env::temp_dir().join("hyveos").join("bridge");
-            tokio::fs::create_dir_all(&temp_dir).await?;
-            Cow::Owned(temp_dir)
-        };
-
-        let mut file_path = dir.join(file_name);
+        let mut file_path = self.shared_dir_path.join(file_name);
         for i in 1.. {
             if file_path.exists() {
                 break;
@@ -210,7 +196,7 @@ impl FileTransferServer {
                 file_name.push(ext);
             }
 
-            file_path = dir.join(file_name);
+            file_path = self.shared_dir_path.join(file_name);
         }
 
         let reader = StreamReader::new(
