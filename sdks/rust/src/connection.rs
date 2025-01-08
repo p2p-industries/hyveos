@@ -121,8 +121,8 @@ impl internal::ConnectionType for UriConnection {
         let client_builder = reqwest::Client::builder();
 
         #[cfg(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))]
-        if let Some(if_name) = if_name {
-            client_builder = client_builder.interface(&_if_name);
+        if let Some(if_name) = _if_name {
+            client_builder = client_builder.interface(&if_name);
         }
 
         let client = client_builder.build()?;
