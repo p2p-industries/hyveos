@@ -9,19 +9,19 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.11"
 hyveos-sdk = { path = "../../../sdks/python" }
-pillow = "^10.4.0"
+pillow = "^11.1.0"
 ltr559 = "^1.0.0"
 st7735 = "^1.0.0"
 fonts = "^0.0.3"
 font-roboto = "^0.0.1"
-gpiod = "^2.2.1"
+gpiod = "^2.2.3"
 gpiodevice = "^0.0.5"
 gpiozero = "^2.0.1"
 lgpio = "^0.2.2.0"
-setuptools = "^73.0.1"
+setuptools = "^75.7.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.4.5"
+ruff = "^0.8.6"
 
 [tool.ruff]
 indent-width = 4
