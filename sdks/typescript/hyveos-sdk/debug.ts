@@ -160,11 +160,29 @@ export class MessageSubscription extends AbortOnDispose {
   }
 }
 
+/**
+ * A service for debugging.
+ *
+ * Gives access to the messages sent and received by other peers and gives access to the mesh topology.
+ */
 export class Debug extends BaseService<typeof Service> {
+  /** @ignore */
   public static __create(transport: Transport): Debug {
     return new Debug(Service, transport)
   }
 
+  /**
+   * Subscribe to the mesh topology to receive events about the mesh topology.
+   *
+   * @returns A subscription object that can be used to iterate over mesh topology events.
+   * @example Subscribe to the mesh topology
+   * ```ts
+   * const subscription = client.debug.subscribeMeshTopology()
+   * for await (const event of subscription) {
+   *  console.log('Mesh topology event:', event)
+   *  }
+   *  ```
+   */
   public subscribeMeshTopology(): MeshTopologySubscription {
     const abortController = new AbortController()
     const stream = this.client.subscribeMeshTopology({}, {

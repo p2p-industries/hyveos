@@ -13,6 +13,9 @@ export interface IncomingMessage {
   source: string
 }
 
+/**
+ * A subscription to a gossipsub topic.
+ */
 export class GossipsubSubscription extends AbortOnDispose
   implements AsyncIterable<IncomingMessage>, Disposable {
   stream: AsyncIterable<GossipSubRecvMessage>
@@ -44,11 +47,21 @@ export class GossipsubSubscription extends AbortOnDispose
   }
 }
 
+/**
+ * A gossipsub client.
+ */
 export class GossipSub extends BaseService<typeof Service> {
+  /** @ignore */
   public static __create(transport: Transport): GossipSub {
     return new GossipSub(Service, transport)
   }
 
+  /**
+   * Subscribe to a gossipsub topic to receive messages sent to that topic.
+   *
+   * @param topic The topic to subscribe to.
+   * @returns A subscription object that can be used to iterate over messages.
+   */
   public subscribe(topic: string): GossipsubSubscription {
     const abortController = new AbortController()
     const stream = this.client.subscribe(

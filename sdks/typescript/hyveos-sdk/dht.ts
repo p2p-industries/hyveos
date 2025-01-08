@@ -2,9 +2,21 @@ import type { Transport } from 'npm:@connectrpc/connect'
 import { AbortOnDispose, BaseService } from './core.ts'
 import { DHT as Service, type Peer } from './gen/script_pb.ts'
 
+/**
+ * A stream of providers for a given key in a topic.
+ *
+ * @example
+ *  To get the providers for a key in a topic, iterate over the stream:
+ *  ```ts
+ *  const stream = client.dht.getProviders('my-topic', key)
+ *  for await (const peerId of stream) {
+ *    console.log(peerId)
+ *  }
+ *  ```
+ */
 export class ProvidersStream extends AbortOnDispose
   implements AsyncIterable<string>, Disposable {
-  stream: AsyncIterable<Peer>
+  private stream: AsyncIterable<Peer>
 
   constructor(stream: AsyncIterable<Peer>, abortController: AbortController) {
     super(abortController)
@@ -18,11 +30,26 @@ export class ProvidersStream extends AbortOnDispose
   }
 }
 
+/** A client for the DHT service. */
 export class DHT extends BaseService<typeof Service> {
+  /** @ignore */
   public static __create(transport: Transport): DHT {
     return new DHT(Service, transport)
   }
 
+  /**
+   * Put a record into the DHT.
+   *
+   * @param topic The topic to put the record into.
+   * @param key The key of the record.
+   * @param data The data of the record.
+   * @returns A promise that resolves when the record is put.
+   *
+   * @example Put a record into the DHT
+   * ```ts
+   * await client.dht.putRecord('my-topic', key, data)
+   * ```
+   */
   public async putRecord(
     topic: string,
     key: Uint8Array,
@@ -41,6 +68,24 @@ export class DHT extends BaseService<typeof Service> {
     })
   }
 
+  /**
+   * Get a record from the DHT.
+   *
+   * @param topic The topic to get the record from.
+   * @param key The key of the record.
+   *
+   * @returns A promise that resolves with the data of the record or null if the record is not found.
+   *
+   * @example Get a record from the DHT
+   * ```ts
+   * const data = await client.dht.getRecord('my-topic', key)
+   * if (data) {
+   *    console.log('Record found:', data)
+   *  } else {
+   *    console.log('Record not found')
+   *  }
+   *  ```
+   */
   public async getRecord(
     topic: string,
     key: Uint8Array,
@@ -57,6 +102,13 @@ export class DHT extends BaseService<typeof Service> {
     return data.data
   }
 
+  /**
+   * Register as a provider for a given key in a topic.
+   *
+   * @param topic The topic to provide the key in.
+   * @param key The key to provide.
+   * @returns A promise that resolves when the key is provided.
+   */
   public async provide(topic: string, key: Uint8Array): Promise<void> {
     await this.client.provide({
       topic: {
@@ -66,6 +118,13 @@ export class DHT extends BaseService<typeof Service> {
     })
   }
 
+  /**
+   * Get the providers for a given key in a topic.
+   *
+   * @param topic The topic to get the providers from.
+   * @param key The key to get the providers for.
+   * @returns A stream of providers for the key in the topic.
+   */
   public getProviders(topic: string, key: Uint8Array): ProvidersStream {
     const abortController = new AbortController()
     const stream = this.client.getProviders(

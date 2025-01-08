@@ -21,15 +21,25 @@ const uploadResponse = createJsonResult(object({
   ),
 }))
 
-interface Cid {
+/**
+ * A content identifier.
+ *
+ * Identifies a file on the network.
+ */
+export interface Cid {
+  /** @ignore */
   id?: string
+  /** @ignore */
   hash: Uint8Array
 }
 
 export class FileTransfer extends BaseService<typeof Service> {
+  /** @ignore */
   private isUnix: boolean
+  /** @ignore */
   private url: string
 
+  /** @ignore */
   constructor(
     service: typeof Service,
     transport: Transport,
@@ -41,6 +51,7 @@ export class FileTransfer extends BaseService<typeof Service> {
     this.url = url
   }
 
+  /** @ignore */
   public static __create(
     transport: Transport,
     isUnix: boolean,
@@ -49,6 +60,7 @@ export class FileTransfer extends BaseService<typeof Service> {
     return new FileTransfer(Service, transport, isUnix, url)
   }
 
+  /** @ignore */
   private async processResponse(response: Response): Promise<Cid> {
     const bodyJson = await response.json()
     const parsed = parse(uploadResponse, bodyJson)
@@ -65,6 +77,7 @@ export class FileTransfer extends BaseService<typeof Service> {
     }
   }
 
+  /** @ignore */
   private async uploadFileFromBlob(
     blob: Blob | ReadableStream<Uint8Array> | Uint8Array,
     fileName: string,
@@ -81,6 +94,14 @@ export class FileTransfer extends BaseService<typeof Service> {
     return await this.processResponse(response)
   }
 
+  /**
+   * Publish a file to the network.
+   *
+   * @param file The file to publish. If using unix sockets, this should be a file path. If using HTTP, this should be a file blob.
+   * @param fileName The name of the file. Required when uploading a file blob.
+   *
+   * @returns The id and hash of the file.
+   */
   public async publishFile(
     file: string | Uint8Array | Blob | ReadableStream<Uint8Array>,
     fileName?: string,
@@ -111,6 +132,16 @@ export class FileTransfer extends BaseService<typeof Service> {
     }
   }
 
+  /**
+   * Get a file from the network.
+   *
+   * This method is **only** available when using unix sockets.
+   *
+   * @param id The id of the file
+   * @param hash The hash of the file
+   *
+   * @returns The path to the downloaded file
+   */
   public async getFileLocally({ id, hash }: Cid): Promise<string> {
     if (!this.isUnix) {
       throw new Error('This method is only available when using unix sockets')
@@ -124,6 +155,16 @@ export class FileTransfer extends BaseService<typeof Service> {
     return path
   }
 
+  /**
+   * Get a file from the network.
+   *
+   * This method is **only** available when **not** using unix sockets.
+   *
+   * @param id The id of the file
+   * @param hash The hash of the file
+   *
+   * @returns A readable stream of the file
+   */
   public async getFile({ id, hash }: Cid): Promise<ReadableStream> {
     if (this.isUnix) {
       throw new Error(

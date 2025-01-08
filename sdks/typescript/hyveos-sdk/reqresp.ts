@@ -169,6 +169,9 @@ export class ReqResSubscription extends AbortOnDispose
   }
 }
 
+/**
+ * A service for request response communication.
+ */
 export class ReqRes extends BaseService<typeof Service> {
   /** @ignore */
   public static __create(transport: Transport): ReqRes {

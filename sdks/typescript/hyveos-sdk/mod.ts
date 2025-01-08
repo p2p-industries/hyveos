@@ -18,21 +18,22 @@ export default {}
 
 import type { Transport } from 'npm:@connectrpc/connect'
 import { ReqRes } from './reqresp.ts'
-export * from './reqresp.ts'
+export { ReqRes } from './reqresp.ts'
 import { GossipSub } from './gossipsub.ts'
-export * from './gossipsub.ts'
+export { GossipSub } from './gossipsub.ts'
 import { Discovery } from './discovery.ts'
-export * from './discovery.ts'
+export { Discovery } from './discovery.ts'
 import { DHT } from './dht.ts'
-export * from './dht.ts'
+export { DHT } from './dht.ts'
 import { LocalDb } from './db.ts'
-export * from './db.ts'
+export { LocalDb } from './db.ts'
 import { FileTransfer } from './filetransfer.ts'
-export * from './filetransfer.ts'
+export { FileTransfer } from './filetransfer.ts'
 import { Debug } from './debug.ts'
-export * from './debug.ts'
+export { Debug } from './debug.ts'
 import { Scripting } from './scripting.ts'
-export * from './scripting.ts'
+export { Scripting } from './scripting.ts'
+export { AbortOnDispose } from './core.ts'
 
 /**
  * Interface for the transport layer. Typically obtained through the `hyveos-server` or `hyveos-web` package.
@@ -78,7 +79,7 @@ export class Client<T extends ITransport> {
   }
 
   /**
-   * get access to the reqresp service which is used for request response communication. The functionally is similar to http.
+   * Get access to the reqresp service which is used for request response communication. The functionally is similar to http.
    *
    * @returns The ReqRes service.
    *
@@ -98,22 +99,42 @@ export class Client<T extends ITransport> {
     return ReqRes.__create(this.transport.transport())
   }
 
+  /**
+   * Get access to the gossipsub service which is used for pubsub communication.
+   * @returns The GossipSub service.
+   */
   public get gossipsub(): GossipSub {
     return GossipSub.__create(this.transport.transport())
   }
 
+  /**
+   * Get access to the discovery service which is used for peer discovery.
+   * @returns The Discovery service.
+   */
   public get discovery(): Discovery {
     return Discovery.__create(this.transport.transport())
   }
 
+  /**
+   * Get access to the dht service which is used for distributed hash table communication.
+   * @returns The DHT service.
+   */
   public get dht(): DHT {
     return DHT.__create(this.transport.transport())
   }
 
+  /**
+   * Get access to the localdb service which is used for local storage.
+   * @returns The LocalDb service.
+   */
   public get localdb(): LocalDb {
     return LocalDb.__create(this.transport.transport())
   }
 
+  /**
+   * Get access to the filetransfer service which is used for file transfer.
+   * @returns The FileTransfer service.
+   */
   public get filetransfer(): FileTransfer {
     return FileTransfer.__create(
       this.transport.transport(),
@@ -122,10 +143,18 @@ export class Client<T extends ITransport> {
     )
   }
 
+  /**
+   * Get access to the debug service which is used for debugging.
+   * @returns The Debug service.
+   */
   public get debug(): Debug {
     return Debug.__create(this.transport.transport())
   }
 
+  /**
+   * Get access to the scripting service which is used for deploying and managing scripts.
+   * @returns The Scripting service.
+   */
   public get scripting(): Scripting {
     return Scripting.__create(this.transport.transport())
   }

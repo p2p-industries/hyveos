@@ -2,19 +2,25 @@ import type { Transport } from 'npm:@connectrpc/connect'
 import { AbortOnDispose, BaseService } from './core.ts'
 import { Discovery as Service, type NeighbourEvent } from './gen/script_pb.ts'
 
+export interface InitEvent {
+  case: 'init'
+  peers: string[]
+}
+
+export interface DiscoveredEvent {
+  case: 'discovered'
+  peer: string
+}
+
+export interface LostEvent {
+  case: 'lost'
+  peer: string
+}
+
 export type Event =
-  | {
-    case: 'init'
-    peers: string[]
-  }
-  | {
-    case: 'discovered'
-    peer: string
-  }
-  | {
-    case: 'lost'
-    peer: string
-  }
+  | InitEvent
+  | DiscoveredEvent
+  | LostEvent
 
 export class DiscoverySubscription extends AbortOnDispose
   implements AsyncIterable<Event>, Disposable {
@@ -47,16 +53,28 @@ export class DiscoverySubscription extends AbortOnDispose
   }
 }
 
+/** A client for the Discovery service. */
 export class Discovery extends BaseService<typeof Service> {
+  /** @ignore */
   public static __create(transport: Transport): Discovery {
     return new Discovery(Service, transport)
   }
 
+  /**
+   * Get the own peer ID.
+   *
+   * @returns A promise that resolves to the own peer ID.
+   */
   public async getOwnId(): Promise<string> {
     const { peerId } = await this.client.getOwnId({})
     return peerId
   }
 
+  /**
+   * Subscribe to the discovery service to receive neighbour events.
+   *
+   * @returns A subscription object that can be used to iterate over events.
+   */
   public subscribe(): DiscoverySubscription {
     const abortController = new AbortController()
     const stream = this.client.subscribeEvents(
