@@ -1,14 +1,58 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
 updates:
-  - package-ecosystem: "cargo" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "cargo"
+    directory: "/"
     assignees:
       - "umgefahren"
       - "Zollerboy1"
+    reviewers:
+      - "umgefahren"
     schedule:
       interval: "weekly"
+    groups:
+      minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: "pip"
+    directories:
+      - "sdks/python/"
+      - "demo/garden/pump/"
+      - "demo/garden/plant/"
+    assignees:
+      - "umgefahren"
+    reviewers:
+      - "lk-eg"
+    schedule:
+      interval: "weekly"
+    groups:
+      development:
+        dependency-type: development
+      production:
+        applies-to: version-updates
+        dependency-type: production
+  
+  - package-ecosystem: "github-actions"
+    directory: /
+    reviewers:
+      - "umgefahren"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: ui
+    reviewers:
+      - "umgefahren"
+    schedule:
+      interval: "weekly"
+    groups:
+      development:
+        dependency-type: development
+      production-minor-patch:
+        applies-to: version-updates
+        dependency-type: production
+        update-types:
+          - "minor"
+          - "patch"
