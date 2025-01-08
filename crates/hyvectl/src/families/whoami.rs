@@ -1,13 +1,13 @@
 use hyvectl_commands::families::whoami::Whoami;
 use hyveos_sdk::Connection;
-use crate::util::{CommandFamily, DynError};
+use crate::util::{CommandFamily};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use crate::boxed_try_stream;
-
+use crate::error::HyveCtlResult;
 impl CommandFamily for Whoami {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut discovery = connection.discovery();
 
         boxed_try_stream! {

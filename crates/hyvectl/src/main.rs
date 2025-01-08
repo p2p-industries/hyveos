@@ -2,6 +2,7 @@ mod util;
 mod families;
 mod output;
 mod color;
+mod error;
 
 use hyveos_sdk::{Connection};
 use std::io::{stdout, IsTerminal, Write};
@@ -12,13 +13,12 @@ use futures::stream::BoxStream;
 use futures::StreamExt;
 use indicatif::ProgressStyle;
 use crate::output::{CommandOutput, CommandOutputType};
-use crate::util::DynError;
 use std::path::PathBuf;
-
+use miette::{Context, IntoDiagnostic};
 use hyvectl_commands::command::{Cli, Families};
-
+use crate::error::{HyveCtlError, HyveCtlResult};
 impl CommandFamily for Families {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         match self {
             Families::KV(cmd) => cmd.run(connection).await,
             Families::PubSub(cmd) => cmd.run(connection).await,
@@ -31,22 +31,40 @@ impl CommandFamily for Families {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), DynError> {
-    let cli = Cli::parse();
-
-    let socket_path = ["/run", "/var/run"]
+fn find_bridge_sock() -> miette::Result<PathBuf> {
+    for p in ["/run", "/var/run"]
         .into_iter()
-        .map(str::to_string)
         .map(PathBuf::from)
         .chain(Some(std::env::temp_dir()))
-        .find_map(|p| p.join("hyved").join("bridge").join("bridge.sock").canonicalize().ok())
-        .ok_or(std::io::Error::from(std::io::ErrorKind::NotConnected))?;
+    {
+        let candidate = p.join("hyved").join("bridge").join("bridge.sock");
+        match candidate
+            .canonicalize()
+            .into_diagnostic()
+            .wrap_err("Unable to connect to hyveOS bridge".to_string())
+        {
+            Ok(path) => return Ok(path),
+            Err(e) => {
+                return Err(e);
+            }
+        }
+    }
+
+    Err(miette::miette!("No possible path to hyveOS Bridge sock"))
+}
+
+
+#[tokio::main]
+async fn main() -> miette::Result<()> {
+    let cli = Cli::parse();
+
+    let socket_path = find_bridge_sock()?;
 
     let connection = Connection::builder()
         .custom_socket(socket_path)
         .connect()
-        .await?;
+        .await
+        .map_err(HyveCtlError::from)?;
 
     let is_tty = stdout().is_terminal();
     let mut stdout = stdout().lock();
@@ -98,12 +116,12 @@ async fn main() -> Result<(), DynError> {
             },
             _ => {
                 if cli.json {
-                    command_output.write_json(&mut stdout)?;
+                    command_output.write_json(&mut stdout).map_err(HyveCtlError::from)?;
                 } else {
                     if let Some(sp) = &spinner {
-                        command_output.write_to_spinner(sp, &theme)?;
+                        command_output.write_to_spinner(sp, &theme).map_err(HyveCtlError::from)?;
                     } else {
-                        command_output.write(&mut stdout, &theme)?;
+                        command_output.write(&mut stdout, &theme).map_err(HyveCtlError::from)?;
                     }
                 }
             }
@@ -116,7 +134,7 @@ async fn main() -> Result<(), DynError> {
                     if e.kind() == std::io::ErrorKind::BrokenPipe {
                         return Ok(())
                     } else {
-                        Err(e)?
+                        Err(e).map_err(HyveCtlError::from)?
                     }
                 }
             }

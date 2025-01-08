@@ -3,13 +3,14 @@ use hyvectl_commands::families::reqres::ReqRes;
 use hyveos_sdk::Connection;
 use crate::boxed_try_stream;
 use crate::output::{CommandOutput, OutputField};
-use crate::util::{CommandFamily, DynError};
+use crate::util::{CommandFamily};
 use hyveos_sdk::PeerId;
 use futures::{StreamExt, TryStreamExt};
 use hyveos_core::req_resp::Response;
+use crate::error::HyveCtlResult;
 
 impl CommandFamily for ReqRes {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut reqres = connection.req_resp();
 
         match self {

@@ -5,12 +5,13 @@ use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
 use crate::{boxed_try_stream};
-use crate::util::{CommandFamily, DynError};
+use crate::util::{CommandFamily};
 use crate::output::{CommandOutput, OutputField};
+use crate::error::HyveCtlResult;
 
 
 impl CommandFamily for File {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut file_transfer_service = connection.file_transfer();
 
         match self {

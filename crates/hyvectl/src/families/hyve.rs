@@ -1,15 +1,16 @@
 use futures::{StreamExt};
 use futures::stream::BoxStream;
-use crate::util::{CommandFamily, DynError};
+use crate::util::{CommandFamily};
 use hyvectl_commands::families::hyve::Hyve;
 use hyveos_sdk::{Connection, PeerId};
 use hyveos_sdk::services::ScriptingConfig;
 use crate::output::{CommandOutput, OutputField};
 use crate::boxed_try_stream;
 use ulid::Ulid;
+use crate::error::HyveCtlResult;
 
 impl CommandFamily for Hyve {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut scripting_service = connection.scripting();
 
         match self {

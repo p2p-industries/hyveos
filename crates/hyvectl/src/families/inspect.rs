@@ -1,14 +1,15 @@
 use hyveos_sdk::Connection;
-use crate::util::{CommandFamily, DynError};
+use crate::util::{CommandFamily};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::inspect::Inspect;
 use crate::boxed_try_stream;
 use hyveos_core::debug::MessageDebugEventType;
+use crate::error::HyveCtlResult;
 
 impl CommandFamily for Inspect {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, Result<CommandOutput, DynError>> {
+    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut debug = connection.debug();
 
         match self {
