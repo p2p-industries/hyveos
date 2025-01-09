@@ -1,7 +1,7 @@
 use hyvectl_commands::families::pubsub::PubSub;
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput, OutputField};
+use crate::output::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyveos_core::gossipsub::ReceivedMessage;
@@ -13,7 +13,7 @@ impl TryFrom<ReceivedMessage> for CommandOutput {
 
     fn try_from(value: ReceivedMessage) -> Result<Self, Self::Error> {
         let output = CommandOutput::result("")
-            .with_field("psource", value.propagation_source.into())
+            .with_field("psource", value.propagation_source.to_string().into())
             .with_field("topic", value.message.topic.into())
             .with_field("message", String::from_utf8(value.message.data)?.into())
             .with_field("message_id", String::from_utf8(value.message_id.0)?.into())
@@ -22,7 +22,7 @@ impl TryFrom<ReceivedMessage> for CommandOutput {
 
         match value.source {
             Some(source) => {
-                Ok(output.with_field("source", source.into())
+                Ok(output.with_field("source", source.to_string().into())
                     .with_non_tty_template("{topic},{message},{source}"))
             },
             None => {
@@ -43,8 +43,8 @@ impl CommandFamily for PubSub {
                     pubsub.publish(topic.clone(), message.clone()).await?;
 
                     yield CommandOutput::result("pub-sub/publish")
-                        .with_field("topic", OutputField::String(topic.clone()))
-                        .with_field("message", OutputField::String(message.clone()))
+                        .with_field("topic", topic.clone())
+                        .with_field("message", message.clone())
                         .with_tty_template("📨 Published {message} to topic {topic}")
                         .with_non_tty_template("{message},{topic}")
                 }

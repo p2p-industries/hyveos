@@ -6,7 +6,7 @@ use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
 use crate::{boxed_try_stream};
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput, OutputField};
+use crate::output::{CommandOutput};
 use crate::error::HyveCtlResult;
 
 
@@ -25,7 +25,7 @@ impl CommandFamily for File {
                     .await?;
 
                     yield CommandOutput::result("file/publish")
-                    .with_field("cid", OutputField::String(cid.to_string()))
+                    .with_field("cid", cid.to_string())
                     .with_tty_template("Published file under cid {cid}")
                     .with_non_tty_template("{cid}")
                 }
@@ -60,8 +60,8 @@ impl CommandFamily for File {
                                 };
 
                                 yield CommandOutput::result("file/get")
-                                .with_field("cid", OutputField::String(cid.to_string()))
-                                .with_field("local_path", OutputField::String(path.display().to_string()))
+                                .with_field("cid", cid.to_string())
+                                .with_field("local_path", path.display().to_string())
                                 .with_tty_template("Downloaded file with cid {cid} to {local_path}")
                                 .with_non_tty_template("{cid},{local_path}");
                             }

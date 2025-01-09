@@ -1,7 +1,7 @@
 use hyvectl_commands::families::whoami::Whoami;
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput, OutputField};
+use crate::output::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use crate::boxed_try_stream;
@@ -14,7 +14,7 @@ impl CommandFamily for Whoami {
             let peer_id = discovery.get_own_id().await?;
 
             yield CommandOutput::result("whoami")
-                .with_field("peer_id", OutputField::PeerId(peer_id))
+                .with_field("peer_id", peer_id.to_string())
                 .with_tty_template("🤖 You are {peer_id}")
                 .with_non_tty_template("{peer_id}")
         }

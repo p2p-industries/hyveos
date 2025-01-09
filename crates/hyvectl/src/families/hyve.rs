@@ -4,7 +4,7 @@ use crate::util::{CommandFamily};
 use hyvectl_commands::families::hyve::Hyve;
 use hyveos_sdk::{Connection, PeerId};
 use hyveos_sdk::services::ScriptingConfig;
-use crate::output::{CommandOutput, OutputField};
+use crate::output::{CommandOutput};
 use crate::boxed_try_stream;
 use ulid::Ulid;
 use crate::error::HyveCtlResult;
@@ -32,8 +32,8 @@ impl CommandFamily for Hyve {
                     scripting_service.deploy_script(config).await?;
 
                     yield CommandOutput::result("hyve/start")
-                        .with_field("image", OutputField::String(image))
-                        .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
+                        .with_field("image", image)
+                        .with_field("peer", peer.unwrap_or("local".to_string()))
                         .with_tty_template("Deployed {image} on {peer}")
                         .with_non_tty_template("{image}")
                 }
@@ -49,12 +49,12 @@ impl CommandFamily for Hyve {
 
                     for script in scripts {
                         let mut out = CommandOutput::result("hyve/list")
-                            .with_field("image", script.image.to_string().into())
-                            .with_field("id", script.id.to_string().into());
+                            .with_field("image", script.image.to_string())
+                            .with_field("id", script.id.to_string());
 
                         out = match script.name {
                             Some(name) => {
-                                out.with_field("name", name.to_string().into())
+                                out.with_field("name", name.to_string())
                                 .with_tty_template("💾 { name: {name}, image: {image}, id: {id} }")
                                 .with_non_tty_template("{name},{image},{id}")
                             }
@@ -77,8 +77,8 @@ impl CommandFamily for Hyve {
                     scripting_service.stop_script(id.parse::<Ulid>()?, peer_parsed).await?;
 
                     yield CommandOutput::result("hyve/stop")
-                            .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
-                            .with_field("id", OutputField::String(id))
+                            .with_field("peer", peer.unwrap_or("local".to_string()))
+                            .with_field("id", id)
                             .with_tty_template("Stopped {id} on {peer}")
                             .with_non_tty_template("{peer},{id}")
                 }

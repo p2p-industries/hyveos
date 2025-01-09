@@ -1,6 +1,6 @@
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput, OutputField};
+use crate::output::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::kv::Kv;
@@ -70,9 +70,9 @@ impl CommandFamily for Kv {
 
                         match event {
                             Ok(provider) => yield CommandOutput::result("kv/get-providers")
-                                .with_field("topic", OutputField::String(topic.clone()))
-                                .with_field("key", OutputField::String(key.clone()))
-                                .with_field("provider", OutputField::PeerId(provider))
+                                .with_field("topic", topic.clone())
+                                .with_field("key", key.clone())
+                                .with_field("provider", provider.to_string())
                                 .with_tty_template("🤖 {provider}")
                                 .with_non_tty_template("{provider}"),
                             Err(e) => yield CommandOutput::error("kv/get-providers", &e.to_string())

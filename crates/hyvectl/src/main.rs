@@ -31,7 +31,7 @@ impl CommandFamily for Families {
     }
 }
 
-fn find_bridge_sock(endpoint: &str) -> miette::Result<PathBuf> {
+fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
     for p in ["/run", "/var/run"]
         .into_iter()
         .map(PathBuf::from)
@@ -58,8 +58,8 @@ fn find_bridge_sock(endpoint: &str) -> miette::Result<PathBuf> {
 async fn main() -> miette::Result<()> {
     let cli = Cli::parse();
 
-    let socket_path = find_bridge_sock("bridge.sock")?;
-    let shared_dir_path = find_bridge_sock("files")?;
+    let socket_path = find_hyved_endpoint("bridge.sock")?;
+    let shared_dir_path = find_hyved_endpoint("files")?;
 
     let connection = Connection::builder()
         .custom(socket_path, shared_dir_path)

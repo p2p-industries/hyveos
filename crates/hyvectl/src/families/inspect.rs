@@ -5,37 +5,10 @@ use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::inspect::Inspect;
 use crate::boxed_try_stream;
-use hyveos_core::debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType};
+use hyveos_core::debug::{MessageDebugEvent, MessageDebugEventType};
 use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::req_resp::Response;
 use crate::error::{HyveCtlError, HyveCtlResult};
-
-impl From<MeshTopologyEvent> for CommandOutput {
-    fn from(event: MeshTopologyEvent) -> Self {
-        let mut out = CommandOutput::result("inspect/mesh");
-
-        out =  match event.event {
-            NeighbourEvent::Init(peers) => {
-                out.with_field("type", "connected".to_string().into())
-                    .with_field("peers", peers.into())
-                    .with_tty_template("📡 Connected to {{peers}}")
-            },
-            NeighbourEvent::Discovered(peer) => {
-                out.with_field("type", "discovered".to_string().into())
-                    .with_field("peer", peer.into())
-
-                    .with_tty_template("📡 Discovered {{peer}}")
-            },
-            NeighbourEvent::Lost(peer) => {
-                out.with_field("type", "lost".to_string().into())
-                    .with_field("peer", peer.into())
-                    .with_tty_template("📡 Lost {{peer}}")
-            }
-        };
-
-        out.with_non_tty_template("{peers}")
-    }
-}
 
 impl TryFrom<MessageDebugEvent> for CommandOutput {
     type Error = HyveCtlError;
@@ -46,7 +19,7 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
         out = match event.event {
             MessageDebugEventType::Request(req) => {
                 out.with_field("service", "req-res/request".to_string().into())
-                    .with_field("receiver", req.receiver.into())
+                    .with_field("receiver", req.receiver.to_string().into())
                     .with_field("id", req.id.to_string().into())
                     .with_field("topic", req.msg.topic.unwrap_or_default().into())
                     .with_field("data", String::from_utf8(req.msg.data)?.into())
@@ -91,7 +64,33 @@ impl CommandFamily for Inspect {
                     yield CommandOutput::spinner("Waiting for Topology Events...", &["◐", "◒", "◑", "◓"]);
 
                     while let Some(event) = stream.next().await {
-                        yield event?.into()
+                        let event = event?;
+
+                        let out = CommandOutput::result("inspect/mesh")
+                        .with_field("source", event.peer_id.to_string().into());
+
+                        match event.event {
+                            NeighbourEvent::Init(peers) => {
+                                for peer in peers {
+                                    yield out.clone().with_field("type", "connected".to_string().into())
+                                            .with_field("peer", peer.to_string().into())
+                                            .with_tty_template("📡 Connected { {peer} } to { {source} }")
+                                            .with_non_tty_template("{peer},{source}")
+                                }
+                            },
+                            NeighbourEvent::Discovered(peer) => {
+                                yield out.with_field("type", "discovered".to_string().into())
+                                    .with_field("peer", peer.to_string().into())
+                                    .with_tty_template("📡 Discovered { {peer} } from { {source} }")
+                                    .with_non_tty_template("{peer},{source}")
+                            },
+                            NeighbourEvent::Lost(peer) => {
+                                yield out.with_field("type", "lost".to_string().into())
+                                    .with_field("peer", peer.to_string().into())
+                                    .with_tty_template("📡 Lost { {peer} } from { {source} }")
+                                    .with_non_tty_template("{peer},{source}")
+                            }
+                        }
                     }
                 }
             },

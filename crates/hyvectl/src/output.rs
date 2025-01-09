@@ -1,56 +1,13 @@
-use std::fmt;
 use std::io::{Result, Write};
 use serde::Serialize;
 use indicatif::ProgressBar;
-use hyveos_sdk::PeerId;
 use crate::color::Theme;
-
-#[derive(Clone, Debug, Serialize)]
-pub enum OutputField {
-    String(String),
-    PeerId(PeerId),
-    PeerIds(Vec<PeerId>),
-}
-
-impl From<String> for OutputField {
-    fn from(value: String) -> Self {
-        OutputField::String(value)
-    }
-}
-
-impl From<PeerId> for OutputField {
-    fn from(value: PeerId) -> Self {
-        OutputField::PeerId(value)
-    }
-}
-
-impl From<Vec<PeerId>> for OutputField {
-    fn from(value: Vec<PeerId>) -> Self {
-        OutputField::PeerIds(value)
-    }
-}
-
-impl fmt::Display for OutputField {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OutputField::String(s) => write!(f, "{}", s),
-            OutputField::PeerId(p) => write!(f, "{}", p),
-            OutputField::PeerIds(ids) => {
-                let peer_ids = ids.iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "{}", peer_ids)
-            }
-        }
-    }
-}
 
 #[derive(Clone, Debug, Serialize)]
 pub enum CommandOutputType {
     Message(String),
     Result {
-        fields: Vec<(&'static str, OutputField)>,
+        fields: Vec<(&'static str, String)>,
         #[serde(skip_serializing)]
         tty_template: String,
         #[serde(skip_serializing)]
@@ -123,7 +80,7 @@ impl CommandOutput {
         }
     }
 
-    pub fn with_field(mut self, key: &'static str, value: OutputField) -> Self {
+    pub fn with_field(mut self, key: &'static str, value: String) -> Self {
         match &mut self.output {
             CommandOutputType::Result { fields, .. } => {fields.push((key, value));},
             _ => {}
@@ -159,12 +116,7 @@ impl CommandOutput {
                 let mut obj = Map::new();
 
                 for (key, field) in fields {
-                    let val: Value = match field {
-                        OutputField::String(s) => json!(s),
-                        OutputField::PeerId(pid) => json!(pid.to_string()),
-                        OutputField::PeerIds(ids) => json!(ids),
-                    };
-
+                    let val: Value = json!(field);
                     obj.insert(key.to_string(), val);
                 }
 
@@ -222,15 +174,10 @@ impl CommandOutput {
 
                 for (key, value) in fields {
                     let placeholder = format!("{{{}}}", key);
-                    let formatted_value = match value {
-                        OutputField::String(s) => {
-                            if let Some(t) = theme.clone() {
-                                t.field(s.clone()).to_string()
-                            } else {
-                                s.clone()
-                            }
-                        },
-                        _ => value.to_string(),
+                    let formatted_value =  if let Some(t) = theme.clone() {
+                        t.field(value.clone()).to_string()
+                    } else {
+                        value.clone()
                     };
                     output = output.replace(&placeholder, &formatted_value);
                 }
