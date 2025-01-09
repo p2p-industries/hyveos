@@ -38,13 +38,15 @@ use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
 pub struct FileTransferServer {
     client: Client,
     shared_dir_path: PathBuf,
+    running_for_container: bool,
 }
 
 impl FileTransferServer {
-    pub fn new(client: Client, shared_dir_path: PathBuf) -> Self {
+    pub fn new(client: Client, shared_dir_path: PathBuf, running_for_container: bool) -> Self {
         Self {
             client,
             shared_dir_path,
+            running_for_container,
         }
     }
 
@@ -52,10 +54,17 @@ impl FileTransferServer {
         path: PathBuf,
         ulid_string: impl AsRef<Path>,
         shared_dir_path: impl AsRef<Path>,
+        running_for_container: bool,
     ) -> std::io::Result<PathBuf> {
-        tokio::fs::copy(path, shared_dir_path.as_ref().join(&ulid_string)).await?;
+        let dest_path = shared_dir_path.as_ref().join(&ulid_string);
 
-        Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
+        tokio::fs::copy(path, &dest_path).await?;
+
+        if running_for_container {
+            Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
+        } else {
+            Ok(dest_path)
+        }
     }
 }
 
@@ -68,19 +77,25 @@ impl FileTransfer for FileTransferServer {
 
         tracing::debug!(request=?file_path, "Received publish_file request");
 
-        let container_file_path = PathBuf::from(file_path);
+        let file_path = PathBuf::from(file_path);
 
-        let file_path = self.shared_dir_path.join(
-            container_file_path
-                .strip_prefix(CONTAINER_SHARED_DIR)
-                .map_err(|_| {
+        let file_path = if self.running_for_container {
+            self.shared_dir_path
+                .join(file_path.strip_prefix(CONTAINER_SHARED_DIR).map_err(|_| {
                     Status::invalid_argument(concatcp!(
                         "File must be in shared directory (",
                         CONTAINER_SHARED_DIR,
                         ")"
                     ))
-                })?,
-        );
+                })?)
+        } else if file_path.starts_with(&self.shared_dir_path) {
+            file_path
+        } else {
+            return Err(Status::invalid_argument(format!(
+                "File must be in shared directory ({})",
+                self.shared_dir_path.to_string_lossy(),
+            )));
+        };
 
         self.client
             .file_transfer()
@@ -105,9 +120,14 @@ impl FileTransfer for FileTransferServer {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let container_file_path = Self::copy_file(store_path, &ulid_string, &self.shared_dir_path)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let container_file_path = Self::copy_file(
+            store_path,
+            &ulid_string,
+            &self.shared_dir_path,
+            self.running_for_container,
+        )
+        .await
+        .map_err(|e| Status::internal(e.to_string()))?;
 
         Ok(TonicResponse::new(container_file_path.try_into()?))
     }
@@ -121,6 +141,7 @@ impl FileTransfer for FileTransferServer {
         tracing::debug!(request=?cid, "Received get_file request");
 
         let shared_dir_path = Arc::new(self.shared_dir_path.clone());
+        let running_for_container = self.running_for_container;
         let ulid_string = Arc::new(cid.id.ulid.clone());
 
         let stream = self
@@ -139,6 +160,7 @@ impl FileTransfer for FileTransferServer {
                             store_path,
                             ulid_string.as_str(),
                             shared_dir_path.as_path(),
+                            running_for_container,
                         )
                         .await
                         .map_err(|e| Status::internal(e.to_string()))?;
