@@ -54,10 +54,17 @@ impl FileTransferServer {
         path: PathBuf,
         ulid_string: impl AsRef<Path>,
         shared_dir_path: impl AsRef<Path>,
+        running_for_container: bool,
     ) -> std::io::Result<PathBuf> {
-        tokio::fs::copy(path, shared_dir_path.as_ref().join(&ulid_string)).await?;
+        let dest_path = shared_dir_path.as_ref().join(&ulid_string);
 
-        Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
+        tokio::fs::copy(path, &dest_path).await?;
+
+        if running_for_container {
+            Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
+        } else {
+            Ok(dest_path)
+        }
     }
 }
 
@@ -113,9 +120,14 @@ impl FileTransfer for FileTransferServer {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let container_file_path = Self::copy_file(store_path, &ulid_string, &self.shared_dir_path)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let container_file_path = Self::copy_file(
+            store_path,
+            &ulid_string,
+            &self.shared_dir_path,
+            self.running_for_container,
+        )
+        .await
+        .map_err(|e| Status::internal(e.to_string()))?;
 
         Ok(TonicResponse::new(container_file_path.try_into()?))
     }
@@ -129,6 +141,7 @@ impl FileTransfer for FileTransferServer {
         tracing::debug!(request=?cid, "Received get_file request");
 
         let shared_dir_path = Arc::new(self.shared_dir_path.clone());
+        let running_for_container = self.running_for_container;
         let ulid_string = Arc::new(cid.id.ulid.clone());
 
         let stream = self
@@ -147,6 +160,7 @@ impl FileTransfer for FileTransferServer {
                             store_path,
                             ulid_string.as_str(),
                             shared_dir_path.as_path(),
+                            running_for_container,
                         )
                         .await
                         .map_err(|e| Status::internal(e.to_string()))?;
