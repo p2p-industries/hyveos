@@ -1,4 +1,4 @@
-name: Docker image
+name: Docker image frontend
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
 env:
   REGISTRY: ghcr.io
 
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,7 +17,7 @@ concurrency:
 jobs:
   build-and-push-image:
     runs-on: ubuntu-24.04
-    name: Build container image for ${{ matrix.name }}
+    name: Build container image for frontend
 
     permissions:
       contents: read
@@ -24,16 +25,8 @@ jobs:
       attestations: write
       id-token: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Data collector
-            context: .
-            file: endpoint/data-collector/Dockerfile
-            image: data-collector
     env:
-      IMAGE_NAME: ${{ github.repository }}-${{ matrix.image }}
+      IMAGE_NAME: ${{ github.repository }}-frontend
 
     steps:
       - name: Checkout repository
@@ -42,7 +35,7 @@ jobs:
       - name: Cache Docker images
         uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
         with:
-          key: docker-frontend-${{ matrix.image }}-image
+          key: docker-frontend-frontend-image
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -63,13 +56,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
 
-      - name: Build and push ${{ matrix.name }}
+      - name: Build and push frontend
         id: push
         uses: docker/build-push-action@v6
         with:
           build-args: ${{toJSON(matrix.arg) }}
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
+          context: .
+          file: ui/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}

@@ -47,10 +47,19 @@ export interface TopologyUpdateData {
 
 export type RequestResponse = {
   type: 'req_resp';
+  id: string;
+  topic: string;
+  data: Uint8Array;
   receiver: string;
-  request: string;
-  response?: string;
-  topic?: string;
+  response?:
+    | {
+        success: true;
+        data: Uint8Array;
+      }
+    | {
+        success: false;
+        error: string;
+      };
 };
 
 export type GossipsubMessage = {
