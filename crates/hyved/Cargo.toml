@@ -15,7 +15,7 @@ hyveos-core = { workspace = true }
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }
-netdev = { version = "0.31.0", optional = true }
+netdev = { version = "0.32.0", optional = true }
 serde = { workspace = true }
 hyveos-runtime = { workspace = true, features = ["clap", "serde"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
