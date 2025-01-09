@@ -16,7 +16,8 @@ export interface DockerScript {
    */
   ports?: number[]
   /**
-   * Whether to run the script locally or on a peer
+   * If true, the image is assumed to be available locally
+   * and will not be pulled from a registry
    *  @default false
    */
   local?: boolean
@@ -42,9 +43,14 @@ export class Scripting extends BaseService<typeof Service> {
   }
 
   /**
-   * @ignore
+   * Deploy a script to a peer or locally (to the current machine)
+   *  @param script The script to deploy
+   *  @param persistent Whether the script should be persistent
+   *  @param [peer] The peer to deploy the script to or undefined to deploy locally
+   *
+   *  @returns The id of the deployed script
    */
-  private async deployScriptInner(
+  public async deployScript(
     { image, ports, local }: DockerScript,
     persistent: boolean,
     peer?: string,
@@ -63,57 +69,20 @@ export class Scripting extends BaseService<typeof Service> {
     return ulid
   }
 
-  /**
-   * Deploy a script to a peer or locally (to the current machine)
-   *  @param script The script to deploy
-   *  @param persistent Whether the script should be persistent
-   *  @param [peer] The peer to deploy the script to or undefined to deploy locally
-   *
-   *  @returns The id of the deployed script
+  /** List all running scripts
+   * @param [peer] The peer to list the scripts from or undefined to list local scripts
+   * @returns A list of running scripts
    */
-  public deployScript(
-    script: DockerScript,
-    persistent: boolean,
+  public async listRunningScripts(
     peer?: string,
-  ): Promise<string> {
-    return this.deployScriptInner(
-      { ports: [], local: false, ...script },
-      persistent,
-      peer,
-    )
-  }
-
-  /**
-   * @ignore
-   */
-  private async listRunningScriptsInner(peer?: string) {
+  ): Promise<
+    { image: string | undefined; name: string; id: string | undefined }[]
+  > {
     const m = await this.client.listRunningScripts({
       peer: peer ? { peerId: peer } : undefined,
     })
     return m.scripts.map(({ image, name, id }) => {
       return { image: image?.name, name, id: id?.ulid }
-    })
-  }
-
-  /** List all running scripts
-   * @param [peer] The peer to list the scripts from or undefined to list local scripts
-   * @returns A list of running scripts
-   */
-  public listRunningScripts(
-    peer?: string,
-  ): Promise<
-    { image: string | undefined; name: string; id: string | undefined }[]
-  > {
-    return this.listRunningScriptsInner(peer)
-  }
-
-  /**
-   * @ignore
-   */
-  private async stopScriptInner(id: string, peer?: string) {
-    await this.client.stopScript({
-      id: { ulid: id },
-      peer: peer ? { peerId: peer } : undefined,
     })
   }
 
@@ -123,7 +92,10 @@ export class Scripting extends BaseService<typeof Service> {
    * @param [peer] The peer to stop the script on or undefined to stop a local script
    * @returns A promise that resolves when the script has been stopped
    */
-  public stopScript(id: string, peer?: string): Promise<void> {
-    return this.stopScriptInner(id, peer)
+  public async stopScript(id: string, peer?: string): Promise<void> {
+    await this.client.stopScript({
+      id: { ulid: id },
+      peer: peer ? { peerId: peer } : undefined,
+    })
   }
 }
