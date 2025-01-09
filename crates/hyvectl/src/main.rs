@@ -31,13 +31,13 @@ impl CommandFamily for Families {
     }
 }
 
-fn find_bridge_sock() -> miette::Result<PathBuf> {
+fn find_bridge_sock(endpoint: &str) -> miette::Result<PathBuf> {
     for p in ["/run", "/var/run"]
         .into_iter()
         .map(PathBuf::from)
         .chain(Some(std::env::temp_dir()))
     {
-        let candidate = p.join("hyved").join("bridge").join("bridge.sock");
+        let candidate = p.join("hyved").join("bridge").join(endpoint);
         match candidate
             .canonicalize()
             .into_diagnostic()
@@ -58,10 +58,11 @@ fn find_bridge_sock() -> miette::Result<PathBuf> {
 async fn main() -> miette::Result<()> {
     let cli = Cli::parse();
 
-    let socket_path = find_bridge_sock()?;
+    let socket_path = find_bridge_sock("bridge.sock")?;
+    let shared_dir_path = find_bridge_sock("files")?;
 
     let connection = Connection::builder()
-        .custom_socket(socket_path)
+        .custom(socket_path, shared_dir_path)
         .connect()
         .await
         .map_err(HyveCtlError::from)?;

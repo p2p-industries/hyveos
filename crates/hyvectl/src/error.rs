@@ -10,7 +10,7 @@ use miette::{Diagnostic};
 #[derive(Debug, Error, Diagnostic)]
 pub enum HyveCtlError {
     /// I/O error
-    #[error("I/O error: {0}")]
+    #[error("I/O error")]
     #[diagnostic(code(hyvectl::io))]
     IoError(#[from] std::io::Error),
 

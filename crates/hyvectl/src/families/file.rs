@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::file::File;
@@ -17,7 +17,11 @@ impl CommandFamily for File {
         match self {
             File::Publish {path} => {
                 boxed_try_stream! {
-                    let cid = file_transfer_service.publish_file(Path::new(&path))
+                    let input_path = PathBuf::from(path).canonicalize()?;
+
+                    yield CommandOutput::spinner("Publishing File...", &["◐", "◒", "◑", "◓"]);
+
+                    let cid = file_transfer_service.publish_file(input_path)
                     .await?;
 
                     yield CommandOutput::result("file/publish")

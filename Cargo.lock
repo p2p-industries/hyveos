@@ -1759,7 +1759,7 @@ dependencies = [
  "miette",
  "serde",
  "serde_json",
- "thiserror 2.0.4",
+ "thiserror 2.0.9",
  "tokio",
  "ulid",
 ]
