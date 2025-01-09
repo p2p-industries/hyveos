@@ -2,26 +2,32 @@ use std::fmt;
 use std::io::{Result, Write};
 use serde::Serialize;
 use indicatif::ProgressBar;
-use hyveos_core::debug::{MeshTopologyEvent};
-use hyveos_core::discovery::NeighbourEvent;
-use hyveos_core::gossipsub::{Message, ReceivedMessage};
-use hyveos_core::req_resp::{Request, Response};
-use hyveos_core::scripting::RunningScript;
 use hyveos_sdk::PeerId;
-use hyveos_sdk::services::req_resp::InboundRequest;
 use crate::color::Theme;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum OutputField {
     String(String),
     PeerId(PeerId),
-    ReceivedGossipMessage(ReceivedMessage),
-    GossipMessage(Message),
-    MeshTopologyEvent(MeshTopologyEvent),
-    InboundRequest(InboundRequest<Vec<u8>>),
-    Request(Request),
-    Response(Response),
-    RunningScripts(Vec<RunningScript>),
+    PeerIds(Vec<PeerId>),
+}
+
+impl From<String> for OutputField {
+    fn from(value: String) -> Self {
+        OutputField::String(value)
+    }
+}
+
+impl From<PeerId> for OutputField {
+    fn from(value: PeerId) -> Self {
+        OutputField::PeerId(value)
+    }
+}
+
+impl From<Vec<PeerId>> for OutputField {
+    fn from(value: Vec<PeerId>) -> Self {
+        OutputField::PeerIds(value)
+    }
 }
 
 impl fmt::Display for OutputField {
@@ -29,46 +35,13 @@ impl fmt::Display for OutputField {
         match self {
             OutputField::String(s) => write!(f, "{}", s),
             OutputField::PeerId(p) => write!(f, "{}", p),
-            OutputField::ReceivedGossipMessage(m) => {
-                write!(
-                    f,
-                    "{{ from: {}, message: {} }}",
-                    m.source.ok_or(fmt::Error)?,
-                    String::from_utf8(m.clone().message.data).map_err(|_| fmt::Error)?
-                )
+            OutputField::PeerIds(ids) => {
+                let peer_ids = ids.iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "{}", peer_ids)
             }
-            OutputField::MeshTopologyEvent(m) => match &m.event {
-                NeighbourEvent::Init(peers) => {
-                    write!(f, "Connected to {{")?;
-                    for peer in peers {
-                        write!(f, "{}", peer)?
-                    }
-                    Ok(write!(f, "}}")?)
-                }
-                NeighbourEvent::Discovered(peer) => write!(f, "Discovered {}", peer),
-                NeighbourEvent::Lost(peer) => write!(f, "Lost {}", peer),
-            },
-            OutputField::GossipMessage(message) => {write!(f, "{{ topic: {}, message: {} }}", message.topic,
-                                                           String::from_utf8(message.clone().data).map_err(|_| fmt::Error)?)},
-            OutputField::InboundRequest(request) => {
-                write!(f, "{{ from: {}, topic: {}, message: {} }}", request.peer_id.to_string(), request.clone().topic.unwrap_or_default(), String::from_utf8(request.clone().data).map_err(|_| fmt::Error)?)
-            },
-            OutputField::Request(r) => write!(f, "{{ topic: {}, request: {} }}", r.clone().topic.unwrap_or_default(),  String::from_utf8(r.clone().data).map_err(|_| fmt::Error)?),
-            OutputField::Response(r) => {
-                match r {
-                    Response::Data(data) => {
-                        write!(f, "{{ response: {} }}", String::from_utf8(data.clone()).map_err(|_| fmt::Error)?)
-                    }
-                    Response::Error(err) => {
-                        write!(f, "{{ error: {} }}", err)
-                    }
-                }
-            },
-            OutputField::RunningScripts(r) => {
-                Ok(for script in r {
-                    writeln!(f, "{}", script.id.to_string())?
-                })
-            },
         }
     }
 }
@@ -189,47 +162,7 @@ impl CommandOutput {
                     let val: Value = match field {
                         OutputField::String(s) => json!(s),
                         OutputField::PeerId(pid) => json!(pid.to_string()),
-                        OutputField::ReceivedGossipMessage(m) => json!({
-                        "from": m.source.map(|pid| pid.to_string()),
-                        "data": String::from_utf8_lossy(&m.message.data)
-                    }),
-                        OutputField::GossipMessage(m) => json!({
-                        "topic": m.topic,
-                        "data": String::from_utf8_lossy(&m.data)
-                    }),
-                        OutputField::MeshTopologyEvent(mte) => match &mte.event {
-                            NeighbourEvent::Init(peers) => json!({
-                            "type": "Init",
-                            "peers": peers.iter().map(|p| p.to_string()).collect::<Vec<_>>()
-                        }),
-                            NeighbourEvent::Discovered(peer) => json!({
-                            "type": "Discovered",
-                            "peers": [peer.to_string()]
-                        }),
-                            NeighbourEvent::Lost(peer) => json!({
-                            "type": "Lost",
-                            "peers": [peer.to_string()]
-                        }),
-                        },
-                        OutputField::InboundRequest(r) => json!({
-                            "from": r.peer_id.to_string(),
-                            "topic": r.topic,
-                            "data": String::from_utf8_lossy(&r.data)
-                        }),
-                        OutputField::Request(r) => json!({
-                        "topic": r.topic.as_deref().unwrap_or(""),
-                        "data": String::from_utf8_lossy(&r.data)
-                    }),
-                        OutputField::Response(r) => match r {
-                            Response::Data(d) => json!(String::from_utf8_lossy(d)),
-                            Response::Error(err) => json!({ "error": err }),
-                        },
-                        OutputField::RunningScripts(rs) => {
-                            let scripts = rs.iter()
-                                .map(|script| script.id.to_string())
-                                .collect::<Vec<_>>();
-                            json!(scripts)
-                        },
+                        OutputField::PeerIds(ids) => json!(ids),
                     };
 
                     obj.insert(key.to_string(), val);
@@ -342,5 +275,4 @@ impl CommandOutput {
         }
         Ok(())
     }
-
 }

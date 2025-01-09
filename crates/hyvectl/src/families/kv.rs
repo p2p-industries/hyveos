@@ -18,11 +18,11 @@ impl CommandFamily for Kv {
                     dht.put_record(topic.clone(), key.clone(), value.clone()).await?;
 
                     yield CommandOutput::result("kv/put")
-                        .with_field("topic", OutputField::String(topic))
-                        .with_field("key", OutputField::String(key.clone()))
-                        .with_field("value", OutputField::String(value.clone()))
-                        .with_tty_template("Added {value} to {key} under topic {topic}")
-                        .with_non_tty_template("{value,{key},{topic}");
+                        .with_field("topic", topic.into())
+                        .with_field("key", key.clone().into())
+                        .with_field("value", value.clone().into())
+                        .with_tty_template("🔑 Added {value} to {key} under topic {topic}")
+                        .with_non_tty_template("{value},{key},{topic}");
                 }
             },
             Kv::Get { key, topic } => {
@@ -32,15 +32,15 @@ impl CommandFamily for Kv {
 
                     match result {
                         Some(res) => yield CommandOutput::result("kv/get")
-                            .with_field("topic", OutputField::String(topic))
-                            .with_field("key", OutputField::String(key))
-                            .with_field("value", OutputField::String(String::from_utf8(res)?))
-                            .with_tty_template("Retrieved {value} for {key} in topic {topic}")
+                            .with_field("topic", topic.into())
+                            .with_field("key", key.into())
+                            .with_field("value", String::from_utf8(res)?.into())
+                            .with_tty_template("🔑 Retrieved {value} for {key} in topic {topic}")
                             .with_non_tty_template("{value}"),
                         None => yield CommandOutput::result("kv/get")
-                            .with_field("topic", OutputField::String(topic))
-                            .with_field("key", OutputField::String(key))
-                            .with_tty_template("Unable to retrieve key {key} in topic {topic}")
+                            .with_field("topic", topic.into())
+                            .with_field("key", key.into())
+                            .with_tty_template("🔑 Unable to retrieve key {key} in topic {topic}")
                             .with_non_tty_template("Unable to retrieve key {key} in topic {topic}"),
                     }
                 }
@@ -52,9 +52,9 @@ impl CommandFamily for Kv {
                     dht.provide(topic.clone(), key.clone()).await?;
 
                     yield CommandOutput::result("kv/provide")
-                        .with_field("topic", OutputField::String(topic))
-                        .with_field("key", OutputField::String(key))
-                        .with_tty_template("Started providing key {key} in topic {topic}")
+                        .with_field("topic", topic.into())
+                        .with_field("key", key.into())
+                        .with_tty_template("🔑 Started providing {key} in topic {topic}")
                         .with_non_tty_template("{key},{topic}")
                 }
             },
@@ -64,7 +64,7 @@ impl CommandFamily for Kv {
 
                     let mut providers_stream = dht.get_providers(topic.clone(), key.clone()).await?;
 
-                    yield CommandOutput::spinner("Waiting for Providers...", &["◐", "◑", "◒", "◓"]);
+                    yield CommandOutput::spinner("Fetching Providers...", &["◐", "◑", "◒", "◓"]);
 
                     while let Some(event) = providers_stream.next().await {
 

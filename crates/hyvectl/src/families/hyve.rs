@@ -14,12 +14,14 @@ impl CommandFamily for Hyve {
         let mut scripting_service = connection.scripting();
 
         match self {
-            Hyve::Start { image, peer, ports, .. } => {
+            Hyve::Start { image, peer, ports, persistent, .. } => {
                 boxed_try_stream! {
                     let mut config = ScriptingConfig::new(&image);
 
                     config = if let Some(peer) = peer.clone(){config.target(peer.clone().parse()?)}
                     else {config.local()};
+
+                    config = if persistent { config.persistent() } else { config };
 
                     for port in ports {
                         config = config.expose_port(port)
@@ -33,7 +35,7 @@ impl CommandFamily for Hyve {
                         .with_field("image", OutputField::String(image))
                         .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
                         .with_tty_template("Deployed {image} on {peer}")
-                        .with_non_tty_template("{image},{peer}")
+                        .with_non_tty_template("{image}")
                 }
             },
             Hyve::List {peer, .. } => {
@@ -45,11 +47,23 @@ impl CommandFamily for Hyve {
 
                     let scripts = scripting_service.list_running_scripts(peer_parsed).await?;
 
-                    yield CommandOutput::result("hyve/list")
-                            .with_field("scripts", OutputField::RunningScripts(scripts))
-                            .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
-                            .with_tty_template("Running scripts on {peer} : {scripts}")
-                            .with_non_tty_template("{scripts}")
+                    for script in scripts {
+                        let mut out = CommandOutput::result("hyve/list")
+                            .with_field("image", script.image.to_string().into())
+                            .with_field("id", script.id.to_string().into());
+
+                        out = match script.name {
+                            Some(name) => {
+                                out.with_field("name", name.to_string().into())
+                                .with_tty_template("💾 { name: {name}, image: {image}, id: {id} }")
+                                .with_non_tty_template("{name},{image},{id}")
+                            }
+                            None => {out.with_tty_template("💾 { image: {image}, id: {id} }")
+                                        .with_non_tty_template("{image},{id}")}
+                        };
+
+                        yield out;
+                    }
                 }
             },
             Hyve::Stop {peer, id, .. } => {

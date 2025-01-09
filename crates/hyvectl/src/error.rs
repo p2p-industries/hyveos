@@ -5,6 +5,7 @@ use libp2p_identity::ParseError;
 use hyveos_sdk;
 use hyveos_core;
 use miette::{Diagnostic};
+use hyveos_core::req_resp::ResponseError;
 
 /// The error type for hyvectl with miette diagnostic reporting
 #[derive(Debug, Error, Diagnostic)]
@@ -43,6 +44,11 @@ pub enum HyveCtlError {
     #[error("Error from hyveOS")]
     #[diagnostic(code(hyvectl::hyveos_error))]
     CoreError(#[from] hyveos_core::Error),
+
+    /// Response error
+    #[error("Response error")]
+    #[diagnostic(code(hyvectl::response_error))]
+    ResponseError(#[from] ResponseError),
 }
 
 pub type HyveCtlResult<T> = Result<T, HyveCtlError>;

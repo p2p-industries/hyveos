@@ -18,6 +18,10 @@ pub enum Hyve {
         /// Deploy the image locally
         #[arg(long, conflicts_with = "peer")]
         local: bool,
+
+        /// Deploy the image persistent, meaning it will be restarted when the runtime is restarted
+        #[arg(long)]
+        persistent: bool,
     },
 
     /// List running applications on a given node

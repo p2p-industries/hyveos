@@ -1,12 +1,83 @@
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput, OutputField};
+use crate::output::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::inspect::Inspect;
 use crate::boxed_try_stream;
-use hyveos_core::debug::MessageDebugEventType;
-use crate::error::HyveCtlResult;
+use hyveos_core::debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType};
+use hyveos_core::discovery::NeighbourEvent;
+use hyveos_core::req_resp::Response;
+use crate::error::{HyveCtlError, HyveCtlResult};
+
+impl From<MeshTopologyEvent> for CommandOutput {
+    fn from(event: MeshTopologyEvent) -> Self {
+        let mut out = CommandOutput::result("inspect/mesh");
+
+        out =  match event.event {
+            NeighbourEvent::Init(peers) => {
+                out.with_field("type", "connected".to_string().into())
+                    .with_field("peers", peers.into())
+                    .with_tty_template("📡 Connected to {{peers}}")
+            },
+            NeighbourEvent::Discovered(peer) => {
+                out.with_field("type", "discovered".to_string().into())
+                    .with_field("peer", peer.into())
+
+                    .with_tty_template("📡 Discovered {{peer}}")
+            },
+            NeighbourEvent::Lost(peer) => {
+                out.with_field("type", "lost".to_string().into())
+                    .with_field("peer", peer.into())
+                    .with_tty_template("📡 Lost {{peer}}")
+            }
+        };
+
+        out.with_non_tty_template("{peers}")
+    }
+}
+
+impl TryFrom<MessageDebugEvent> for CommandOutput {
+    type Error = HyveCtlError;
+
+    fn try_from(event: MessageDebugEvent) -> Result<Self, Self::Error> {
+        let mut out = CommandOutput::result("inspect/services");
+
+        out = match event.event {
+            MessageDebugEventType::Request(req) => {
+                out.with_field("service", "req-res/request".to_string().into())
+                    .with_field("receiver", req.receiver.into())
+                    .with_field("id", req.id.to_string().into())
+                    .with_field("topic", req.msg.topic.unwrap_or_default().into())
+                    .with_field("data", String::from_utf8(req.msg.data)?.into())
+                    .with_tty_template("💬 {{ receiver: {receiver}, id: {id}, data: {data} }}")
+                    .with_non_tty_template("{service},{receiver},{id},{topic},{data}")
+            }
+            MessageDebugEventType::Response(res) => {
+                out = out.with_field("service", "resp-res/response".to_string().into())
+                    .with_field("id", res.req_id.to_string().into());
+
+                match res.response {
+                    Response::Data(data) => {
+                        out.with_field("data", String::from_utf8(data)?.into())
+                            .with_tty_template("🗨️ {{ id: {id}, data: {data} }}")
+                            .with_non_tty_template("{service},{id},{data}")
+                    }
+                    Response::Error(e) => {Err(e)?}
+                }
+            }
+            MessageDebugEventType::GossipSub(msg) => {
+                out.with_field("service", "pub-sub".to_string().into())
+                    .with_field("topic", msg.topic.to_string().into())
+                    .with_field("data", String::from_utf8(msg.data)?.into())
+                    .with_tty_template("📨 {{ topic: {topic}, data: {data} }}")
+                    .with_non_tty_template("{service},{topic},{data}")
+            }
+        };
+
+        Ok(out)
+    }
+}
 
 impl CommandFamily for Inspect {
     async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
@@ -20,17 +91,7 @@ impl CommandFamily for Inspect {
                     yield CommandOutput::spinner("Waiting for Topology Events...", &["◐", "◒", "◑", "◓"]);
 
                     while let Some(event) = stream.next().await {
-                        match event {
-                            Ok(message) => {
-                                yield CommandOutput::result("inspect/mesh")
-                                    .with_field("event", OutputField::MeshTopologyEvent(message))
-                                    .with_tty_template("📡 {event}")
-                                    .with_non_tty_template("{event}")
-                            },
-                            Err(e) => {
-                                yield CommandOutput::error("inspect/mesh", &e.to_string())
-                            }
-                        }
+                        yield event?.into()
                     }
                 }
             },
@@ -41,43 +102,7 @@ impl CommandFamily for Inspect {
                     yield CommandOutput::spinner("Waiting for Service Events...", &["◐", "◑", "◒", "◓"]);
 
                     while let Some(event) = stream.next().await {
-                        match event {
-                            Ok(message) => {
-                                let mut output = CommandOutput::result("inspect/services");
-
-                                output = match message.event {
-                                    MessageDebugEventType::Request(request) => {
-                                        output
-                                        .with_field("service", OutputField::String(String::from("reqres/req")))
-                                        .with_field("id", OutputField::String(request.id.to_string()))
-                                        .with_field("receiver", OutputField::PeerId(request.receiver))
-                                        .with_field("request", OutputField::Request(request.msg))
-                                        .with_tty_template("💬 {request} received by {receiver} under {id}")
-                                        .with_non_tty_template("{request},{receiver},{id}")
-                                    }
-                                    MessageDebugEventType::Response(response) => {
-                                        output
-                                        .with_field("service", OutputField::String(String::from("reqres/res")))
-                                        .with_field("req_id", OutputField::String(response.req_id.to_string()))
-                                        .with_field("response", OutputField::Response(response.response))
-                                        .with_tty_template("🗨️ {response} sent for {req_id}")
-                                        .with_non_tty_template("{response},{req_id}")
-                                    }
-                                    MessageDebugEventType::GossipSub(message) => {
-                                        output
-                                        .with_field("service", OutputField::String(String::from("pub-sub")))
-                                        .with_field("message", OutputField::GossipMessage(message))
-                                        .with_tty_template("📨 {message}")
-                                        .with_non_tty_template("{message}")
-                                    }
-                                };
-
-                                yield output
-                            },
-                            Err(e) => {
-                                yield CommandOutput::error("inspect/services", &e.to_string())
-                            }
-                        }
+                        yield event?.try_into()?
                     }
                 }
             }

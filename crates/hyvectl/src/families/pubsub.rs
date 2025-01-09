@@ -4,8 +4,34 @@ use crate::util::{CommandFamily};
 use crate::output::{CommandOutput, OutputField};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
+use hyveos_core::gossipsub::ReceivedMessage;
 use crate::boxed_try_stream;
-use crate::error::HyveCtlResult;
+use crate::error::{HyveCtlError, HyveCtlResult};
+
+impl TryFrom<ReceivedMessage> for CommandOutput {
+    type Error = HyveCtlError;
+
+    fn try_from(value: ReceivedMessage) -> Result<Self, Self::Error> {
+        let output = CommandOutput::result("")
+            .with_field("psource", value.propagation_source.into())
+            .with_field("topic", value.message.topic.into())
+            .with_field("message", String::from_utf8(value.message.data)?.into())
+            .with_field("message_id", String::from_utf8(value.message_id.0)?.into())
+            .with_tty_template("📨 {{ topic: {topic}, message: {message} }}")
+            .with_non_tty_template("{topic},{message}");
+
+        match value.source {
+            Some(source) => {
+                Ok(output.with_field("source", source.into())
+                    .with_non_tty_template("{topic},{message},{source}"))
+            },
+            None => {
+                Ok(output)
+            }
+        }
+    }
+}
+
 
 impl CommandFamily for PubSub {
     async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
@@ -19,7 +45,7 @@ impl CommandFamily for PubSub {
                     yield CommandOutput::result("pub-sub/publish")
                         .with_field("topic", OutputField::String(topic.clone()))
                         .with_field("message", OutputField::String(message.clone()))
-                        .with_tty_template("Published {message} to topic {topic}")
+                        .with_tty_template("📨 Published {message} to topic {topic}")
                         .with_non_tty_template("{message},{topic}")
                 }
             },
@@ -30,16 +56,7 @@ impl CommandFamily for PubSub {
                     yield CommandOutput::spinner("Waiting for Messages...", &["◐", "◒", "◑", "◓"]);
 
                     while let Some(event) = message_stream.next().await {
-                        match event {
-                            Ok(message) => {
-                                yield CommandOutput::result("pub-sub/get")
-                                        .with_field("message", OutputField::ReceivedGossipMessage(message.clone()))
-                                        .with_tty_template("📨 {message}")
-                                        .with_non_tty_template("{message}");
-                            },
-                            Err(e) =>
-                                yield CommandOutput::error("pub-sub/get", &e.to_string())
-                        }
+                        yield event?.try_into()?
                     }
                 }
             }
