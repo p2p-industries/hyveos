@@ -38,13 +38,15 @@ use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
 pub struct FileTransferServer {
     client: Client,
     shared_dir_path: PathBuf,
+    running_for_container: bool,
 }
 
 impl FileTransferServer {
-    pub fn new(client: Client, shared_dir_path: PathBuf) -> Self {
+    pub fn new(client: Client, shared_dir_path: PathBuf, running_for_container: bool) -> Self {
         Self {
             client,
             shared_dir_path,
+            running_for_container,
         }
     }
 
@@ -68,19 +70,25 @@ impl FileTransfer for FileTransferServer {
 
         tracing::debug!(request=?file_path, "Received publish_file request");
 
-        let container_file_path = PathBuf::from(file_path);
+        let file_path = PathBuf::from(file_path);
 
-        let file_path = self.shared_dir_path.join(
-            container_file_path
-                .strip_prefix(CONTAINER_SHARED_DIR)
-                .map_err(|_| {
+        let file_path = if self.running_for_container {
+            self.shared_dir_path
+                .join(file_path.strip_prefix(CONTAINER_SHARED_DIR).map_err(|_| {
                     Status::invalid_argument(concatcp!(
                         "File must be in shared directory (",
                         CONTAINER_SHARED_DIR,
                         ")"
                     ))
-                })?,
-        );
+                })?)
+        } else if file_path.starts_with(&self.shared_dir_path) {
+            file_path
+        } else {
+            return Err(Status::invalid_argument(format!(
+                "File must be in shared directory ({})",
+                self.shared_dir_path.to_string_lossy(),
+            )));
+        };
 
         self.client
             .file_transfer()

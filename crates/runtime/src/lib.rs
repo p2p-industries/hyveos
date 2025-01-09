@@ -253,6 +253,7 @@ impl Runtime {
                     #[cfg(feature = "batman")]
                     debug_command_sender,
                     scripting_client.clone(),
+                    false,
                 )
                 .await?;
 
