@@ -27,7 +27,7 @@ base64-simd = { version = "0.8.0" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
 hyveos-bridge = { version = "0.1.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
-clap = { version = "4.5.23", features = ["derive"] }
+clap = { version = "4.5.24", features = ["derive"] }
 hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
@@ -53,16 +53,16 @@ regex = { version = "1.11.1", default-features = false, features = [
     "std",
 ] }
 serde = { version = "1.0.217", features = ["derive", "rc"] }
-serde_json = { version = "1.0.134" }
+serde_json = { version = "1.0.135" }
 hyveos-runtime = { version = "0.1.0", path = "crates/runtime" }
 thiserror = { version = "2" }
 tarpc = "0.35.0"
-tokio = { version = "1.38" }
+tokio = { version = "1.43" }
 tokio-stream = { version = "0.1.17", features = ["net", "sync"] }
 tokio-util = { version = "0.7.11" }
 tonic = { version = "0.12.2" }
 tracing = { version = "0.1.40" }
-ulid = { version = "1.1.2", features = ["serde"] }
+ulid = { version = "1.1.4", features = ["serde"] }
 void = { version = "1.0.2" }
 hyveos-libp2p-addr-filter = { path = "crates/libp2p/addr-filter" }
 
