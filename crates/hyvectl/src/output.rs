@@ -33,8 +33,8 @@ impl fmt::Display for OutputField {
                 write!(
                     f,
                     "{{ from: {}, message: {} }}",
-                    m.source.ok_or(std::fmt::Error)?,
-                    String::from_utf8(m.clone().message.data).map_err(|_| std::fmt::Error)?
+                    m.source.ok_or(fmt::Error)?,
+                    String::from_utf8(m.clone().message.data).map_err(|_| fmt::Error)?
                 )
             }
             OutputField::MeshTopologyEvent(m) => match &m.event {
@@ -49,15 +49,15 @@ impl fmt::Display for OutputField {
                 NeighbourEvent::Lost(peer) => write!(f, "Lost {}", peer),
             },
             OutputField::GossipMessage(message) => {write!(f, "{{ topic: {}, message: {} }}", message.topic,
-                                                           String::from_utf8(message.clone().data).map_err(|_| std::fmt::Error)?)},
+                                                           String::from_utf8(message.clone().data).map_err(|_| fmt::Error)?)},
             OutputField::InboundRequest(request) => {
-                write!(f, "{{ from: {}, topic: {}, message: {} }}", request.peer_id.to_string(), request.clone().topic.unwrap_or_default(), String::from_utf8(request.clone().data).map_err(|_| std::fmt::Error)?)
+                write!(f, "{{ from: {}, topic: {}, message: {} }}", request.peer_id.to_string(), request.clone().topic.unwrap_or_default(), String::from_utf8(request.clone().data).map_err(|_| fmt::Error)?)
             },
-            OutputField::Request(r) => write!(f, "{{ topic: {}, request: {} }}", r.clone().topic.unwrap_or_default(),  String::from_utf8(r.clone().data).map_err(|_| std::fmt::Error)?),
+            OutputField::Request(r) => write!(f, "{{ topic: {}, request: {} }}", r.clone().topic.unwrap_or_default(),  String::from_utf8(r.clone().data).map_err(|_| fmt::Error)?),
             OutputField::Response(r) => {
                 match r {
                     Response::Data(data) => {
-                        write!(f, "{{ response: {} }}", String::from_utf8(data.clone()).map_err(|_| std::fmt::Error)?)
+                        write!(f, "{{ response: {} }}", String::from_utf8(data.clone()).map_err(|_| fmt::Error)?)
                     }
                     Response::Error(err) => {
                         write!(f, "{{ error: {} }}", err)
@@ -79,7 +79,9 @@ pub enum CommandOutputType {
     Result {
         fields: Vec<(&'static str, OutputField)>,
         #[serde(skip_serializing)]
-        human_readable_template: String,
+        tty_template: String,
+        #[serde(skip_serializing)]
+        non_tty_template: String,
     },
     Progress(u64),
     Error(String),
@@ -112,7 +114,8 @@ impl CommandOutput {
             success: true,
             output: CommandOutputType::Result {
                 fields: vec![],
-                human_readable_template: String::default(),
+                tty_template: String::default(),
+                non_tty_template: String::default(),
             }
         }
     }
@@ -155,10 +158,20 @@ impl CommandOutput {
         self
     }
 
-    pub fn with_human_readable_template(mut self, template: &'static str) -> Self {
+    pub fn with_tty_template(mut self, template: &'static str) -> Self {
         match &mut self.output {
-            CommandOutputType::Result { human_readable_template, .. } => {
-                *human_readable_template = template.into();
+            CommandOutputType::Result { tty_template, .. } => {
+                *tty_template = template.into();
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_non_tty_template(mut self, template: &'static str) -> Self {
+        match &mut self.output {
+            CommandOutputType::Result { non_tty_template, .. } => {
+                *non_tty_template = template.into();
             }
             _ => {}
         }
@@ -222,7 +235,7 @@ impl CommandOutput {
                     obj.insert(key.to_string(), val);
                 }
 
-                let s = serde_json::to_string_pretty(&serde_json::Value::Object(obj))?;
+                let s = serde_json::to_string_pretty(&Value::Object(obj))?;
                 Ok(s)
             },
             _ => {
@@ -246,7 +259,7 @@ impl CommandOutput {
     }
 
     pub fn write_json(&self,
-                      output_stream: &mut dyn std::io::Write) -> Result<()> {
+                      output_stream: &mut dyn Write) -> Result<()> {
         let out = self.to_json()?;
 
         self.safe_write_line(output_stream, &out)
@@ -254,9 +267,10 @@ impl CommandOutput {
 
     pub fn write(
         &self,
-        output_stream: &mut dyn std::io::Write,
-        theme: &Option<Theme>
-    ) -> std::io::Result<()> {
+        output_stream: &mut dyn Write,
+        theme: &Option<Theme>,
+        is_tty: bool,
+    ) -> Result<()> {
         match &self.output {
             CommandOutputType::Message(message) => {
                 let styled_msg = if let Some(t) = theme {
@@ -266,8 +280,13 @@ impl CommandOutput {
                 };
                 self.safe_write_line(output_stream, &styled_msg)
             },
-            CommandOutputType::Result { fields, human_readable_template } => {
-                let mut output = human_readable_template.clone();
+            CommandOutputType::Result { fields, tty_template, non_tty_template } => {
+                let mut output = if is_tty {
+                    tty_template.clone()
+                } else {
+                    non_tty_template.clone()
+                };
+
                 for (key, value) in fields {
                     let placeholder = format!("{{{}}}", key);
                     let formatted_value = match value {
@@ -311,9 +330,10 @@ impl CommandOutput {
         &self,
         spinner: &ProgressBar,
         theme: &Option<Theme>,
-    ) -> std::io::Result<()> {
+        is_tty: bool,
+    ) -> Result<()> {
         let mut buffer = Vec::new();
-        self.write(&mut buffer, theme)?;
+        self.write(&mut buffer, theme, is_tty)?;
 
         let text = String::from_utf8_lossy(&buffer).to_string();
 

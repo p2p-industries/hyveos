@@ -25,7 +25,8 @@ impl CommandFamily for ReqRes {
                     yield CommandOutput::result("reqres/req")
                     .with_field("from", OutputField::PeerId(peer_id))
                     .with_field("response", OutputField::Response(response))
-                    .with_human_readable_template("🗨  {from}: {response}")
+                    .with_tty_template("🗨  {from}: {response}")
+                    .with_non_tty_template("{from},{response}")
                 }
             }
             ReqRes::Receive {} => {
@@ -36,7 +37,8 @@ impl CommandFamily for ReqRes {
                        yield CommandOutput::result("reqres/recv")
                        .with_field("request", OutputField::InboundRequest(request.0))
                        .with_field("id", OutputField::String(request.1.id().to_string()))
-                       .with_human_readable_template("💬 [ID: {id}] {request}");
+                       .with_tty_template("💬 [ID: {id}] {request}")
+                       .with_non_tty_template("{id},{request}");
                    }
                }
             }
@@ -47,7 +49,8 @@ impl CommandFamily for ReqRes {
                     yield CommandOutput::result("reqres/res")
                     .with_field("id", OutputField::String(id.to_string()))
                     .with_field("response", OutputField::String(message))
-                    .with_human_readable_template("Sent {response} for {id}")
+                    .with_tty_template("Sent {response} for {id}")
+                    .with_non_tty_template("{id},{response}")
                 }
             }
         }

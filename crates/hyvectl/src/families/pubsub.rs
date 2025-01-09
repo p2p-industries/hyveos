@@ -19,7 +19,8 @@ impl CommandFamily for PubSub {
                     yield CommandOutput::result("pub-sub/publish")
                         .with_field("topic", OutputField::String(topic.clone()))
                         .with_field("message", OutputField::String(message.clone()))
-                        .with_human_readable_template("Published {message} to topic {topic}")
+                        .with_tty_template("Published {message} to topic {topic}")
+                        .with_non_tty_template("{message},{topic}")
                 }
             },
             PubSub::Get { topic } => {
@@ -33,7 +34,8 @@ impl CommandFamily for PubSub {
                             Ok(message) => {
                                 yield CommandOutput::result("pub-sub/get")
                                         .with_field("message", OutputField::ReceivedGossipMessage(message.clone()))
-                                        .with_human_readable_template("📨 {message}");
+                                        .with_tty_template("📨 {message}")
+                                        .with_non_tty_template("{message}");
                             },
                             Err(e) =>
                                 yield CommandOutput::error("pub-sub/get", &e.to_string())

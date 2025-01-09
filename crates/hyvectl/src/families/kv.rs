@@ -21,7 +21,8 @@ impl CommandFamily for Kv {
                         .with_field("topic", OutputField::String(topic))
                         .with_field("key", OutputField::String(key.clone()))
                         .with_field("value", OutputField::String(value.clone()))
-                        .with_human_readable_template("Added {value} to {key} under topic {topic}");
+                        .with_tty_template("Added {value} to {key} under topic {topic}")
+                        .with_non_tty_template("{value,{key},{topic}");
                 }
             },
             Kv::Get { key, topic } => {
@@ -34,11 +35,13 @@ impl CommandFamily for Kv {
                             .with_field("topic", OutputField::String(topic))
                             .with_field("key", OutputField::String(key))
                             .with_field("value", OutputField::String(String::from_utf8(res)?))
-                            .with_human_readable_template("Retrieved {value} for {key} in topic {topic}"),
+                            .with_tty_template("Retrieved {value} for {key} in topic {topic}")
+                            .with_non_tty_template("{value}"),
                         None => yield CommandOutput::result("kv/get")
                             .with_field("topic", OutputField::String(topic))
                             .with_field("key", OutputField::String(key))
-                            .with_human_readable_template("Unable to retrieve key {key} in topic {topic}")
+                            .with_tty_template("Unable to retrieve key {key} in topic {topic}")
+                            .with_non_tty_template("Unable to retrieve key {key} in topic {topic}"),
                     }
                 }
             },
@@ -51,7 +54,8 @@ impl CommandFamily for Kv {
                     yield CommandOutput::result("kv/provide")
                         .with_field("topic", OutputField::String(topic))
                         .with_field("key", OutputField::String(key))
-                        .with_human_readable_template("Started providing key {key} in topic {topic}")
+                        .with_tty_template("Started providing key {key} in topic {topic}")
+                        .with_non_tty_template("{key},{topic}")
                 }
             },
             Kv::GetProviders { key, topic } => {
@@ -69,7 +73,8 @@ impl CommandFamily for Kv {
                                 .with_field("topic", OutputField::String(topic.clone()))
                                 .with_field("key", OutputField::String(key.clone()))
                                 .with_field("provider", OutputField::PeerId(provider))
-                                .with_human_readable_template("🤖 {provider}"),
+                                .with_tty_template("🤖 {provider}")
+                                .with_non_tty_template("{provider}"),
                             Err(e) => yield CommandOutput::error("kv/get-providers", &e.to_string())
                         }
                     }

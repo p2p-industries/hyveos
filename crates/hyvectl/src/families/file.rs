@@ -22,7 +22,8 @@ impl CommandFamily for File {
 
                     yield CommandOutput::result("file/publish")
                     .with_field("cid", OutputField::String(cid.to_string()))
-                    .with_human_readable_template("Published file under cid {cid}")
+                    .with_tty_template("Published file under cid {cid}")
+                    .with_non_tty_template("{cid}")
                 }
             }
             File::Get {cid, out } => {
@@ -57,7 +58,8 @@ impl CommandFamily for File {
                                 yield CommandOutput::result("file/get")
                                 .with_field("cid", OutputField::String(cid.to_string()))
                                 .with_field("local_path", OutputField::String(path.display().to_string()))
-                                .with_human_readable_template("Downloaded file with cid {cid} to {local_path}");
+                                .with_tty_template("Downloaded file with cid {cid} to {local_path}")
+                                .with_non_tty_template("{cid},{local_path}");
                             }
                         }
                     }

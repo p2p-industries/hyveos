@@ -95,12 +95,14 @@ async fn main() -> miette::Result<()> {
                 }
             },
             CommandOutputType::Spinner {message, tick_strings} => {
-                if cli.json {
+                if !is_tty || cli.json {
                     continue
                 }
+
                 let sp = indicatif::ProgressBar::new_spinner();
 
-                let tick_slices: Vec<&str> = tick_strings.iter().map(|s| s.as_str()).collect();
+                let tick_slices: Vec<&str> = tick_strings
+                    .iter().map(|s| s.as_str()).collect();
 
                 sp.set_style(
                     ProgressStyle::default_spinner()
@@ -119,9 +121,9 @@ async fn main() -> miette::Result<()> {
                     command_output.write_json(&mut stdout).map_err(HyveCtlError::from)?;
                 } else {
                     if let Some(sp) = &spinner {
-                        command_output.write_to_spinner(sp, &theme).map_err(HyveCtlError::from)?;
+                        command_output.write_to_spinner(sp, &theme, is_tty).map_err(HyveCtlError::from)?;
                     } else {
-                        command_output.write(&mut stdout, &theme).map_err(HyveCtlError::from)?;
+                        command_output.write(&mut stdout, &theme, is_tty).map_err(HyveCtlError::from)?;
                     }
                 }
             }

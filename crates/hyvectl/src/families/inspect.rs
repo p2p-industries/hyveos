@@ -24,7 +24,8 @@ impl CommandFamily for Inspect {
                             Ok(message) => {
                                 yield CommandOutput::result("inspect/mesh")
                                     .with_field("event", OutputField::MeshTopologyEvent(message))
-                                    .with_human_readable_template("📡 {event}")
+                                    .with_tty_template("📡 {event}")
+                                    .with_non_tty_template("{event}")
                             },
                             Err(e) => {
                                 yield CommandOutput::error("inspect/mesh", &e.to_string())
@@ -51,20 +52,23 @@ impl CommandFamily for Inspect {
                                         .with_field("id", OutputField::String(request.id.to_string()))
                                         .with_field("receiver", OutputField::PeerId(request.receiver))
                                         .with_field("request", OutputField::Request(request.msg))
-                                        .with_human_readable_template("💬 {request} received by {receiver} under {id}")
+                                        .with_tty_template("💬 {request} received by {receiver} under {id}")
+                                        .with_non_tty_template("{request},{receiver},{id}")
                                     }
                                     MessageDebugEventType::Response(response) => {
                                         output
                                         .with_field("service", OutputField::String(String::from("reqres/res")))
                                         .with_field("req_id", OutputField::String(response.req_id.to_string()))
                                         .with_field("response", OutputField::Response(response.response))
-                                        .with_human_readable_template("🗨️ {response} sent for {req_id}")
+                                        .with_tty_template("🗨️ {response} sent for {req_id}")
+                                        .with_non_tty_template("{response},{req_id}")
                                     }
                                     MessageDebugEventType::GossipSub(message) => {
                                         output
                                         .with_field("service", OutputField::String(String::from("pub-sub")))
                                         .with_field("message", OutputField::GossipMessage(message))
-                                        .with_human_readable_template("📨 {message}")
+                                        .with_tty_template("📨 {message}")
+                                        .with_non_tty_template("{message}")
                                     }
                                 };
 

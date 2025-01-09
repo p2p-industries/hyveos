@@ -32,7 +32,8 @@ impl CommandFamily for Hyve {
                     yield CommandOutput::result("hyve/start")
                         .with_field("image", OutputField::String(image))
                         .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
-                        .with_human_readable_template("Deployed {image} on {peer}")
+                        .with_tty_template("Deployed {image} on {peer}")
+                        .with_non_tty_template("{image},{peer}")
                 }
             },
             Hyve::List {peer, .. } => {
@@ -47,7 +48,8 @@ impl CommandFamily for Hyve {
                     yield CommandOutput::result("hyve/list")
                             .with_field("scripts", OutputField::RunningScripts(scripts))
                             .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
-                            .with_human_readable_template("Running scripts on {peer} : {scripts}")
+                            .with_tty_template("Running scripts on {peer} : {scripts}")
+                            .with_non_tty_template("{scripts}")
                 }
             },
             Hyve::Stop {peer, id, .. } => {
@@ -63,7 +65,8 @@ impl CommandFamily for Hyve {
                     yield CommandOutput::result("hyve/stop")
                             .with_field("peer", OutputField::String(peer.unwrap_or("local".to_string())))
                             .with_field("id", OutputField::String(id))
-                            .with_human_readable_template("Stopped {id} on {peer}")
+                            .with_tty_template("Stopped {id} on {peer}")
+                            .with_non_tty_template("{peer},{id}")
                 }
             }
         }

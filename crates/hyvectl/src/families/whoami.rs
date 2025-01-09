@@ -15,7 +15,8 @@ impl CommandFamily for Whoami {
 
             yield CommandOutput::result("whoami")
                 .with_field("peer_id", OutputField::PeerId(peer_id))
-                .with_human_readable_template("🤖 You are {peer_id}")
+                .with_tty_template("🤖 You are {peer_id}")
+                .with_non_tty_template("{peer_id}")
         }
     }
 }
