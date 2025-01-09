@@ -144,11 +144,13 @@ impl SubActor for Actor {
         match event {
             BatmanEvent::NeighbourUpdate(update) => {
                 for (_, neighbour) in update.resolved {
-                    tracing::info!("Resolved neighbour: {:?}", neighbour);
+                    tracing::info!(?neighbour, "Resolved neighbour");
                     behaviour
                         .kad
                         .add_address(&neighbour.peer_id, neighbour.batman_addr.clone());
-                    behaviour.gossipsub.add_explicit_peer(&neighbour.peer_id);
+                    behaviour
+                        .kad
+                        .remove_address(&neighbour.peer_id, &neighbour.direct_addr);
 
                     let event = Event::Discovered(neighbour);
 
@@ -159,10 +161,6 @@ impl SubActor for Actor {
                     let event = Event::Lost(neighbour);
 
                     let _ = self.sender.send(Arc::new(event));
-                }
-
-                for peer_id in update.lost_peers {
-                    behaviour.gossipsub.remove_explicit_peer(&peer_id);
                 }
             }
         }

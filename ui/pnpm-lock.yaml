@@ -20,6 +20,12 @@ importers:
       d3:
         specifier: ^7.9.0
         version: 7.9.0
+      hyveos-sdk:
+        specifier: file:../sdks/typescript/hyveos-sdk/npm
+        version: file:../sdks/typescript/hyveos-sdk/npm(typescript@5.7.2)
+      hyveos-web:
+        specifier: file:../sdks/typescript/hyveos-web/npm
+        version: file:../sdks/typescript/hyveos-web/npm(typescript@5.7.2)
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -106,6 +112,20 @@ packages:
   '@ampproject/remapping@2.3.0':
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
+
+  '@bufbuild/protobuf@2.2.3':
+    resolution: {integrity: sha512-tFQoXHJdkEOSwj5tRIZSPNUuXK3RaR7T1nUrPgbYX1pUbvqqaaZAsfo+NXBPsz5rZMSKVFrgK1WL8Q/MSLvprg==}
+
+  '@connectrpc/connect-web@2.0.0':
+    resolution: {integrity: sha512-oeCxqHXLXlWJdmcvp9L3scgAuK+FjNSn+twyhUxc8yvDbTumnt5Io+LnBzSYxAdUdYqTw5yHfTSCJ4hj0QID0g==}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.2.0
+      '@connectrpc/connect': 2.0.0
+
+  '@connectrpc/connect@2.0.0':
+    resolution: {integrity: sha512-Usm8jgaaULANJU8vVnhWssSA6nrZ4DJEAbkNtXSoZay2YD5fDyMukCxu8NEhCvFzfHvrhxhcjttvgpyhOM7xAQ==}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.2.0
 
   '@emnapi/runtime@1.3.1':
     resolution: {integrity: sha512-kEBmG8KyqtxJZv+ygbEim+KCGtIq1fC22Ms3S4ziXmYKm8uyoLX0MHONVKwp+9opg390VaKRNt4a7A9NwmpNhw==}
@@ -1304,6 +1324,12 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
+  hyveos-sdk@file:../sdks/typescript/hyveos-sdk/npm:
+    resolution: {directory: ../sdks/typescript/hyveos-sdk/npm, type: directory}
+
+  hyveos-web@file:../sdks/typescript/hyveos-web/npm:
+    resolution: {directory: ../sdks/typescript/hyveos-web/npm, type: directory}
+
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -1820,6 +1846,14 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
+  valibot@1.0.0-beta.11:
+    resolution: {integrity: sha512-Ztl5Iks1Ql7Z6CwkS5oyqguN3G8tmUiNlsHpqbDt6DLMpm+eu+n8Q7f921gI3uHvNZ8xDVkd4cEJP5t+lELOfw==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vite-imagetools@7.0.5:
     resolution: {integrity: sha512-OOvVnaBTqJJ2J7X1cM1qpH4pj9jsfTxia1VSuWeyXtf+OnP8d0YI1LHpv8y2NT47wg+n7XiTgh3BvcSffuBWrw==}
     engines: {node: '>=18.0.0'}
@@ -1916,6 +1950,17 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
+
+  '@bufbuild/protobuf@2.2.3': {}
+
+  '@connectrpc/connect-web@2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))':
+    dependencies:
+      '@bufbuild/protobuf': 2.2.3
+      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.2.3)
+
+  '@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3)':
+    dependencies:
+      '@bufbuild/protobuf': 2.2.3
 
   '@emnapi/runtime@1.3.1':
     dependencies:
@@ -3094,6 +3139,23 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  hyveos-sdk@file:../sdks/typescript/hyveos-sdk/npm(typescript@5.7.2):
+    dependencies:
+      '@bufbuild/protobuf': 2.2.3
+      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.2.3)
+      valibot: 1.0.0-beta.11(typescript@5.7.2)
+    transitivePeerDependencies:
+      - typescript
+
+  hyveos-web@file:../sdks/typescript/hyveos-web/npm(typescript@5.7.2):
+    dependencies:
+      '@bufbuild/protobuf': 2.2.3
+      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.2.3)
+      '@connectrpc/connect-web': 2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))
+      valibot: 1.0.0-beta.11(typescript@5.7.2)
+    transitivePeerDependencies:
+      - typescript
+
   iconv-lite@0.6.3:
     dependencies:
       safer-buffer: 2.1.2
@@ -3603,6 +3665,10 @@ snapshots:
       punycode: 2.3.1
 
   util-deprecate@1.0.2: {}
+
+  valibot@1.0.0-beta.11(typescript@5.7.2):
+    optionalDependencies:
+      typescript: 5.7.2
 
   vite-imagetools@7.0.5(rollup@4.30.0):
     dependencies:

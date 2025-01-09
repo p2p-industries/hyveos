@@ -29,16 +29,105 @@ jobs:
             frontend:
               - 'ui/**'
               - '.github/workflows/frontend.yml'
+              - 'sdks/typescript/**'
+
+  build-deno:
+    runs-on: ubuntu-24.04
+    needs: changes
+    strategy:
+      fail-fast: true
+      matrix:
+        package:
+          - hyveos-sdk
+          - hyveos-web
+          - hyveos-server
+    env:
+      DENO_DIR: /tmp/${{ matrix.package }}-cache
+    steps:
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DENO_DIR }}
+          key: deno-cache-${{ matrix.package }}-build
+
+      -  uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Build package
+        working-directory: sdks/typescript/${{ matrix.package }}
+        run: deno run -A scripts/build_npm.ts 1.0.0
+
+      - name: Upload npm package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}
+          path: sdks/typescript/${{ matrix.package }}/npm
+
+  test-deno:
+    runs-on: ubuntu-24.04
+    needs: changes
+    strategy:
+      fail-fast: true
+      matrix:
+        package:
+          - hyveos-sdk
+          - hyveos-web
+          - hyveos-server
+    env:
+      DENO_DIR: /tmp/${{ matrix.package }}-cache
+    steps:
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DENO_DIR }}
+          key: deno-cache-${{ matrix.package }}-test
+
+      -  uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run check
+        working-directory: sdks/typescript/${{ matrix.package }}
+        run: deno check *.ts
+      
+      - name: Linting
+        working-directory: sdks/typescript/${{ matrix.package }}
+        run: deno lint
+
+      - name: Check if formatting is correct
+        working-directory: sdks/typescript/${{ matrix.package }}
+        run: deno fmt --check
 
   check:
     name: Frontend checks
     runs-on: ubuntu-24.04
-    needs: changes
+    needs:
+      - changes
+      - build-deno
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
           lfs: true
+
+      - name: Download hyveos-sdk
+        uses: actions/download-artifact@v4
+        with:
+          name: hyveos-sdk
+          path: sdks/typescript/hyveos-sdk/npm
+      
+      - name: Download hyveos-web
+        uses: actions/download-artifact@v4
+        with:
+          name: hyveos-web
+          path: sdks/typescript/hyveos-web/npm
 
       - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
         with:
@@ -72,7 +161,7 @@ jobs:
     name: Wait for test completion (Frontend)
     runs-on: ubuntu-24.04
     timeout-minutes: 1
-    needs: [changes, check]
+    needs: [changes, check, build-deno, test-deno]
     if: always()
     steps:
       - name: Fail if prerequisite failed
