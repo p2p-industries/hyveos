@@ -3,6 +3,7 @@ use libp2p::kad::{
     GetProvidersOk, GetRecordError, GetRecordOk, PutRecordError, PutRecordOk, Quorum, Record,
     RecordKey,
 };
+use void::Void;
 
 use crate::{
     command::{SendMultipleResult, SendResult},
@@ -23,6 +24,10 @@ pub enum Command {
         key: RecordKey,
         sender: SendMultipleResult<GetRecordOk, GetRecordError>,
     },
+    RemoveRecord {
+        key: RecordKey,
+        sender: SendResult<(), Void>,
+    },
     GetProviders {
         key: RecordKey,
         sender: SendMultipleResult<GetProvidersOk, GetProvidersError>,
@@ -30,6 +35,10 @@ pub enum Command {
     StartProviding {
         key: RecordKey,
         sender: SendResult<AddProviderOk, AddProviderError>,
+    },
+    StopProviding {
+        key: RecordKey,
+        sender: SendResult<(), Void>,
     },
 }
 
