@@ -40,7 +40,6 @@ class DHTService:
         """
         await self.stub.RemoveRecord(DHTKey(topic=Topic(topic=topic), key=enc(key)))
 
-
     async def provide(self, topic: str, key: str | bytes) -> None:
         """
         Marks the peer as a provider of a record under a specific topic
