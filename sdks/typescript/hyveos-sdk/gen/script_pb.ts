@@ -4,30 +4,21 @@
 // @generated from file script.proto (package script, syntax proto2)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv1";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv1";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv1";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Message as Message$1 } from "@bufbuild/protobuf";
 
 /**
  * Describes the file script.proto.
  */
 export const file_script: GenFile = /*@__PURE__*/
-  fileDesc(
-    "CgxzY3JpcHQucHJvdG8SBnNjcmlwdCIHCgVFbXB0eSIUCgREYXRhEgwKBGRhdGEYASACKAwiKgoMT3B0aW9uYWxEYXRhEhoKBGRhdGEYASABKAsyDC5zY3JpcHQuRGF0YSISCgJJRBIMCgR1bGlkGAEgAigJIhcKBFBlZXISDwoHcGVlcl9pZBgBIAIoCSIWCgVUb3BpYxINCgV0b3BpYxgBIAIoCSItCg1PcHRpb25hbFRvcGljEhwKBXRvcGljGAEgASgLMg0uc2NyaXB0LlRvcGljIkYKClRvcGljUXVlcnkSHgoFdG9waWMYASABKAsyDS5zY3JpcHQuVG9waWNIABIPCgVyZWdleBgCIAEoCUgAQgcKBXF1ZXJ5IjcKEk9wdGlvbmFsVG9waWNRdWVyeRIhCgVxdWVyeRgBIAEoCzISLnNjcmlwdC5Ub3BpY1F1ZXJ5IksKB01lc3NhZ2USGgoEZGF0YRgBIAIoCzIMLnNjcmlwdC5EYXRhEiQKBXRvcGljGAIgAigLMhUuc2NyaXB0Lk9wdGlvbmFsVG9waWMiRwoLU2VuZFJlcXVlc3QSGgoEcGVlchgBIAIoCzIMLnNjcmlwdC5QZWVyEhwKA21zZxgCIAIoCzIPLnNjcmlwdC5NZXNzYWdlIlQKC1JlY3ZSZXF1ZXN0EhoKBHBlZXIYASACKAsyDC5zY3JpcHQuUGVlchIcCgNtc2cYAiACKAsyDy5zY3JpcHQuTWVzc2FnZRILCgNzZXEYAyACKAQiRQoIUmVzcG9uc2USHAoEZGF0YRgBIAEoCzIMLnNjcmlwdC5EYXRhSAASDwoFZXJyb3IYAiABKAlIAEIKCghyZXNwb25zZSI/CgxTZW5kUmVzcG9uc2USCwoDc2VxGAEgAigEEiIKCHJlc3BvbnNlGAIgAigLMhAuc2NyaXB0LlJlc3BvbnNlIiQKBVBlZXJzEhsKBXBlZXJzGAEgAygLMgwuc2NyaXB0LlBlZXIiegoOTmVpZ2hib3VyRXZlbnQSHQoEaW5pdBgBIAEoCzINLnNjcmlwdC5QZWVyc0gAEiIKCmRpc2NvdmVyZWQYAiABKAsyDC5zY3JpcHQuUGVlckgAEhwKBGxvc3QYAyABKAsyDC5zY3JpcHQuUGVlckgAQgcKBWV2ZW50IiAKEkdvc3NpcFN1Yk1lc3NhZ2VJRBIKCgJpZBgBIAIoDCJMChBHb3NzaXBTdWJNZXNzYWdlEhoKBGRhdGEYASACKAsyDC5zY3JpcHQuRGF0YRIcCgV0b3BpYxgCIAIoCzINLnNjcmlwdC5Ub3BpYyKxAQoUR29zc2lwU3ViUmVjdk1lc3NhZ2USKAoScHJvcGFnYXRpb25fc291cmNlGAEgAigLMgwuc2NyaXB0LlBlZXISHAoGc291cmNlGAIgASgLMgwuc2NyaXB0LlBlZXISJQoDbXNnGAMgAigLMhguc2NyaXB0Lkdvc3NpcFN1Yk1lc3NhZ2USKgoGbXNnX2lkGAQgAigLMhouc2NyaXB0Lkdvc3NpcFN1Yk1lc3NhZ2VJRCIzCgZESFRLZXkSHAoFdG9waWMYASACKAsyDS5zY3JpcHQuVG9waWMSCwoDa2V5GAIgAigMIkUKCURIVFJlY29yZBIbCgNrZXkYASACKAsyDi5zY3JpcHQuREhUS2V5EhsKBXZhbHVlGAIgAigLMgwuc2NyaXB0LkRhdGEiNAoIREJSZWNvcmQSCwoDa2V5GAEgAigJEhsKBXZhbHVlGAIgAigLMgwuc2NyaXB0LkRhdGEiFAoFREJLZXkSCwoDa2V5GAEgAigJIhgKCEZpbGVQYXRoEgwKBHBhdGgYASACKAkiKwoDQ0lEEgwKBGhhc2gYASACKAwSFgoCaWQYAiACKAsyCi5zY3JpcHQuSUQiVgoRTWVzaFRvcG9sb2d5RXZlbnQSGgoEcGVlchgBIAIoCzIMLnNjcmlwdC5QZWVyEiUKBWV2ZW50GAIgAigLMhYuc2NyaXB0Lk5laWdoYm91ckV2ZW50ImkKEVJlcXVlc3REZWJ1Z0V2ZW50EhYKAmlkGAEgAigLMgouc2NyaXB0LklEEh4KCHJlY2VpdmVyGAIgAigLMgwuc2NyaXB0LlBlZXISHAoDbXNnGAMgAigLMg8uc2NyaXB0Lk1lc3NhZ2UiVAoSUmVzcG9uc2VEZWJ1Z0V2ZW50EhoKBnJlcV9pZBgBIAIoCzIKLnNjcmlwdC5JRBIiCghyZXNwb25zZRgCIAIoCzIQLnNjcmlwdC5SZXNwb25zZSK4AQoRTWVzc2FnZURlYnVnRXZlbnQSHAoGc2VuZGVyGAEgAigLMgwuc2NyaXB0LlBlZXISKAoDcmVxGAIgASgLMhkuc2NyaXB0LlJlcXVlc3REZWJ1Z0V2ZW50SAASKQoDcmVzGAMgASgLMhouc2NyaXB0LlJlc3BvbnNlRGVidWdFdmVudEgAEicKA2dvcxgEIAEoCzIYLnNjcmlwdC5Hb3NzaXBTdWJNZXNzYWdlSABCBwoFZXZlbnQiGwoLRG9ja2VySW1hZ2USDAoEbmFtZRgBIAIoCSJBCgxEb2NrZXJTY3JpcHQSIgoFaW1hZ2UYASACKAsyEy5zY3JpcHQuRG9ja2VySW1hZ2USDQoFcG9ydHMYAiADKA0iegoTRGVwbG95U2NyaXB0UmVxdWVzdBIkCgZzY3JpcHQYASACKAsyFC5zY3JpcHQuRG9ja2VyU2NyaXB0Eg0KBWxvY2FsGAIgAigIEhoKBHBlZXIYAyABKAsyDC5zY3JpcHQuUGVlchISCgpwZXJzaXN0ZW50GAQgAigIIjcKGUxpc3RSdW5uaW5nU2NyaXB0c1JlcXVlc3QSGgoEcGVlchgBIAEoCzIMLnNjcmlwdC5QZWVyIlkKDVJ1bm5pbmdTY3JpcHQSFgoCaWQYASACKAsyCi5zY3JpcHQuSUQSIgoFaW1hZ2UYAiACKAsyEy5zY3JpcHQuRG9ja2VySW1hZ2USDAoEbmFtZRgDIAEoCSI4Cg5SdW5uaW5nU2NyaXB0cxImCgdzY3JpcHRzGAEgAygLMhUuc2NyaXB0LlJ1bm5pbmdTY3JpcHQiRwoRU3RvcFNjcmlwdFJlcXVlc3QSFgoCaWQYASACKAsyCi5zY3JpcHQuSUQSGgoEcGVlchgCIAEoCzIMLnNjcmlwdC5QZWVyMqkBCgdSZXFSZXNwEi8KBFNlbmQSEy5zY3JpcHQuU2VuZFJlcXVlc3QaEC5zY3JpcHQuUmVzcG9uc2UiABI7CgRSZWN2Ehouc2NyaXB0Lk9wdGlvbmFsVG9waWNRdWVyeRoTLnNjcmlwdC5SZWN2UmVxdWVzdCIAMAESMAoHUmVzcG9uZBIULnNjcmlwdC5TZW5kUmVzcG9uc2UaDS5zY3JpcHQuRW1wdHkiADJ0CglEaXNjb3ZlcnkSPAoPU3Vic2NyaWJlRXZlbnRzEg0uc2NyaXB0LkVtcHR5GhYuc2NyaXB0Lk5laWdoYm91ckV2ZW50IgAwARIpCghHZXRPd25JZBINLnNjcmlwdC5FbXB0eRoMLnNjcmlwdC5QZWVyIgAyjAEKCUdvc3NpcFN1YhI8CglTdWJzY3JpYmUSDS5zY3JpcHQuVG9waWMaHC5zY3JpcHQuR29zc2lwU3ViUmVjdk1lc3NhZ2UiADABEkEKB1B1Ymxpc2gSGC5zY3JpcHQuR29zc2lwU3ViTWVzc2FnZRoaLnNjcmlwdC5Hb3NzaXBTdWJNZXNzYWdlSUQiADLJAQoDREhUEi8KCVB1dFJlY29yZBIRLnNjcmlwdC5ESFRSZWNvcmQaDS5zY3JpcHQuRW1wdHkiABIzCglHZXRSZWNvcmQSDi5zY3JpcHQuREhUS2V5GhQuc2NyaXB0Lk9wdGlvbmFsRGF0YSIAEioKB1Byb3ZpZGUSDi5zY3JpcHQuREhUS2V5Gg0uc2NyaXB0LkVtcHR5IgASMAoMR2V0UHJvdmlkZXJzEg4uc2NyaXB0LkRIVEtleRoMLnNjcmlwdC5QZWVyIgAwATJjCgJEQhIvCgNQdXQSEC5zY3JpcHQuREJSZWNvcmQaFC5zY3JpcHQuT3B0aW9uYWxEYXRhIgASLAoDR2V0Eg0uc2NyaXB0LkRCS2V5GhQuc2NyaXB0Lk9wdGlvbmFsRGF0YSIAMmoKDEZpbGVUcmFuc2ZlchIuCgtQdWJsaXNoRmlsZRIQLnNjcmlwdC5GaWxlUGF0aBoLLnNjcmlwdC5DSUQiABIqCgdHZXRGaWxlEgsuc2NyaXB0LkNJRBoQLnNjcmlwdC5GaWxlUGF0aCIAMpEBCgVEZWJ1ZxJFChVTdWJzY3JpYmVNZXNoVG9wb2xvZ3kSDS5zY3JpcHQuRW1wdHkaGS5zY3JpcHQuTWVzaFRvcG9sb2d5RXZlbnQiADABEkEKEVN1YnNjcmliZU1lc3NhZ2VzEg0uc2NyaXB0LkVtcHR5Ghkuc2NyaXB0Lk1lc3NhZ2VEZWJ1Z0V2ZW50IgAwATL8AQoJU2NyaXB0aW5nEjkKDERlcGxveVNjcmlwdBIbLnNjcmlwdC5EZXBsb3lTY3JpcHRSZXF1ZXN0Ggouc2NyaXB0LklEIgASUQoSTGlzdFJ1bm5pbmdTY3JpcHRzEiEuc2NyaXB0Lkxpc3RSdW5uaW5nU2NyaXB0c1JlcXVlc3QaFi5zY3JpcHQuUnVubmluZ1NjcmlwdHMiABI4CgpTdG9wU2NyaXB0Ehkuc2NyaXB0LlN0b3BTY3JpcHRSZXF1ZXN0Gg0uc2NyaXB0LkVtcHR5IgASJwoIR2V0T3duSWQSDS5zY3JpcHQuRW1wdHkaCi5zY3JpcHQuSUQiAA",
-  );
+  fileDesc("CgxzY3JpcHQucHJvdG8SBnNjcmlwdCIHCgVFbXB0eSIUCgREYXRhEgwKBGRhdGEYASACKAwiKgoMT3B0aW9uYWxEYXRhEhoKBGRhdGEYASABKAsyDC5zY3JpcHQuRGF0YSISCgJJRBIMCgR1bGlkGAEgAigJIhcKBFBlZXISDwoHcGVlcl9pZBgBIAIoCSIWCgVUb3BpYxINCgV0b3BpYxgBIAIoCSItCg1PcHRpb25hbFRvcGljEhwKBXRvcGljGAEgASgLMg0uc2NyaXB0LlRvcGljIkYKClRvcGljUXVlcnkSHgoFdG9waWMYASABKAsyDS5zY3JpcHQuVG9waWNIABIPCgVyZWdleBgCIAEoCUgAQgcKBXF1ZXJ5IjcKEk9wdGlvbmFsVG9waWNRdWVyeRIhCgVxdWVyeRgBIAEoCzISLnNjcmlwdC5Ub3BpY1F1ZXJ5IksKB01lc3NhZ2USGgoEZGF0YRgBIAIoCzIMLnNjcmlwdC5EYXRhEiQKBXRvcGljGAIgAigLMhUuc2NyaXB0Lk9wdGlvbmFsVG9waWMiRwoLU2VuZFJlcXVlc3QSGgoEcGVlchgBIAIoCzIMLnNjcmlwdC5QZWVyEhwKA21zZxgCIAIoCzIPLnNjcmlwdC5NZXNzYWdlIlQKC1JlY3ZSZXF1ZXN0EhoKBHBlZXIYASACKAsyDC5zY3JpcHQuUGVlchIcCgNtc2cYAiACKAsyDy5zY3JpcHQuTWVzc2FnZRILCgNzZXEYAyACKAQiRQoIUmVzcG9uc2USHAoEZGF0YRgBIAEoCzIMLnNjcmlwdC5EYXRhSAASDwoFZXJyb3IYAiABKAlIAEIKCghyZXNwb25zZSI/CgxTZW5kUmVzcG9uc2USCwoDc2VxGAEgAigEEiIKCHJlc3BvbnNlGAIgAigLMhAuc2NyaXB0LlJlc3BvbnNlIiQKBVBlZXJzEhsKBXBlZXJzGAEgAygLMgwuc2NyaXB0LlBlZXIiegoOTmVpZ2hib3VyRXZlbnQSHQoEaW5pdBgBIAEoCzINLnNjcmlwdC5QZWVyc0gAEiIKCmRpc2NvdmVyZWQYAiABKAsyDC5zY3JpcHQuUGVlckgAEhwKBGxvc3QYAyABKAsyDC5zY3JpcHQuUGVlckgAQgcKBWV2ZW50IiAKEkdvc3NpcFN1Yk1lc3NhZ2VJRBIKCgJpZBgBIAIoDCJMChBHb3NzaXBTdWJNZXNzYWdlEhoKBGRhdGEYASACKAsyDC5zY3JpcHQuRGF0YRIcCgV0b3BpYxgCIAIoCzINLnNjcmlwdC5Ub3BpYyKxAQoUR29zc2lwU3ViUmVjdk1lc3NhZ2USKAoScHJvcGFnYXRpb25fc291cmNlGAEgAigLMgwuc2NyaXB0LlBlZXISHAoGc291cmNlGAIgASgLMgwuc2NyaXB0LlBlZXISJQoDbXNnGAMgAigLMhguc2NyaXB0Lkdvc3NpcFN1Yk1lc3NhZ2USKgoGbXNnX2lkGAQgAigLMhouc2NyaXB0Lkdvc3NpcFN1Yk1lc3NhZ2VJRCIzCgZESFRLZXkSHAoFdG9waWMYASACKAsyDS5zY3JpcHQuVG9waWMSCwoDa2V5GAIgAigMIkUKCURIVFJlY29yZBIbCgNrZXkYASACKAsyDi5zY3JpcHQuREhUS2V5EhsKBXZhbHVlGAIgAigLMgwuc2NyaXB0LkRhdGEiNAoIREJSZWNvcmQSCwoDa2V5GAEgAigJEhsKBXZhbHVlGAIgAigLMgwuc2NyaXB0LkRhdGEiFAoFREJLZXkSCwoDa2V5GAEgAigJIhgKCEZpbGVQYXRoEgwKBHBhdGgYASACKAkiKwoDQ0lEEgwKBGhhc2gYASACKAwSFgoCaWQYAiACKAsyCi5zY3JpcHQuSUQiTwoNRG93bmxvYWRFdmVudBISCghwcm9ncmVzcxgBIAEoBEgAEiEKBXJlYWR5GAIgASgLMhAuc2NyaXB0LkZpbGVQYXRoSABCBwoFZXZlbnQiVgoRTWVzaFRvcG9sb2d5RXZlbnQSGgoEcGVlchgBIAIoCzIMLnNjcmlwdC5QZWVyEiUKBWV2ZW50GAIgAigLMhYuc2NyaXB0Lk5laWdoYm91ckV2ZW50ImkKEVJlcXVlc3REZWJ1Z0V2ZW50EhYKAmlkGAEgAigLMgouc2NyaXB0LklEEh4KCHJlY2VpdmVyGAIgAigLMgwuc2NyaXB0LlBlZXISHAoDbXNnGAMgAigLMg8uc2NyaXB0Lk1lc3NhZ2UiVAoSUmVzcG9uc2VEZWJ1Z0V2ZW50EhoKBnJlcV9pZBgBIAIoCzIKLnNjcmlwdC5JRBIiCghyZXNwb25zZRgCIAIoCzIQLnNjcmlwdC5SZXNwb25zZSK4AQoRTWVzc2FnZURlYnVnRXZlbnQSHAoGc2VuZGVyGAEgAigLMgwuc2NyaXB0LlBlZXISKAoDcmVxGAIgASgLMhkuc2NyaXB0LlJlcXVlc3REZWJ1Z0V2ZW50SAASKQoDcmVzGAMgASgLMhouc2NyaXB0LlJlc3BvbnNlRGVidWdFdmVudEgAEicKA2dvcxgEIAEoCzIYLnNjcmlwdC5Hb3NzaXBTdWJNZXNzYWdlSABCBwoFZXZlbnQiGwoLRG9ja2VySW1hZ2USDAoEbmFtZRgBIAIoCSJBCgxEb2NrZXJTY3JpcHQSIgoFaW1hZ2UYASACKAsyEy5zY3JpcHQuRG9ja2VySW1hZ2USDQoFcG9ydHMYAiADKA0iegoTRGVwbG95U2NyaXB0UmVxdWVzdBIkCgZzY3JpcHQYASACKAsyFC5zY3JpcHQuRG9ja2VyU2NyaXB0Eg0KBWxvY2FsGAIgAigIEhoKBHBlZXIYAyABKAsyDC5zY3JpcHQuUGVlchISCgpwZXJzaXN0ZW50GAQgAigIIjcKGUxpc3RSdW5uaW5nU2NyaXB0c1JlcXVlc3QSGgoEcGVlchgBIAEoCzIMLnNjcmlwdC5QZWVyIlkKDVJ1bm5pbmdTY3JpcHQSFgoCaWQYASACKAsyCi5zY3JpcHQuSUQSIgoFaW1hZ2UYAiACKAsyEy5zY3JpcHQuRG9ja2VySW1hZ2USDAoEbmFtZRgDIAEoCSI4Cg5SdW5uaW5nU2NyaXB0cxImCgdzY3JpcHRzGAEgAygLMhUuc2NyaXB0LlJ1bm5pbmdTY3JpcHQiRwoRU3RvcFNjcmlwdFJlcXVlc3QSFgoCaWQYASACKAsyCi5zY3JpcHQuSUQSGgoEcGVlchgCIAEoCzIMLnNjcmlwdC5QZWVyMqkBCgdSZXFSZXNwEi8KBFNlbmQSEy5zY3JpcHQuU2VuZFJlcXVlc3QaEC5zY3JpcHQuUmVzcG9uc2UiABI7CgRSZWN2Ehouc2NyaXB0Lk9wdGlvbmFsVG9waWNRdWVyeRoTLnNjcmlwdC5SZWN2UmVxdWVzdCIAMAESMAoHUmVzcG9uZBIULnNjcmlwdC5TZW5kUmVzcG9uc2UaDS5zY3JpcHQuRW1wdHkiADJ0CglEaXNjb3ZlcnkSPAoPU3Vic2NyaWJlRXZlbnRzEg0uc2NyaXB0LkVtcHR5GhYuc2NyaXB0Lk5laWdoYm91ckV2ZW50IgAwARIpCghHZXRPd25JZBINLnNjcmlwdC5FbXB0eRoMLnNjcmlwdC5QZWVyIgAyjAEKCUdvc3NpcFN1YhI8CglTdWJzY3JpYmUSDS5zY3JpcHQuVG9waWMaHC5zY3JpcHQuR29zc2lwU3ViUmVjdk1lc3NhZ2UiADABEkEKB1B1Ymxpc2gSGC5zY3JpcHQuR29zc2lwU3ViTWVzc2FnZRoaLnNjcmlwdC5Hb3NzaXBTdWJNZXNzYWdlSUQiADKsAgoDREhUEi8KCVB1dFJlY29yZBIRLnNjcmlwdC5ESFRSZWNvcmQaDS5zY3JpcHQuRW1wdHkiABIzCglHZXRSZWNvcmQSDi5zY3JpcHQuREhUS2V5GhQuc2NyaXB0Lk9wdGlvbmFsRGF0YSIAEi8KDFJlbW92ZVJlY29yZBIOLnNjcmlwdC5ESFRLZXkaDS5zY3JpcHQuRW1wdHkiABIqCgdQcm92aWRlEg4uc2NyaXB0LkRIVEtleRoNLnNjcmlwdC5FbXB0eSIAEjAKDEdldFByb3ZpZGVycxIOLnNjcmlwdC5ESFRLZXkaDC5zY3JpcHQuUGVlciIAMAESMAoNU3RvcFByb3ZpZGluZxIOLnNjcmlwdC5ESFRLZXkaDS5zY3JpcHQuRW1wdHkiADJjCgJEQhIvCgNQdXQSEC5zY3JpcHQuREJSZWNvcmQaFC5zY3JpcHQuT3B0aW9uYWxEYXRhIgASLAoDR2V0Eg0uc2NyaXB0LkRCS2V5GhQuc2NyaXB0Lk9wdGlvbmFsRGF0YSIAMqkBCgxGaWxlVHJhbnNmZXISLgoLUHVibGlzaEZpbGUSEC5zY3JpcHQuRmlsZVBhdGgaCy5zY3JpcHQuQ0lEIgASKgoHR2V0RmlsZRILLnNjcmlwdC5DSUQaEC5zY3JpcHQuRmlsZVBhdGgiABI9ChNHZXRGaWxlV2l0aFByb2dyZXNzEgsuc2NyaXB0LkNJRBoVLnNjcmlwdC5Eb3dubG9hZEV2ZW50IgAwATKRAQoFRGVidWcSRQoVU3Vic2NyaWJlTWVzaFRvcG9sb2d5Eg0uc2NyaXB0LkVtcHR5Ghkuc2NyaXB0Lk1lc2hUb3BvbG9neUV2ZW50IgAwARJBChFTdWJzY3JpYmVNZXNzYWdlcxINLnNjcmlwdC5FbXB0eRoZLnNjcmlwdC5NZXNzYWdlRGVidWdFdmVudCIAMAEy/AEKCVNjcmlwdGluZxI5CgxEZXBsb3lTY3JpcHQSGy5zY3JpcHQuRGVwbG95U2NyaXB0UmVxdWVzdBoKLnNjcmlwdC5JRCIAElEKEkxpc3RSdW5uaW5nU2NyaXB0cxIhLnNjcmlwdC5MaXN0UnVubmluZ1NjcmlwdHNSZXF1ZXN0GhYuc2NyaXB0LlJ1bm5pbmdTY3JpcHRzIgASOAoKU3RvcFNjcmlwdBIZLnNjcmlwdC5TdG9wU2NyaXB0UmVxdWVzdBoNLnNjcmlwdC5FbXB0eSIAEicKCEdldE93bklkEg0uc2NyaXB0LkVtcHR5Ggouc2NyaXB0LklEIgA");
 
 /**
  * @generated from message script.Empty
  */
-export type Empty = Message$1<"script.Empty"> & {};
+export type Empty = Message$1<"script.Empty"> & {
+};
 
 /**
  * Describes the message script.Empty.
@@ -193,9 +184,7 @@ export type OptionalTopicQuery = Message$1<"script.OptionalTopicQuery"> & {
  * Describes the message script.OptionalTopicQuery.
  * Use `create(OptionalTopicQuerySchema)` to create a new message.
  */
-export const OptionalTopicQuerySchema: GenMessage<
-  OptionalTopicQuery
-> = /*@__PURE__*/
+export const OptionalTopicQuerySchema: GenMessage<OptionalTopicQuery> = /*@__PURE__*/
   messageDesc(file_script, 8);
 
 /**
@@ -406,9 +395,7 @@ export type GossipSubMessageID = Message$1<"script.GossipSubMessageID"> & {
  * Describes the message script.GossipSubMessageID.
  * Use `create(GossipSubMessageIDSchema)` to create a new message.
  */
-export const GossipSubMessageIDSchema: GenMessage<
-  GossipSubMessageID
-> = /*@__PURE__*/
+export const GossipSubMessageIDSchema: GenMessage<GossipSubMessageID> = /*@__PURE__*/
   messageDesc(file_script, 16);
 
 /**
@@ -432,9 +419,7 @@ export type GossipSubMessage = Message$1<"script.GossipSubMessage"> & {
  * Describes the message script.GossipSubMessage.
  * Use `create(GossipSubMessageSchema)` to create a new message.
  */
-export const GossipSubMessageSchema: GenMessage<
-  GossipSubMessage
-> = /*@__PURE__*/
+export const GossipSubMessageSchema: GenMessage<GossipSubMessage> = /*@__PURE__*/
   messageDesc(file_script, 17);
 
 /**
@@ -468,9 +453,7 @@ export type GossipSubRecvMessage = Message$1<"script.GossipSubRecvMessage"> & {
  * Describes the message script.GossipSubRecvMessage.
  * Use `create(GossipSubRecvMessageSchema)` to create a new message.
  */
-export const GossipSubRecvMessageSchema: GenMessage<
-  GossipSubRecvMessage
-> = /*@__PURE__*/
+export const GossipSubRecvMessageSchema: GenMessage<GossipSubRecvMessage> = /*@__PURE__*/
   messageDesc(file_script, 18);
 
 /**
@@ -608,6 +591,39 @@ export const CIDSchema: GenMessage<CID> = /*@__PURE__*/
   messageDesc(file_script, 24);
 
 /**
+ * A download event
+ *
+ * The progress field is a percentage of the download progress
+ *
+ * @generated from message script.DownloadEvent
+ */
+export type DownloadEvent = Message$1<"script.DownloadEvent"> & {
+  /**
+   * @generated from oneof script.DownloadEvent.event
+   */
+  event: {
+    /**
+     * @generated from field: uint64 progress = 1;
+     */
+    value: bigint;
+    case: "progress";
+  } | {
+    /**
+     * @generated from field: script.FilePath ready = 2;
+     */
+    value: FilePath;
+    case: "ready";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message script.DownloadEvent.
+ * Use `create(DownloadEventSchema)` to create a new message.
+ */
+export const DownloadEventSchema: GenMessage<DownloadEvent> = /*@__PURE__*/
+  messageDesc(file_script, 25);
+
+/**
  * A mesh topology event
  *
  * @generated from message script.MeshTopologyEvent
@@ -628,10 +644,8 @@ export type MeshTopologyEvent = Message$1<"script.MeshTopologyEvent"> & {
  * Describes the message script.MeshTopologyEvent.
  * Use `create(MeshTopologyEventSchema)` to create a new message.
  */
-export const MeshTopologyEventSchema: GenMessage<
-  MeshTopologyEvent
-> = /*@__PURE__*/
-  messageDesc(file_script, 25);
+export const MeshTopologyEventSchema: GenMessage<MeshTopologyEvent> = /*@__PURE__*/
+  messageDesc(file_script, 26);
 
 /**
  * A request debug event
@@ -659,10 +673,8 @@ export type RequestDebugEvent = Message$1<"script.RequestDebugEvent"> & {
  * Describes the message script.RequestDebugEvent.
  * Use `create(RequestDebugEventSchema)` to create a new message.
  */
-export const RequestDebugEventSchema: GenMessage<
-  RequestDebugEvent
-> = /*@__PURE__*/
-  messageDesc(file_script, 26);
+export const RequestDebugEventSchema: GenMessage<RequestDebugEvent> = /*@__PURE__*/
+  messageDesc(file_script, 27);
 
 /**
  * A response debug event
@@ -685,10 +697,8 @@ export type ResponseDebugEvent = Message$1<"script.ResponseDebugEvent"> & {
  * Describes the message script.ResponseDebugEvent.
  * Use `create(ResponseDebugEventSchema)` to create a new message.
  */
-export const ResponseDebugEventSchema: GenMessage<
-  ResponseDebugEvent
-> = /*@__PURE__*/
-  messageDesc(file_script, 27);
+export const ResponseDebugEventSchema: GenMessage<ResponseDebugEvent> = /*@__PURE__*/
+  messageDesc(file_script, 28);
 
 /**
  * A message debug event
@@ -729,10 +739,8 @@ export type MessageDebugEvent = Message$1<"script.MessageDebugEvent"> & {
  * Describes the message script.MessageDebugEvent.
  * Use `create(MessageDebugEventSchema)` to create a new message.
  */
-export const MessageDebugEventSchema: GenMessage<
-  MessageDebugEvent
-> = /*@__PURE__*/
-  messageDesc(file_script, 28);
+export const MessageDebugEventSchema: GenMessage<MessageDebugEvent> = /*@__PURE__*/
+  messageDesc(file_script, 29);
 
 /**
  * A docker image
@@ -751,7 +759,7 @@ export type DockerImage = Message$1<"script.DockerImage"> & {
  * Use `create(DockerImageSchema)` to create a new message.
  */
 export const DockerImageSchema: GenMessage<DockerImage> = /*@__PURE__*/
-  messageDesc(file_script, 29);
+  messageDesc(file_script, 30);
 
 /**
  * A docker script
@@ -775,7 +783,7 @@ export type DockerScript = Message$1<"script.DockerScript"> & {
  * Use `create(DockerScriptSchema)` to create a new message.
  */
 export const DockerScriptSchema: GenMessage<DockerScript> = /*@__PURE__*/
-  messageDesc(file_script, 30);
+  messageDesc(file_script, 31);
 
 /**
  * A request to deploy a script to a peer
@@ -810,35 +818,29 @@ export type DeployScriptRequest = Message$1<"script.DeployScriptRequest"> & {
  * Describes the message script.DeployScriptRequest.
  * Use `create(DeployScriptRequestSchema)` to create a new message.
  */
-export const DeployScriptRequestSchema: GenMessage<
-  DeployScriptRequest
-> = /*@__PURE__*/
-  messageDesc(file_script, 31);
+export const DeployScriptRequestSchema: GenMessage<DeployScriptRequest> = /*@__PURE__*/
+  messageDesc(file_script, 32);
 
 /**
  * A request to list running scripts on a peer
  *
  * @generated from message script.ListRunningScriptsRequest
  */
-export type ListRunningScriptsRequest =
-  & Message$1<"script.ListRunningScriptsRequest">
-  & {
-    /**
-     * The peer can be empty if the scripts running on self should be listed
-     *
-     * @generated from field: optional script.Peer peer = 1;
-     */
-    peer?: Peer;
-  };
+export type ListRunningScriptsRequest = Message$1<"script.ListRunningScriptsRequest"> & {
+  /**
+   * The peer can be empty if the scripts running on self should be listed
+   *
+   * @generated from field: optional script.Peer peer = 1;
+   */
+  peer?: Peer;
+};
 
 /**
  * Describes the message script.ListRunningScriptsRequest.
  * Use `create(ListRunningScriptsRequestSchema)` to create a new message.
  */
-export const ListRunningScriptsRequestSchema: GenMessage<
-  ListRunningScriptsRequest
-> = /*@__PURE__*/
-  messageDesc(file_script, 32);
+export const ListRunningScriptsRequestSchema: GenMessage<ListRunningScriptsRequest> = /*@__PURE__*/
+  messageDesc(file_script, 33);
 
 /**
  * A script that is running on a peer
@@ -867,7 +869,7 @@ export type RunningScript = Message$1<"script.RunningScript"> & {
  * Use `create(RunningScriptSchema)` to create a new message.
  */
 export const RunningScriptSchema: GenMessage<RunningScript> = /*@__PURE__*/
-  messageDesc(file_script, 33);
+  messageDesc(file_script, 34);
 
 /**
  * A list of running scripts
@@ -886,7 +888,7 @@ export type RunningScripts = Message$1<"script.RunningScripts"> & {
  * Use `create(RunningScriptsSchema)` to create a new message.
  */
 export const RunningScriptsSchema: GenMessage<RunningScripts> = /*@__PURE__*/
-  messageDesc(file_script, 34);
+  messageDesc(file_script, 35);
 
 /**
  * A request to stop a running script on a peer
@@ -911,10 +913,8 @@ export type StopScriptRequest = Message$1<"script.StopScriptRequest"> & {
  * Describes the message script.StopScriptRequest.
  * Use `create(StopScriptRequestSchema)` to create a new message.
  */
-export const StopScriptRequestSchema: GenMessage<
-  StopScriptRequest
-> = /*@__PURE__*/
-  messageDesc(file_script, 35);
+export const StopScriptRequestSchema: GenMessage<StopScriptRequest> = /*@__PURE__*/
+  messageDesc(file_script, 36);
 
 /**
  * @generated from service script.ReqResp
@@ -929,9 +929,10 @@ export const ReqResp: GenService<{
     methodKind: "unary";
     input: typeof SendRequestSchema;
     output: typeof ResponseSchema;
-  };
+  },
   /**
-   * Receive requests from peers that either have no topic or have a topic that has been subscribed to
+   * Receive requests from peers that either have no topic or have a topic that
+   * has been subscribed to
    *
    * @generated from rpc script.ReqResp.Recv
    */
@@ -939,7 +940,7 @@ export const ReqResp: GenService<{
     methodKind: "server_streaming";
     input: typeof OptionalTopicQuerySchema;
     output: typeof RecvRequestSchema;
-  };
+  },
   /**
    * Respond to a request received from Recv
    *
@@ -949,7 +950,7 @@ export const ReqResp: GenService<{
     methodKind: "unary";
     input: typeof SendResponseSchema;
     output: typeof EmptySchema;
-  };
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 0);
 
@@ -958,7 +959,8 @@ export const ReqResp: GenService<{
  */
 export const Discovery: GenService<{
   /**
-   * Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
+   * Subscribe to neighbour discovery events to get notified when new neighbour
+   * peers are discovered or lost
    *
    * @generated from rpc script.Discovery.SubscribeEvents
    */
@@ -966,7 +968,7 @@ export const Discovery: GenService<{
     methodKind: "server_streaming";
     input: typeof EmptySchema;
     output: typeof NeighbourEventSchema;
-  };
+  },
   /**
    * Get the peer id of the current runtime
    *
@@ -976,7 +978,7 @@ export const Discovery: GenService<{
     methodKind: "unary";
     input: typeof EmptySchema;
     output: typeof PeerSchema;
-  };
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 1);
 
@@ -993,7 +995,7 @@ export const GossipSub: GenService<{
     methodKind: "server_streaming";
     input: typeof TopicSchema;
     output: typeof GossipSubRecvMessageSchema;
-  };
+  },
   /**
    * Publish a message in a gossipsub topic
    *
@@ -1003,7 +1005,7 @@ export const GossipSub: GenService<{
     methodKind: "unary";
     input: typeof GossipSubMessageSchema;
     output: typeof GossipSubMessageIDSchema;
-  };
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 2);
 
@@ -1020,9 +1022,10 @@ export const DHT: GenService<{
     methodKind: "unary";
     input: typeof DHTRecordSchema;
     output: typeof EmptySchema;
-  };
+  },
   /**
-   * Get a record from the DHT. The value of the record will be empty if the key is not found.
+   * Get a record from the DHT. The value of the record will be empty if the key
+   * is not found.
    *
    * @generated from rpc script.DHT.GetRecord
    */
@@ -1030,7 +1033,18 @@ export const DHT: GenService<{
     methodKind: "unary";
     input: typeof DHTKeySchema;
     output: typeof OptionalDataSchema;
-  };
+  },
+  /**
+   * Remove a record from the DHT
+   * This only has local effects and only affects the DHT once the records expire.
+   *
+   * @generated from rpc script.DHT.RemoveRecord
+   */
+  removeRecord: {
+    methodKind: "unary";
+    input: typeof DHTKeySchema;
+    output: typeof EmptySchema;
+  },
   /**
    * Mark the current runtime as a provider for a key in the DHT
    *
@@ -1040,7 +1054,7 @@ export const DHT: GenService<{
     methodKind: "unary";
     input: typeof DHTKeySchema;
     output: typeof EmptySchema;
-  };
+  },
   /**
    * Get the providers of a key in the DHT
    *
@@ -1050,7 +1064,18 @@ export const DHT: GenService<{
     methodKind: "server_streaming";
     input: typeof DHTKeySchema;
     output: typeof PeerSchema;
-  };
+  },
+  /**
+   * Stop providing a key in the DHT.
+   * This only has local effects and only affects the DHT once the providers records expire.
+   *
+   * @generated from rpc script.DHT.StopProviding
+   */
+  stopProviding: {
+    methodKind: "unary";
+    input: typeof DHTKeySchema;
+    output: typeof EmptySchema;
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 3);
 
@@ -1059,7 +1084,8 @@ export const DHT: GenService<{
  */
 export const DB: GenService<{
   /**
-   * Put a record into the key-value store and get the previous value if it exists
+   * Put a record into the key-value store and get the previous value if it
+   * exists
    *
    * @generated from rpc script.DB.Put
    */
@@ -1067,7 +1093,7 @@ export const DB: GenService<{
     methodKind: "unary";
     input: typeof DBRecordSchema;
     output: typeof OptionalDataSchema;
-  };
+  },
   /**
    * Get a record from the key-value store
    *
@@ -1077,7 +1103,7 @@ export const DB: GenService<{
     methodKind: "unary";
     input: typeof DBKeySchema;
     output: typeof OptionalDataSchema;
-  };
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 4);
 
@@ -1094,7 +1120,7 @@ export const FileTransfer: GenService<{
     methodKind: "unary";
     input: typeof FilePathSchema;
     output: typeof CIDSchema;
-  };
+  },
   /**
    * Request a file with a cid from the runtime
    *
@@ -1104,7 +1130,18 @@ export const FileTransfer: GenService<{
     methodKind: "unary";
     input: typeof CIDSchema;
     output: typeof FilePathSchema;
-  };
+  },
+  /**
+   * Request a file with a cid from the runtime and get notified about the
+   * download progress
+   *
+   * @generated from rpc script.FileTransfer.GetFileWithProgress
+   */
+  getFileWithProgress: {
+    methodKind: "server_streaming";
+    input: typeof CIDSchema;
+    output: typeof DownloadEventSchema;
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 5);
 
@@ -1113,7 +1150,8 @@ export const FileTransfer: GenService<{
  */
 export const Debug: GenService<{
   /**
-   * Subscribe to mesh topology events to get notified when the mesh topology changes
+   * Subscribe to mesh topology events to get notified when the mesh topology
+   * changes
    *
    * @generated from rpc script.Debug.SubscribeMeshTopology
    */
@@ -1121,7 +1159,7 @@ export const Debug: GenService<{
     methodKind: "server_streaming";
     input: typeof EmptySchema;
     output: typeof MeshTopologyEventSchema;
-  };
+  },
   /**
    * Subscribe to message debug events to get notified when messages are sent
    *
@@ -1131,7 +1169,7 @@ export const Debug: GenService<{
     methodKind: "server_streaming";
     input: typeof EmptySchema;
     output: typeof MessageDebugEventSchema;
-  };
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 6);
 
@@ -1148,7 +1186,7 @@ export const Scripting: GenService<{
     methodKind: "unary";
     input: typeof DeployScriptRequestSchema;
     output: typeof IDSchema;
-  };
+  },
   /**
    * List running scripts on a peer
    *
@@ -1158,7 +1196,7 @@ export const Scripting: GenService<{
     methodKind: "unary";
     input: typeof ListRunningScriptsRequestSchema;
     output: typeof RunningScriptsSchema;
-  };
+  },
   /**
    * Stop a running script on a peer
    *
@@ -1168,7 +1206,7 @@ export const Scripting: GenService<{
     methodKind: "unary";
     input: typeof StopScriptRequestSchema;
     output: typeof EmptySchema;
-  };
+  },
   /**
    * Get the id of the current script
    *
@@ -1178,6 +1216,7 @@ export const Scripting: GenService<{
     methodKind: "unary";
     input: typeof EmptySchema;
     output: typeof IDSchema;
-  };
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_script, 7);
+
