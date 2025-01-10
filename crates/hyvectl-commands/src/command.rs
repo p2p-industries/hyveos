@@ -1,5 +1,5 @@
-use clap::{Parser, Subcommand, Command, CommandFactory};
-use crate::families::{kv, pubsub, inspect, reqres, file, whoami, hyve};
+use crate::families::{file, hyve, inspect, kv, pubsub, reqres, whoami};
+use clap::{Command, CommandFactory, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "hyvectl", about = "Hyvectl")]

@@ -43,5 +43,5 @@ pub enum Kv {
         /// Topic under which to stop providing key
         #[arg(long)]
         topic: Option<String>,
-    }
+    },
 }

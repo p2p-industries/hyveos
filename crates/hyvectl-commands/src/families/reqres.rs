@@ -22,6 +22,5 @@ pub enum ReqRes {
         id: u64,
         /// Response
         response: String,
-    }
+    },
 }
-

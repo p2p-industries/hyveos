@@ -9,5 +9,5 @@ pub enum Inspect {
         local: Option<bool>,
     },
     /// Retrieves a stream of service debug events
-    Services
+    Services,
 }

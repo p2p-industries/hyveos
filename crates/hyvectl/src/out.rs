@@ -1,8 +1,7 @@
-use std::io::{Result, Write};
-use serde::Serialize;
-use indicatif::ProgressBar;
 use crate::color::Theme;
-
+use indicatif::ProgressBar;
+use serde::Serialize;
+use std::io::{Result, Write};
 
 #[derive(Clone, Debug, Serialize)]
 pub enum CommandOutput {
@@ -17,12 +16,11 @@ pub enum CommandOutput {
     Progress(u64),
     Spinner {
         tick_strings: Vec<String>,
-        message: String
-    }
+        message: String,
+    },
 }
 
 impl CommandOutput {
-
     pub fn message(message: &str) -> Self {
         Self::Message(message.into())
     }
@@ -41,16 +39,15 @@ impl CommandOutput {
 
     pub fn spinner(message: &str, tick_strings: &[&str]) -> Self {
         Self::Spinner {
-            tick_strings: tick_strings
-                .iter()
-                .map(|s| (*s).to_string())
-                .collect(),
+            tick_strings: tick_strings.iter().map(|s| (*s).to_string()).collect(),
             message: message.to_string(),
         }
     }
 
     pub fn with_field(mut self, key: &'static str, value: String) -> Self {
-        if let Self::Result { fields, .. } = &mut self {fields.push((key, value));}
+        if let Self::Result { fields, .. } = &mut self {
+            fields.push((key, value));
+        }
         self
     }
 
@@ -62,14 +59,17 @@ impl CommandOutput {
     }
 
     pub fn with_non_tty_template(mut self, template: &'static str) -> Self {
-        if let Self::Result { non_tty_template, .. } = &mut self {
+        if let Self::Result {
+            non_tty_template, ..
+        } = &mut self
+        {
             *non_tty_template = template.into();
         }
         self
     }
 
     fn to_json(&self) -> Result<String> {
-        use serde_json::{Value, Map, json};
+        use serde_json::{json, Map, Value};
 
         match &self {
             Self::Result { fields, .. } => {
@@ -82,13 +82,13 @@ impl CommandOutput {
 
                 let s = serde_json::to_string_pretty(&Value::Object(obj))?;
                 Ok(s)
-            },
-            _ => {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Non-Result JSON not supported"))
             }
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Non-Result JSON not supported",
+            )),
         }
     }
-
 
     fn safe_write_line(output_stream: &mut dyn Write, line: &str) -> Result<()> {
         match writeln!(output_stream, "{line}") {
@@ -103,8 +103,7 @@ impl CommandOutput {
         }
     }
 
-    pub fn write_json(&self,
-                      output_stream: &mut dyn Write) -> Result<()> {
+    pub fn write_json(&self, output_stream: &mut dyn Write) -> Result<()> {
         let out = self.to_json()?;
 
         Self::safe_write_line(output_stream, &out)
@@ -124,8 +123,12 @@ impl CommandOutput {
                     message.to_string()
                 };
                 Self::safe_write_line(output_stream, &styled_msg)
-            },
-            Self::Result { fields, tty_template, non_tty_template } => {
+            }
+            Self::Result {
+                fields,
+                tty_template,
+                non_tty_template,
+            } => {
                 let mut output = if is_tty {
                     tty_template.clone()
                 } else {
@@ -134,7 +137,7 @@ impl CommandOutput {
 
                 for (key, value) in fields {
                     let placeholder = format!("{{{key}}}");
-                    let formatted_value =  if let Some(t) = theme {
+                    let formatted_value = if let Some(t) = theme {
                         t.field(value).to_string()
                     } else {
                         value.clone()
@@ -150,10 +153,8 @@ impl CommandOutput {
                 Self::safe_write_line(output_stream, &final_line)?;
 
                 Ok(())
-            },
-            _ => {
-                Ok(())
             }
+            _ => Ok(()),
         }
     }
 

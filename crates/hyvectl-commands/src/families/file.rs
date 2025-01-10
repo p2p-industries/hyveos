@@ -5,7 +5,7 @@ pub enum File {
     /// Publishes a file into the file network
     Publish {
         /// Path to file
-        path: String
+        path: String,
     },
     /// Retrieves a file from the file network
     Get {
@@ -14,5 +14,5 @@ pub enum File {
         /// Output path
         #[arg(long)]
         out: Option<String>,
-    }
+    },
 }

@@ -1,12 +1,12 @@
 use std::{
     env,
+    ffi::OsStr,
     fs,
     io::{self, Result},
     path::PathBuf,
-    ffi::OsStr,
 };
 
-use clap_complete::{generate_to, shells::{Shell}, Generator};
+use clap_complete::{generate_to, shells::Shell, Generator};
 use clap_mangen::Man;
 
 fn generate_man_page() -> Result<()> {
@@ -36,7 +36,13 @@ where
 
 fn generate_all_completions() {
     let out_dir = env::var_os("OUT_DIR").expect("OUT_DIR not set");
-    let shells = [Shell::Bash, Shell::Elvish, Shell::Fish, Shell::PowerShell, Shell::Zsh];
+    let shells = [
+        Shell::Bash,
+        Shell::Elvish,
+        Shell::Fish,
+        Shell::PowerShell,
+        Shell::Zsh,
+    ];
 
     for shell in shells {
         generate_one_completion(shell, &out_dir, "hyvectl");

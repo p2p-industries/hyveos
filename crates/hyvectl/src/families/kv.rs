@@ -1,13 +1,16 @@
-use hyveos_sdk::Connection;
-use crate::util::{CommandFamily};
-use crate::out::{CommandOutput};
-use futures::{StreamExt};
-use futures::stream::BoxStream;
-use hyvectl_commands::families::kv::Kv;
 use crate::boxed_try_stream;
 use crate::error::HyveCtlResult;
+use crate::out::CommandOutput;
+use crate::util::CommandFamily;
+use futures::stream::BoxStream;
+use futures::StreamExt;
+use hyvectl_commands::families::kv::Kv;
+use hyveos_sdk::Connection;
 impl CommandFamily for Kv {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
+    async fn run(
+        self,
+        connection: &Connection,
+    ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut dht = connection.dht();
 
         match self {
@@ -37,7 +40,7 @@ impl CommandFamily for Kv {
                             .with_non_tty_template("Unable to retrieve key {key} in {topic}"),
                     }
                 }
-            },
+            }
             Kv::Put { key, value, topic } => {
                 boxed_try_stream! {
                     let template = match topic {
@@ -57,7 +60,7 @@ impl CommandFamily for Kv {
                         .with_tty_template(template)
                         .with_non_tty_template("{value},{key},{topic}");
                 }
-            },
+            }
             Kv::Provide { key, topic } => {
                 boxed_try_stream! {
                     let template = match topic {
@@ -76,7 +79,7 @@ impl CommandFamily for Kv {
                         .with_tty_template(template)
                         .with_non_tty_template("{key},{topic}")
                 }
-            },
+            }
             Kv::GetProviders { key, topic } => {
                 boxed_try_stream! {
                     let topic = topic.clone().unwrap_or_default();
@@ -98,7 +101,7 @@ impl CommandFamily for Kv {
                         }
                     }
                 }
-            },
+            }
             Kv::StopProvide { key: _, topic: _ } => {
                 todo!()
             }

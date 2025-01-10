@@ -1,21 +1,23 @@
-use std::path::{PathBuf};
-use futures::{StreamExt};
+use crate::boxed_try_stream;
+use crate::error::HyveCtlResult;
+use crate::out::CommandOutput;
+use crate::util::CommandFamily;
 use futures::stream::BoxStream;
+use futures::StreamExt;
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
-use crate::{boxed_try_stream};
-use crate::util::{CommandFamily};
-use crate::out::{CommandOutput};
-use crate::error::HyveCtlResult;
-
+use std::path::PathBuf;
 
 impl CommandFamily for File {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
+    async fn run(
+        self,
+        connection: &Connection,
+    ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut file_transfer_service = connection.file_transfer();
 
         match self {
-            File::Publish {path} => {
+            File::Publish { path } => {
                 boxed_try_stream! {
                     let input_path = PathBuf::from(path).canonicalize()?;
 
@@ -30,7 +32,7 @@ impl CommandFamily for File {
                     .with_non_tty_template("{cid}")
                 }
             }
-            File::Get {cid, out } => {
+            File::Get { cid, out } => {
                 boxed_try_stream! {
                     let mut download_stream = file_transfer_service
                         .get_file_with_progress(cid.parse::<Cid>()?)

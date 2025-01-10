@@ -1,9 +1,9 @@
+use hyveos_core::req_resp::ResponseError;
+use libp2p_identity::ParseError;
+use miette::Diagnostic;
 use std::string::FromUtf8Error;
 use thiserror::Error;
 use ulid::DecodeError;
-use libp2p_identity::ParseError;
-use miette::{Diagnostic};
-use hyveos_core::req_resp::ResponseError;
 
 /// The error type for hyvectl with miette diagnostic reporting
 #[allow(clippy::module_name_repetitions)]
@@ -51,4 +51,3 @@ pub enum HyveCtlError {
 }
 
 pub type HyveCtlResult<T> = Result<T, HyveCtlError>;
-

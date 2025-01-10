@@ -1,12 +1,12 @@
-use hyvectl_commands::families::pubsub::PubSub;
-use hyveos_sdk::Connection;
-use crate::util::{CommandFamily};
-use crate::out::{CommandOutput};
-use futures::{StreamExt};
-use futures::stream::BoxStream;
-use hyveos_core::gossipsub::ReceivedMessage;
 use crate::boxed_try_stream;
 use crate::error::{HyveCtlError, HyveCtlResult};
+use crate::out::CommandOutput;
+use crate::util::CommandFamily;
+use futures::stream::BoxStream;
+use futures::StreamExt;
+use hyvectl_commands::families::pubsub::PubSub;
+use hyveos_core::gossipsub::ReceivedMessage;
+use hyveos_sdk::Connection;
 
 impl TryFrom<ReceivedMessage> for CommandOutput {
     type Error = HyveCtlError;
@@ -21,20 +21,19 @@ impl TryFrom<ReceivedMessage> for CommandOutput {
             .with_non_tty_template("{topic},{message}");
 
         match value.source {
-            Some(source) => {
-                Ok(output.with_field("source", source.to_string())
-                    .with_non_tty_template("{topic},{message},{source}"))
-            },
-            None => {
-                Ok(output)
-            }
+            Some(source) => Ok(output
+                .with_field("source", source.to_string())
+                .with_non_tty_template("{topic},{message},{source}")),
+            None => Ok(output),
         }
     }
 }
 
-
 impl CommandFamily for PubSub {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
+    async fn run(
+        self,
+        connection: &Connection,
+    ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut pubsub = connection.gossipsub();
 
         match self {
@@ -48,7 +47,7 @@ impl CommandFamily for PubSub {
                         .with_tty_template("📨 Published { {message} } to { {topic} }")
                         .with_non_tty_template("{message},{topic}")
                 }
-            },
+            }
             PubSub::Get { topic } => {
                 boxed_try_stream! {
                     let mut message_stream = pubsub.subscribe(topic.clone()).await?;

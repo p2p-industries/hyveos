@@ -7,7 +7,7 @@ pub enum PubSub {
         /// Topic in which to publish
         topic: String,
         /// Message to publish
-        message: String
+        message: String,
     },
 
     /// Retrieve messages from the given topic
@@ -16,4 +16,3 @@ pub enum PubSub {
         topic: String,
     },
 }
-

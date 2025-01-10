@@ -1,14 +1,14 @@
-use hyveos_sdk::Connection;
-use crate::util::{CommandFamily};
-use crate::out::{CommandOutput};
-use futures::{StreamExt};
-use futures::stream::BoxStream;
-use hyvectl_commands::families::inspect::Inspect;
 use crate::boxed_try_stream;
+use crate::error::{HyveCtlError, HyveCtlResult};
+use crate::out::CommandOutput;
+use crate::util::CommandFamily;
+use futures::stream::BoxStream;
+use futures::StreamExt;
+use hyvectl_commands::families::inspect::Inspect;
 use hyveos_core::debug::{MessageDebugEvent, MessageDebugEventType};
 use hyveos_core::discovery::NeighbourEvent;
 use hyveos_core::req_resp::Response;
-use crate::error::{HyveCtlError, HyveCtlResult};
+use hyveos_sdk::Connection;
 
 impl TryFrom<MessageDebugEvent> for CommandOutput {
     type Error = HyveCtlError;
@@ -17,35 +17,33 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
         let mut out = CommandOutput::result();
 
         out = match event.event {
-            MessageDebugEventType::Request(req) => {
-                out.with_field("service", "req-res/request".to_string())
-                    .with_field("receiver", req.receiver.to_string())
-                    .with_field("id", req.id.to_string())
-                    .with_field("topic", req.msg.topic.unwrap_or_default())
-                    .with_field("data", String::from_utf8(req.msg.data)?)
-                    .with_tty_template("💬 {{ receiver: {receiver}, id: {id}, data: {data} }}")
-                    .with_non_tty_template("{service},{receiver},{id},{topic},{data}")
-            }
+            MessageDebugEventType::Request(req) => out
+                .with_field("service", "req-res/request".to_string())
+                .with_field("receiver", req.receiver.to_string())
+                .with_field("id", req.id.to_string())
+                .with_field("topic", req.msg.topic.unwrap_or_default())
+                .with_field("data", String::from_utf8(req.msg.data)?)
+                .with_tty_template("💬 {{ receiver: {receiver}, id: {id}, data: {data} }}")
+                .with_non_tty_template("{service},{receiver},{id},{topic},{data}"),
             MessageDebugEventType::Response(res) => {
-                out = out.with_field("service", "resp-res/response".to_string())
+                out = out
+                    .with_field("service", "resp-res/response".to_string())
                     .with_field("id", res.req_id.to_string());
 
                 match res.response {
-                    Response::Data(data) => {
-                        out.with_field("data", String::from_utf8(data)?)
-                            .with_tty_template("🗨️ {{ id: {id}, data: {data} }}")
-                            .with_non_tty_template("{service},{id},{data}")
-                    }
-                    Response::Error(e) => {Err(e)?}
+                    Response::Data(data) => out
+                        .with_field("data", String::from_utf8(data)?)
+                        .with_tty_template("🗨️ {{ id: {id}, data: {data} }}")
+                        .with_non_tty_template("{service},{id},{data}"),
+                    Response::Error(e) => Err(e)?,
                 }
             }
-            MessageDebugEventType::GossipSub(msg) => {
-                out.with_field("service", "pub-sub".to_string())
-                    .with_field("topic", msg.topic.to_string())
-                    .with_field("data", String::from_utf8(msg.data)?)
-                    .with_tty_template("📨 {{ topic: {topic}, data: {data} }}")
-                    .with_non_tty_template("{service},{topic},{data}")
-            }
+            MessageDebugEventType::GossipSub(msg) => out
+                .with_field("service", "pub-sub".to_string())
+                .with_field("topic", msg.topic.to_string())
+                .with_field("data", String::from_utf8(msg.data)?)
+                .with_tty_template("📨 {{ topic: {topic}, data: {data} }}")
+                .with_non_tty_template("{service},{topic},{data}"),
         };
 
         Ok(out)
@@ -53,7 +51,10 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
 }
 
 impl CommandFamily for Inspect {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
+    async fn run(
+        self,
+        connection: &Connection,
+    ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut debug = connection.debug();
 
         match self {
@@ -93,7 +94,7 @@ impl CommandFamily for Inspect {
                         }
                     }
                 }
-            },
+            }
             Inspect::Services => {
                 boxed_try_stream! {
                     let mut stream = debug.subscribe_messages().await?;

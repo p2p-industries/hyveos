@@ -46,5 +46,5 @@ pub enum Hyve {
         /// List local running scripts
         #[arg(long, conflicts_with = "peer")]
         local: bool,
-    }
+    },
 }

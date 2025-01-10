@@ -1,20 +1,29 @@
-use futures::{StreamExt};
-use futures::stream::BoxStream;
-use crate::util::{CommandFamily};
-use hyvectl_commands::families::hyve::Hyve;
-use hyveos_sdk::{Connection, PeerId};
-use hyveos_sdk::services::ScriptingConfig;
-use crate::out::{CommandOutput};
 use crate::boxed_try_stream;
-use ulid::Ulid;
 use crate::error::HyveCtlResult;
+use crate::out::CommandOutput;
+use crate::util::CommandFamily;
+use futures::stream::BoxStream;
+use futures::StreamExt;
+use hyvectl_commands::families::hyve::Hyve;
+use hyveos_sdk::services::ScriptingConfig;
+use hyveos_sdk::{Connection, PeerId};
+use ulid::Ulid;
 
 impl CommandFamily for Hyve {
-    async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
+    async fn run(
+        self,
+        connection: &Connection,
+    ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         let mut scripting_service = connection.scripting();
 
         match self {
-            Hyve::Start { image, peer, ports, persistent, .. } => {
+            Hyve::Start {
+                image,
+                peer,
+                ports,
+                persistent,
+                ..
+            } => {
                 boxed_try_stream! {
                     let mut config = ScriptingConfig::new(&image);
 
@@ -37,8 +46,8 @@ impl CommandFamily for Hyve {
                         .with_tty_template("Deployed { {image} } on { {peer} }")
                         .with_non_tty_template("{image}")
                 }
-            },
-            Hyve::List {peer, .. } => {
+            }
+            Hyve::List { peer, .. } => {
                 boxed_try_stream! {
                     let peer_parsed = match peer.clone() {
                         Some (p) => Some(p.parse::<PeerId>()?),
@@ -65,8 +74,8 @@ impl CommandFamily for Hyve {
                         yield out;
                     }
                 }
-            },
-            Hyve::Stop {peer, id, .. } => {
+            }
+            Hyve::Stop { peer, id, .. } => {
                 boxed_try_stream! {
 
                     let peer_parsed = match peer.clone() {
