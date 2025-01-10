@@ -24,9 +24,9 @@ impl CommandFamily for File {
                     let cid = file_transfer_service.publish_file(input_path)
                     .await?;
 
-                    yield CommandOutput::result("file/publish")
+                    yield CommandOutput::result()
                     .with_field("cid", cid.to_string())
-                    .with_tty_template("Published file under cid {cid}")
+                    .with_tty_template("Published file as { {cid} }")
                     .with_non_tty_template("{cid}")
                 }
             }
@@ -36,18 +36,18 @@ impl CommandFamily for File {
                         .get_file_with_progress(cid.parse::<Cid>()?)
                         .await?;
 
-                    yield CommandOutput::message("file/get", "Starting Download...");
+                    yield CommandOutput::message("Starting Download...");
 
                     while let Some(event) = download_stream.next().await {
 
                         let event: DownloadEvent = match event {
                             Ok(e) => e,
-                            Err(_) => { yield CommandOutput::error("file/get", "Download stream returned None"); continue; },
+                            Err(e) => { Err(e)? },
                         };
 
                         match event {
                             DownloadEvent::Progress(p) => {
-                                yield CommandOutput::progress("file/get", p)
+                                yield CommandOutput::progress(p)
                             }
                             DownloadEvent::Ready(path) => {
                                 let path = match out.clone() {
@@ -59,10 +59,10 @@ impl CommandFamily for File {
                                     None => path
                                 };
 
-                                yield CommandOutput::result("file/get")
+                                yield CommandOutput::result()
                                 .with_field("cid", cid.to_string())
                                 .with_field("local_path", path.display().to_string())
-                                .with_tty_template("Downloaded file with cid {cid} to {local_path}")
+                                .with_tty_template("Downloaded file to { {local_path} }")
                                 .with_non_tty_template("{cid},{local_path}");
                             }
                         }

@@ -12,7 +12,7 @@ use util::CommandFamily;
 use futures::stream::BoxStream;
 use futures::StreamExt;
 use indicatif::ProgressStyle;
-use crate::output::{CommandOutput, CommandOutputType};
+use crate::output::{CommandOutput};
 use std::path::PathBuf;
 use miette::{Context, IntoDiagnostic};
 use hyvectl_commands::command::{Cli, Families};
@@ -80,8 +80,8 @@ async fn main() -> miette::Result<()> {
     while let Some(output) = output_stream.next().await {
         let command_output = output?;
 
-        match command_output.output {
-            CommandOutputType::Progress(p) => {
+        match command_output {
+            CommandOutput::Progress(p) => {
                 if is_tty {
                     if progress_bar.is_none() {
                         let pb = indicatif::ProgressBar::new(100);
@@ -95,7 +95,7 @@ async fn main() -> miette::Result<()> {
                     }
                 }
             },
-            CommandOutputType::Spinner {message, tick_strings} => {
+            CommandOutput::Spinner {message, tick_strings} => {
                 if !is_tty || cli.json {
                     continue
                 }

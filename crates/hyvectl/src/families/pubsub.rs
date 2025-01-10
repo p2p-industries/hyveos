@@ -12,7 +12,7 @@ impl TryFrom<ReceivedMessage> for CommandOutput {
     type Error = HyveCtlError;
 
     fn try_from(value: ReceivedMessage) -> Result<Self, Self::Error> {
-        let output = CommandOutput::result("")
+        let output = CommandOutput::result()
             .with_field("psource", value.propagation_source.to_string().into())
             .with_field("topic", value.message.topic.into())
             .with_field("message", String::from_utf8(value.message.data)?.into())
@@ -42,10 +42,10 @@ impl CommandFamily for PubSub {
                 boxed_try_stream! {
                     pubsub.publish(topic.clone(), message.clone()).await?;
 
-                    yield CommandOutput::result("pub-sub/publish")
+                    yield CommandOutput::result()
                         .with_field("topic", topic.clone())
                         .with_field("message", message.clone())
-                        .with_tty_template("📨 Published {message} to topic {topic}")
+                        .with_tty_template("📨 Published { {message} } to { {topic} }")
                         .with_non_tty_template("{message},{topic}")
                 }
             },

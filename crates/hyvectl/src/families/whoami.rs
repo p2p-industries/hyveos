@@ -13,9 +13,9 @@ impl CommandFamily for Whoami {
         boxed_try_stream! {
             let peer_id = discovery.get_own_id().await?;
 
-            yield CommandOutput::result("whoami")
+            yield CommandOutput::result()
                 .with_field("peer_id", peer_id.to_string())
-                .with_tty_template("🤖 You are {peer_id}")
+                .with_tty_template("🤖 You are { {peer_id} }")
                 .with_non_tty_template("{peer_id}")
         }
     }

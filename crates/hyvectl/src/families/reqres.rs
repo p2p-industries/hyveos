@@ -19,12 +19,12 @@ impl CommandFamily for ReqRes {
                    yield CommandOutput::spinner("Waiting for Requests...", &["◐", "◒", "◑", "◓"]);
 
                    while let Some(request) = reqres.recv(None).await?.try_next().await? {
-                       yield CommandOutput::result("reqres/recv")
+                       yield CommandOutput::result()
                        .with_field("peer_id", request.0.peer_id.to_string())
                        .with_field("topic", request.0.topic.unwrap_or_default().into())
                        .with_field("data", String::from_utf8(request.0.data)?.into())
                        .with_field("id", request.1.id().to_string().into())
-                       .with_tty_template("💬 [ID: {id}] {{peer_id},{topic},{data}}")
+                       .with_tty_template("💬 [ID: {id}] { peer: {peer_id}, topic: {topic}, data: {data} }")
                        .with_non_tty_template("{id},{peer_id},{topic},{data}");
                    }
                }
@@ -37,7 +37,7 @@ impl CommandFamily for ReqRes {
 
                     let response = reqres.send_request(peer_id, message.clone(), topic.clone()).await?;
 
-                    let mut output = CommandOutput::result("reqres/req");
+                    let mut output = CommandOutput::result();
 
                     output = match response {
                         Response::Data(data) => {
@@ -58,10 +58,10 @@ impl CommandFamily for ReqRes {
                 boxed_try_stream! {
                     reqres.respond(id, Response::Data(message.clone().into())).await?;
 
-                    yield CommandOutput::result("reqres/res")
+                    yield CommandOutput::result()
                     .with_field("id", id.to_string().into())
                     .with_field("response", message.into())
-                    .with_tty_template("Sent {response} for {id}")
+                    .with_tty_template("Sent { {response} } for { {id} }")
                     .with_non_tty_template("{id},{response}")
                 }
             }

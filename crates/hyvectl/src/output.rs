@@ -3,8 +3,9 @@ use serde::Serialize;
 use indicatif::ProgressBar;
 use crate::color::Theme;
 
+
 #[derive(Clone, Debug, Serialize)]
-pub enum CommandOutputType {
+pub enum CommandOutput {
     Message(String),
     Result {
         fields: Vec<(&'static str, String)>,
@@ -14,83 +15,55 @@ pub enum CommandOutputType {
         non_tty_template: String,
     },
     Progress(u64),
-    Error(String),
     Spinner {
         tick_strings: Vec<String>,
         message: String
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
-pub struct CommandOutput {
-    pub command: &'static str,
-    pub success: bool,
-    pub output: CommandOutputType
-}
-
 impl CommandOutput {
 
-    pub fn message(command: &'static str, message: &str) -> Self {
-        Self {
-            command,
-            success: true,
-            output: CommandOutputType::Message(message.into())
+    pub fn message(message: &str) -> Self {
+        Self::Message {
+            0: message.into()
         }
     }
 
-    pub fn result(command: &'static str) -> Self {
-        Self {
-            command,
-            success: true,
-            output: CommandOutputType::Result {
-                fields: vec![],
-                tty_template: String::default(),
-                non_tty_template: String::default(),
-            }
+    pub fn result() -> Self {
+        Self::Result {
+            fields: vec![],
+            tty_template: String::default(),
+            non_tty_template: String::default(),
         }
     }
 
-    pub fn progress(command: &'static str, progress: u64) -> Self {
-        Self {
-            command,
-            success: true,
-            output: CommandOutputType::Progress(progress)
-        }
-    }
-
-    pub fn error(command: &'static str, message: &str) -> Self {
-        Self {
-            command,
-            success: false,
-            output: CommandOutputType::Error(message.into())
+    pub fn progress(progress: u64) -> Self {
+        Self::Progress {
+            0: progress
         }
     }
 
     pub fn spinner(message: &str, tick_strings: &[&str]) -> Self {
-        Self {
-            command: "",
-            success: true,
-            output: CommandOutputType::Spinner {
-                tick_strings: tick_strings
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect(),
-                message: message.to_string(),
-            }
+        Self::Spinner {
+            tick_strings: tick_strings
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+            message: message.to_string(),
         }
     }
 
     pub fn with_field(mut self, key: &'static str, value: String) -> Self {
-        match &mut self.output {
-            CommandOutputType::Result { fields, .. } => {fields.push((key, value));},
+        match &mut self {
+            Self::Result { fields, .. } => {fields.push((key, value));},
             _ => {}
         }
         self
     }
 
     pub fn with_tty_template(mut self, template: &'static str) -> Self {
-        match &mut self.output {
-            CommandOutputType::Result { tty_template, .. } => {
+        match &mut self {
+            Self::Result { tty_template, .. } => {
                 *tty_template = template.into();
             }
             _ => {}
@@ -99,8 +72,8 @@ impl CommandOutput {
     }
 
     pub fn with_non_tty_template(mut self, template: &'static str) -> Self {
-        match &mut self.output {
-            CommandOutputType::Result { non_tty_template, .. } => {
+        match &mut self {
+            Self::Result { non_tty_template, .. } => {
                 *non_tty_template = template.into();
             }
             _ => {}
@@ -111,8 +84,8 @@ impl CommandOutput {
     fn to_json(&self) -> Result<String> {
         use serde_json::{Value, Map, json};
 
-        match &self.output {
-            CommandOutputType::Result { fields, .. } => {
+        match &self {
+            Self::Result { fields, .. } => {
                 let mut obj = Map::new();
 
                 for (key, field) in fields {
@@ -156,8 +129,8 @@ impl CommandOutput {
         theme: &Option<Theme>,
         is_tty: bool,
     ) -> Result<()> {
-        match &self.output {
-            CommandOutputType::Message(message) => {
+        match &self {
+            Self::Message(message) => {
                 let styled_msg = if let Some(t) = theme {
                     t.info_msg(message.clone()).to_string()
                 } else {
@@ -165,7 +138,7 @@ impl CommandOutput {
                 };
                 self.safe_write_line(output_stream, &styled_msg)
             },
-            CommandOutputType::Result { fields, tty_template, non_tty_template } => {
+            Self::Result { fields, tty_template, non_tty_template } => {
                 let mut output = if is_tty {
                     tty_template.clone()
                 } else {
@@ -191,15 +164,6 @@ impl CommandOutput {
 
                 Ok(())
             },
-            CommandOutputType::Error(message) => {
-                let line = format!("ERROR ({}): {}", self.command, message);
-                let colored_line = if let Some(t) = theme {
-                    t.error_msg(line).to_string()
-                } else {
-                    line
-                };
-                self.safe_write_line(output_stream, &colored_line)
-            }
             _ => {
                 Ok(())
             }

@@ -31,10 +31,10 @@ impl CommandFamily for Hyve {
 
                     scripting_service.deploy_script(config).await?;
 
-                    yield CommandOutput::result("hyve/start")
+                    yield CommandOutput::result()
                         .with_field("image", image)
                         .with_field("peer", peer.unwrap_or("local".to_string()))
-                        .with_tty_template("Deployed {image} on {peer}")
+                        .with_tty_template("Deployed { {image} } on { {peer} }")
                         .with_non_tty_template("{image}")
                 }
             },
@@ -48,7 +48,7 @@ impl CommandFamily for Hyve {
                     let scripts = scripting_service.list_running_scripts(peer_parsed).await?;
 
                     for script in scripts {
-                        let mut out = CommandOutput::result("hyve/list")
+                        let mut out = CommandOutput::result()
                             .with_field("image", script.image.to_string())
                             .with_field("id", script.id.to_string());
 
@@ -76,10 +76,10 @@ impl CommandFamily for Hyve {
 
                     scripting_service.stop_script(id.parse::<Ulid>()?, peer_parsed).await?;
 
-                    yield CommandOutput::result("hyve/stop")
+                    yield CommandOutput::result()
                             .with_field("peer", peer.unwrap_or("local".to_string()))
                             .with_field("id", id)
-                            .with_tty_template("Stopped {id} on {peer}")
+                            .with_tty_template("Stopped { {id} } on { {peer} }")
                             .with_non_tty_template("{peer},{id}")
                 }
             }

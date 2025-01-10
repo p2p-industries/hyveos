@@ -14,7 +14,7 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
     type Error = HyveCtlError;
 
     fn try_from(event: MessageDebugEvent) -> Result<Self, Self::Error> {
-        let mut out = CommandOutput::result("inspect/services");
+        let mut out = CommandOutput::result();
 
         out = match event.event {
             MessageDebugEventType::Request(req) => {
@@ -66,7 +66,7 @@ impl CommandFamily for Inspect {
                     while let Some(event) = stream.next().await {
                         let event = event?;
 
-                        let out = CommandOutput::result("inspect/mesh")
+                        let out = CommandOutput::result()
                         .with_field("source", event.peer_id.to_string().into());
 
                         match event.event {

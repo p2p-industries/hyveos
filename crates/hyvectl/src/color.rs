@@ -4,7 +4,6 @@ use colored::{Color, ColoredString, Colorize};
 pub struct Theme {
     pub info_color: Color,
     pub result_color: Color,
-    pub error_color: Color,
     pub field_color: Color,
 }
 
@@ -13,7 +12,6 @@ impl Default for Theme {
         Self {
             info_color: Color::BrightBlack,
             result_color: Color::BrightBlack,
-            error_color: Color::BrightBlue,
             field_color: Color::BrightBlue,
         }
     }
@@ -26,10 +24,6 @@ impl Theme {
 
     pub fn result_msg(&self, msg: String) -> ColoredString {
         msg.color(self.result_color).bold()
-    }
-
-    pub fn error_msg(&self, msg: String) -> ColoredString {
-        msg.color(self.error_color).bold()
     }
 
     pub fn field(&self, value: String) -> ColoredString {
