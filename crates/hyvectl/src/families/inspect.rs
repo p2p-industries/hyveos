@@ -1,6 +1,6 @@
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::inspect::Inspect;
@@ -18,21 +18,21 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
 
         out = match event.event {
             MessageDebugEventType::Request(req) => {
-                out.with_field("service", "req-res/request".to_string().into())
-                    .with_field("receiver", req.receiver.to_string().into())
-                    .with_field("id", req.id.to_string().into())
-                    .with_field("topic", req.msg.topic.unwrap_or_default().into())
-                    .with_field("data", String::from_utf8(req.msg.data)?.into())
+                out.with_field("service", "req-res/request".to_string())
+                    .with_field("receiver", req.receiver.to_string())
+                    .with_field("id", req.id.to_string())
+                    .with_field("topic", req.msg.topic.unwrap_or_default())
+                    .with_field("data", String::from_utf8(req.msg.data)?)
                     .with_tty_template("💬 {{ receiver: {receiver}, id: {id}, data: {data} }}")
                     .with_non_tty_template("{service},{receiver},{id},{topic},{data}")
             }
             MessageDebugEventType::Response(res) => {
-                out = out.with_field("service", "resp-res/response".to_string().into())
-                    .with_field("id", res.req_id.to_string().into());
+                out = out.with_field("service", "resp-res/response".to_string())
+                    .with_field("id", res.req_id.to_string());
 
                 match res.response {
                     Response::Data(data) => {
-                        out.with_field("data", String::from_utf8(data)?.into())
+                        out.with_field("data", String::from_utf8(data)?)
                             .with_tty_template("🗨️ {{ id: {id}, data: {data} }}")
                             .with_non_tty_template("{service},{id},{data}")
                     }
@@ -40,9 +40,9 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
                 }
             }
             MessageDebugEventType::GossipSub(msg) => {
-                out.with_field("service", "pub-sub".to_string().into())
-                    .with_field("topic", msg.topic.to_string().into())
-                    .with_field("data", String::from_utf8(msg.data)?.into())
+                out.with_field("service", "pub-sub".to_string())
+                    .with_field("topic", msg.topic.to_string())
+                    .with_field("data", String::from_utf8(msg.data)?)
                     .with_tty_template("📨 {{ topic: {topic}, data: {data} }}")
                     .with_non_tty_template("{service},{topic},{data}")
             }
@@ -67,26 +67,26 @@ impl CommandFamily for Inspect {
                         let event = event?;
 
                         let out = CommandOutput::result()
-                        .with_field("source", event.peer_id.to_string().into());
+                        .with_field("source", event.peer_id.to_string());
 
                         match event.event {
                             NeighbourEvent::Init(peers) => {
                                 for peer in peers {
-                                    yield out.clone().with_field("type", "connected".to_string().into())
-                                            .with_field("peer", peer.to_string().into())
+                                    yield out.clone().with_field("type", "connected".to_string())
+                                            .with_field("peer", peer.to_string())
                                             .with_tty_template("📡 Connected { {peer} } to { {source} }")
                                             .with_non_tty_template("{peer},{source}")
                                 }
                             },
                             NeighbourEvent::Discovered(peer) => {
-                                yield out.with_field("type", "discovered".to_string().into())
-                                    .with_field("peer", peer.to_string().into())
+                                yield out.with_field("type", "discovered".to_string())
+                                    .with_field("peer", peer.to_string())
                                     .with_tty_template("📡 Discovered { {peer} } from { {source} }")
                                     .with_non_tty_template("{peer},{source}")
                             },
                             NeighbourEvent::Lost(peer) => {
-                                yield out.with_field("type", "lost".to_string().into())
-                                    .with_field("peer", peer.to_string().into())
+                                yield out.with_field("type", "lost".to_string())
+                                    .with_field("peer", peer.to_string())
                                     .with_tty_template("📡 Lost { {peer} } from { {source} }")
                                     .with_non_tty_template("{peer},{source}")
                             }

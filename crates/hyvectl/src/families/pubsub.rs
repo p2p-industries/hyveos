@@ -1,7 +1,7 @@
 use hyvectl_commands::families::pubsub::PubSub;
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyveos_core::gossipsub::ReceivedMessage;
@@ -13,16 +13,16 @@ impl TryFrom<ReceivedMessage> for CommandOutput {
 
     fn try_from(value: ReceivedMessage) -> Result<Self, Self::Error> {
         let output = CommandOutput::result()
-            .with_field("psource", value.propagation_source.to_string().into())
-            .with_field("topic", value.message.topic.into())
-            .with_field("message", String::from_utf8(value.message.data)?.into())
-            .with_field("message_id", String::from_utf8(value.message_id.0)?.into())
+            .with_field("psource", value.propagation_source.to_string())
+            .with_field("topic", value.message.topic)
+            .with_field("message", String::from_utf8(value.message.data)?)
+            .with_field("message_id", String::from_utf8(value.message_id.0)?)
             .with_tty_template("📨 {{ topic: {topic}, message: {message} }}")
             .with_non_tty_template("{topic},{message}");
 
         match value.source {
             Some(source) => {
-                Ok(output.with_field("source", source.to_string().into())
+                Ok(output.with_field("source", source.to_string())
                     .with_non_tty_template("{topic},{message},{source}"))
             },
             None => {

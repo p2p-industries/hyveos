@@ -2,7 +2,7 @@ use hyveos_sdk::Connection;
 
 use futures::stream::BoxStream;
 use crate::error::HyveCtlResult;
-use crate::output::CommandOutput;
+use crate::out::CommandOutput;
 
 pub trait CommandFamily {
     async fn run(self, connection: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>>;

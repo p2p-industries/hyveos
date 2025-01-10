@@ -1,6 +1,6 @@
 mod util;
 mod families;
-mod output;
+mod out;
 mod color;
 mod error;
 
@@ -12,7 +12,7 @@ use util::CommandFamily;
 use futures::stream::BoxStream;
 use futures::StreamExt;
 use indicatif::ProgressStyle;
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use std::path::PathBuf;
 use miette::{Context, IntoDiagnostic};
 use hyvectl_commands::command::{Cli, Families};
@@ -31,6 +31,7 @@ impl CommandFamily for Families {
     }
 }
 
+#[allow(clippy::never_loop)]
 fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
     for p in ["/run", "/var/run"]
         .into_iter()
@@ -91,7 +92,7 @@ async fn main() -> miette::Result<()> {
                         progress_bar = Some(pb);
                     }
                     if let Some(pb) = &progress_bar {
-                        pb.set_position(p)
+                        pb.set_position(p);
                     }
                 }
             },
@@ -103,7 +104,7 @@ async fn main() -> miette::Result<()> {
                 let sp = indicatif::ProgressBar::new_spinner();
 
                 let tick_slices: Vec<&str> = tick_strings
-                    .iter().map(|s| s.as_str()).collect();
+                    .iter().map(std::string::String::as_str).collect();
 
                 sp.set_style(
                     ProgressStyle::default_spinner()
@@ -120,28 +121,22 @@ async fn main() -> miette::Result<()> {
             _ => {
                 if cli.json {
                     command_output.write_json(&mut stdout).map_err(HyveCtlError::from)?;
+                } else if let Some(sp) = &spinner {
+                    command_output.write_to_spinner(sp, theme.as_ref(), is_tty).map_err(HyveCtlError::from)?;
                 } else {
-                    if let Some(sp) = &spinner {
-                        command_output.write_to_spinner(sp, &theme, is_tty).map_err(HyveCtlError::from)?;
-                    } else {
-                        command_output.write(&mut stdout, &theme, is_tty).map_err(HyveCtlError::from)?;
-                    }
+                    command_output.write(&mut stdout, theme.as_ref(), is_tty).map_err(HyveCtlError::from)?;
                 }
             }
         }
 
         if !is_tty {
             match stdout.flush() {
-                Ok(_) => {},
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::BrokenPipe {
-                        return Ok(())
-                    } else {
-                        Err(e).map_err(HyveCtlError::from)?
-                    }
-                }
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => return Ok(()),
+                Err(e) => Err(HyveCtlError::from(e))?,
             }
         }
+
     }
 
     if let Some(pb) = progress_bar.take() {

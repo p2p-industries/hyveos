@@ -4,7 +4,7 @@ use crate::util::{CommandFamily};
 use hyvectl_commands::families::hyve::Hyve;
 use hyveos_sdk::{Connection, PeerId};
 use hyveos_sdk::services::ScriptingConfig;
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use crate::boxed_try_stream;
 use ulid::Ulid;
 use crate::error::HyveCtlResult;
@@ -24,7 +24,7 @@ impl CommandFamily for Hyve {
                     config = if persistent { config.persistent() } else { config };
 
                     for port in ports {
-                        config = config.expose_port(port)
+                        config = config.expose_port(port);
                     }
 
                     yield CommandOutput::spinner("Deploying image...", &["◐", "◑", "◒", "◓"]);

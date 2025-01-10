@@ -2,31 +2,31 @@ use colored::{Color, ColoredString, Colorize};
 
 #[derive(Clone, Debug)]
 pub struct Theme {
-    pub info_color: Color,
-    pub result_color: Color,
-    pub field_color: Color,
+    pub info: Color,
+    pub result: Color,
+    pub field: Color,
 }
 
 impl Default for Theme {
     fn default() -> Self {
         Self {
-            info_color: Color::BrightBlack,
-            result_color: Color::BrightBlack,
-            field_color: Color::BrightBlue,
+            info: Color::BrightBlack,
+            result: Color::BrightBlack,
+            field: Color::BrightBlue,
         }
     }
 }
 
 impl Theme {
-    pub fn info_msg(&self, msg: String) -> ColoredString {
-        msg.color(self.info_color).bold()
+    pub fn info_msg(&self, msg: &str) -> ColoredString {
+        msg.color(self.info).bold()
     }
 
-    pub fn result_msg(&self, msg: String) -> ColoredString {
-        msg.color(self.result_color).bold()
+    pub fn result_msg(&self, msg: &str) -> ColoredString {
+        msg.color(self.result).bold()
     }
 
-    pub fn field(&self, value: String) -> ColoredString {
-        value.color(self.field_color).bold()
+    pub fn field(&self, value: &str) -> ColoredString {
+        value.color(self.field).bold()
     }
 }

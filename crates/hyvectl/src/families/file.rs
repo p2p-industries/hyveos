@@ -6,7 +6,7 @@ use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
 use crate::{boxed_try_stream};
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use crate::error::HyveCtlResult;
 
 

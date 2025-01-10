@@ -24,9 +24,7 @@ pub enum CommandOutput {
 impl CommandOutput {
 
     pub fn message(message: &str) -> Self {
-        Self::Message {
-            0: message.into()
-        }
+        Self::Message(message.into())
     }
 
     pub fn result() -> Self {
@@ -38,45 +36,34 @@ impl CommandOutput {
     }
 
     pub fn progress(progress: u64) -> Self {
-        Self::Progress {
-            0: progress
-        }
+        Self::Progress(progress)
     }
 
     pub fn spinner(message: &str, tick_strings: &[&str]) -> Self {
         Self::Spinner {
             tick_strings: tick_strings
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
             message: message.to_string(),
         }
     }
 
     pub fn with_field(mut self, key: &'static str, value: String) -> Self {
-        match &mut self {
-            Self::Result { fields, .. } => {fields.push((key, value));},
-            _ => {}
-        }
+        if let Self::Result { fields, .. } = &mut self {fields.push((key, value));}
         self
     }
 
     pub fn with_tty_template(mut self, template: &'static str) -> Self {
-        match &mut self {
-            Self::Result { tty_template, .. } => {
-                *tty_template = template.into();
-            }
-            _ => {}
+        if let Self::Result { tty_template, .. } = &mut self {
+            *tty_template = template.into();
         }
         self
     }
 
     pub fn with_non_tty_template(mut self, template: &'static str) -> Self {
-        match &mut self {
-            Self::Result { non_tty_template, .. } => {
-                *non_tty_template = template.into();
-            }
-            _ => {}
+        if let Self::Result { non_tty_template, .. } = &mut self {
+            *non_tty_template = template.into();
         }
         self
     }
@@ -90,7 +77,7 @@ impl CommandOutput {
 
                 for (key, field) in fields {
                     let val: Value = json!(field);
-                    obj.insert(key.to_string(), val);
+                    obj.insert((*key).to_string(), val);
                 }
 
                 let s = serde_json::to_string_pretty(&Value::Object(obj))?;
@@ -103,9 +90,9 @@ impl CommandOutput {
     }
 
 
-    fn safe_write_line(&self, output_stream: &mut dyn Write, line: &str) -> Result<()> {
-        match writeln!(output_stream, "{}", line) {
-            Ok(_) => Ok(()),
+    fn safe_write_line(output_stream: &mut dyn Write, line: &str) -> Result<()> {
+        match writeln!(output_stream, "{line}") {
+            Ok(()) => Ok(()),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::BrokenPipe {
                     Ok(())
@@ -120,23 +107,23 @@ impl CommandOutput {
                       output_stream: &mut dyn Write) -> Result<()> {
         let out = self.to_json()?;
 
-        self.safe_write_line(output_stream, &out)
+        Self::safe_write_line(output_stream, &out)
     }
 
     pub fn write(
         &self,
         output_stream: &mut dyn Write,
-        theme: &Option<Theme>,
+        theme: Option<&Theme>,
         is_tty: bool,
     ) -> Result<()> {
         match &self {
             Self::Message(message) => {
                 let styled_msg = if let Some(t) = theme {
-                    t.info_msg(message.clone()).to_string()
+                    t.info_msg(message).to_string()
                 } else {
                     message.to_string()
                 };
-                self.safe_write_line(output_stream, &styled_msg)
+                Self::safe_write_line(output_stream, &styled_msg)
             },
             Self::Result { fields, tty_template, non_tty_template } => {
                 let mut output = if is_tty {
@@ -146,9 +133,9 @@ impl CommandOutput {
                 };
 
                 for (key, value) in fields {
-                    let placeholder = format!("{{{}}}", key);
-                    let formatted_value =  if let Some(t) = theme.clone() {
-                        t.field(value.clone()).to_string()
+                    let placeholder = format!("{{{key}}}");
+                    let formatted_value =  if let Some(t) = theme {
+                        t.field(value).to_string()
                     } else {
                         value.clone()
                     };
@@ -156,11 +143,11 @@ impl CommandOutput {
                 }
 
                 let final_line = if let Some(t) = theme {
-                    t.result_msg(output).to_string()
+                    t.result_msg(&output).to_string()
                 } else {
                     output
                 };
-                self.safe_write_line(output_stream, &final_line)?;
+                Self::safe_write_line(output_stream, &final_line)?;
 
                 Ok(())
             },
@@ -173,7 +160,7 @@ impl CommandOutput {
     pub fn write_to_spinner(
         &self,
         spinner: &ProgressBar,
-        theme: &Option<Theme>,
+        theme: Option<&Theme>,
         is_tty: bool,
     ) -> Result<()> {
         let mut buffer = Vec::new();
@@ -182,7 +169,7 @@ impl CommandOutput {
         let text = String::from_utf8_lossy(&buffer).to_string();
 
         for line in text.lines() {
-            spinner.println(line.to_string());
+            spinner.println(line);
         }
         Ok(())
     }

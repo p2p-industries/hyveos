@@ -2,7 +2,7 @@ use futures::stream::BoxStream;
 use hyvectl_commands::families::reqres::ReqRes;
 use hyveos_sdk::Connection;
 use crate::boxed_try_stream;
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use crate::util::{CommandFamily};
 use hyveos_sdk::PeerId;
 use futures::{StreamExt, TryStreamExt};
@@ -21,9 +21,9 @@ impl CommandFamily for ReqRes {
                    while let Some(request) = reqres.recv(None).await?.try_next().await? {
                        yield CommandOutput::result()
                        .with_field("peer_id", request.0.peer_id.to_string())
-                       .with_field("topic", request.0.topic.unwrap_or_default().into())
+                       .with_field("topic", request.0.topic.unwrap_or_default())
                        .with_field("data", String::from_utf8(request.0.data)?.into())
-                       .with_field("id", request.1.id().to_string().into())
+                       .with_field("id", request.1.id().to_string())
                        .with_tty_template("💬 [ID: {id}] { peer: {peer_id}, topic: {topic}, data: {data} }")
                        .with_non_tty_template("{id},{peer_id},{topic},{data}");
                    }
@@ -59,8 +59,8 @@ impl CommandFamily for ReqRes {
                     reqres.respond(id, Response::Data(message.clone().into())).await?;
 
                     yield CommandOutput::result()
-                    .with_field("id", id.to_string().into())
-                    .with_field("response", message.into())
+                    .with_field("id", id.to_string())
+                    .with_field("response", message)
                     .with_tty_template("Sent { {response} } for { {id} }")
                     .with_non_tty_template("{id},{response}")
                 }

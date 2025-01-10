@@ -1,7 +1,7 @@
 use hyvectl_commands::families::whoami::Whoami;
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use crate::boxed_try_stream;

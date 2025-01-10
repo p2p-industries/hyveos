@@ -1,6 +1,6 @@
 use hyveos_sdk::Connection;
 use crate::util::{CommandFamily};
-use crate::output::{CommandOutput};
+use crate::out::{CommandOutput};
 use futures::{StreamExt};
 use futures::stream::BoxStream;
 use hyvectl_commands::families::kv::Kv;
@@ -25,15 +25,15 @@ impl CommandFamily for Kv {
 
                     match result {
                         Some(res) => yield CommandOutput::result()
-                            .with_field("topic", topic.into())
-                            .with_field("key", key.into())
+                            .with_field("topic", topic)
+                            .with_field("key", key)
                             .with_field("value", String::from_utf8(res)?.into())
-                            .with_tty_template(&template)
+                            .with_tty_template(template)
                             .with_non_tty_template("{value}"),
                         None => yield CommandOutput::result()
-                            .with_field("topic", topic.into())
-                            .with_field("key", key.into())
-                            .with_tty_template(&template)
+                            .with_field("topic", topic)
+                            .with_field("key", key)
+                            .with_tty_template(template)
                             .with_non_tty_template("Unable to retrieve key {key} in {topic}"),
                     }
                 }
@@ -51,10 +51,10 @@ impl CommandFamily for Kv {
                     dht.put_record(t.clone(), key.clone(), value.clone()).await?;
 
                     yield CommandOutput::result()
-                        .with_field("topic", t.into())
-                        .with_field("key", key.clone().into())
-                        .with_field("value", value.clone().into())
-                        .with_tty_template(&template)
+                        .with_field("topic", t)
+                        .with_field("key", key.clone())
+                        .with_field("value", value.clone())
+                        .with_tty_template(template)
                         .with_non_tty_template("{value},{key},{topic}");
                 }
             },
@@ -71,9 +71,9 @@ impl CommandFamily for Kv {
                     dht.provide(topic.clone(), key.clone()).await?;
 
                     yield CommandOutput::result()
-                        .with_field("topic", topic.into())
-                        .with_field("key", key.into())
-                        .with_tty_template(&template)
+                        .with_field("topic", topic)
+                        .with_field("key", key)
+                        .with_tty_template(template)
                         .with_non_tty_template("{key},{topic}")
                 }
             },
