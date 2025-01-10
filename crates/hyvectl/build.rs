@@ -20,7 +20,7 @@ fn generate_man_page() -> Result<()> {
     let file_path = out_dir.join("hyvectl.1");
     fs::write(&file_path, &buffer)?;
 
-    eprintln!("Man page generated at {:?}", file_path);
+    eprintln!("Man page generated at {file_path:?}");
     Ok(())
 }
 
@@ -42,7 +42,7 @@ fn generate_all_completions() {
         generate_one_completion(shell, &out_dir, "hyvectl");
     }
 
-    eprintln!("Completion scripts generated at {:?}", out_dir);
+    eprintln!("Completion scripts generated at {out_dir:?}");
 }
 
 fn main() -> io::Result<()> {
