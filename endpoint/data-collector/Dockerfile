@@ -15,7 +15,6 @@ COPY crates/batman-neighbours-core /app/build/crates/batman-neighbours-core
 COPY crates/batman-neighbours-daemon /app/build/crates/batman-neighbours-daemon
 COPY crates/libp2p/batman-adv /app/build/crates/libp2p/batman-adv
 COPY crates/libp2p/addr-filter /app/build/crates/libp2p/addr-filter
-COPY endpoint/ws-graph /app/build/endpoint/ws-graph
 COPY protos /app/build/protos
 
 COPY sdks/rust /app/build/sdks/rust
