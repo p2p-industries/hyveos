@@ -17,6 +17,7 @@ use std::io::{stdout, IsTerminal, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 use util::CommandFamily;
+
 impl CommandFamily for Families {
     async fn run(
         self,
