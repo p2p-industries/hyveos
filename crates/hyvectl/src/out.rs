@@ -68,7 +68,7 @@ impl CommandOutput {
         self
     }
 
-    fn to_json(&self) -> Result<String> {
+    fn to_json(&self, is_tty: bool) -> Result<String> {
         use serde_json::{json, Map, Value};
 
         match &self {
@@ -80,7 +80,11 @@ impl CommandOutput {
                     obj.insert((*key).to_string(), val);
                 }
 
-                let s = serde_json::to_string_pretty(&Value::Object(obj))?;
+                let s = if is_tty {
+                    serde_json::to_string_pretty(&Value::Object(obj))?
+                } else {
+                    serde_json::to_string(&Value::Object(obj))?
+                };
 
                 Ok(s)
             }
@@ -104,8 +108,8 @@ impl CommandOutput {
         }
     }
 
-    pub fn write_json(&self, output_stream: &mut dyn Write) -> Result<()> {
-        let out = self.to_json()?;
+    pub fn write_json(&self, output_stream: &mut dyn Write, is_tty: bool) -> Result<()> {
+        let out = self.to_json(is_tty)?;
 
         Self::safe_write_line(output_stream, &out)
     }
