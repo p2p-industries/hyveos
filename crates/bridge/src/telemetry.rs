@@ -1,22 +1,60 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use posthog_rs::Event;
+use tokio::{sync::mpsc, time::interval};
+
+const QUEUE_SIZE: usize = 100;
 
 #[derive(Clone)]
 pub struct Telemetry {
-    posthog: Option<posthog_rs::Client>,
     context: Vec<Arc<str>>,
     image: Option<Arc<str>>,
     service: Option<Arc<str>>,
+    sender: mpsc::Sender<Event>,
+    opt_out: bool,
 }
 
 impl Default for Telemetry {
     fn default() -> Self {
+        let (sender, mut receiver) = mpsc::channel(QUEUE_SIZE);
+        let mut client = option_env!("POSTHOG_TOKEN").map(posthog_rs::client);
+        tokio::spawn(async move {
+            let mut inner_queue = Vec::with_capacity(QUEUE_SIZE);
+            let mut ticker = interval(Duration::from_secs(30));
+
+            async fn drain_queue(queue: &mut Vec<Event>, client: &mut Option<posthog_rs::Client>) {
+                if queue.is_empty() {
+                    return;
+                }
+                if let Some(client) = client {
+                    if let Err(e) = client.async_capture_batch(queue.drain(..)).await {
+                        tracing::trace!(?e, "Failed to send telemetry");
+                    }
+                }
+            }
+
+            loop {
+                tokio::select! {
+                    _ = ticker.tick() => {
+                        drain_queue(&mut inner_queue, &mut client).await;
+                    }
+                    event = receiver.recv() => {
+                        if let Some(event) = event {
+                            inner_queue.push(event);
+                        }
+                        if inner_queue.len() >= QUEUE_SIZE {
+                            drain_queue(&mut inner_queue, &mut client).await;
+                        }
+                    }
+                }
+            }
+        });
         Self {
-            posthog: option_env!("POSTHOG_TOKEN").map(posthog_rs::client),
             context: vec![],
             image: None,
             service: None,
+            sender,
+            opt_out: false,
         }
     }
 }
@@ -29,8 +67,7 @@ impl Telemetry {
     }
 
     pub fn opt_out(&mut self) {
-        tracing::trace!("Opted out of telemetry");
-        self.posthog = None;
+        self.opt_out = true;
     }
 
     #[must_use]
@@ -58,14 +95,8 @@ impl Telemetry {
             let _ = event.insert_prop("context", self.context.clone());
         }
         let _ = event.insert_prop("$process_person_profile", false);
-        if let Some(posthog) = self.posthog.clone() {
-            tokio::spawn(async move {
-                if let Err(e) = posthog.async_capture(event).await {
-                    tracing::trace!("Failed to send telemetry event: {e}");
-                }
-            });
-        } else {
-            tracing::trace!("Telemetry event: {event:?}");
+        if !self.opt_out {
+            let _ = self.sender.try_send(event);
         }
     }
 }
