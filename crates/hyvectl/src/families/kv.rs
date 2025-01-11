@@ -62,8 +62,8 @@ impl CommandFamily for Kv {
             Kv::Provide { key, topic } => {
                 boxed_try_stream! {
                     let template = match topic {
-                        Some(_) => {"🔑 Now provides { {value} } under { {key} } in topic { {topic} }"},
-                        None => {"🔑 Now provides { {value} } under { {key} }"}
+                        Some(_) => {"🔑 Now providing { {key} } in topic { {topic} }"},
+                        None => {"🔑 Now providing { {key} }"}
                     };
 
                     let topic = topic.unwrap_or_default();
