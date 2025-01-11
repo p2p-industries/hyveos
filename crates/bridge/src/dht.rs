@@ -10,7 +10,7 @@ use hyveos_p2p_stack::Client;
 use libp2p::kad::{GetProvidersOk, GetRecordOk, Quorum, RecordKey};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
     DhtKey::from(key)
@@ -21,11 +21,12 @@ fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
 
 pub struct DhtServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl DhtServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -34,6 +35,8 @@ impl Dht for DhtServer {
     type GetProvidersStream = ServerStream<grpc::Peer>;
 
     async fn put_record(&self, request: TonicRequest<grpc::DhtRecord>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("dht.put_record");
+
         let record = request.into_inner();
 
         tracing::debug!(request=?record, "Received put_record request");
@@ -52,6 +55,8 @@ impl Dht for DhtServer {
         &self,
         request: TonicRequest<grpc::DhtKey>,
     ) -> TonicResult<grpc::OptionalData> {
+        self.telemetry.track("dht.get_record");
+
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received get_record request");
@@ -80,6 +85,8 @@ impl Dht for DhtServer {
     }
 
     async fn provide(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("dht.provide");
+
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received provide request");
@@ -96,6 +103,8 @@ impl Dht for DhtServer {
         &self,
         request: TonicRequest<grpc::DhtKey>,
     ) -> TonicResult<Self::GetProvidersStream> {
+        self.telemetry.track("dht.get_providers");
+
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received get_providers request");

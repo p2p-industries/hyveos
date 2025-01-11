@@ -283,20 +283,34 @@ macro_rules! build_tonic {
 
 impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
     pub async fn run(self) -> Result<(), Error> {
-        let db = DbServer::new(self.db_client);
-        let dht = DhtServer::new(self.client.clone());
-        let discovery = DiscoveryServer::new(self.client.clone());
+        let db = DbServer::new(self.db_client, self.telemetry.clone().service("db"));
+        let dht = DhtServer::new(self.client.clone(), self.telemetry.clone().service("dht"));
+        let discovery = DiscoveryServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("discovery"),
+        );
         let file_transfer = FileTransferServer::new(
             self.client.clone(),
             self.shared_dir_path,
             self.running_for_container,
+            self.telemetry.clone().service("file_transfer"),
         );
-        let gossipsub = GossipSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client);
-        let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
+        let gossipsub = GossipSubServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("gossipsub"),
+        );
+        let req_resp = ReqRespServer::new(self.client, self.telemetry.clone().service("req_resp"));
+        let scripting = ScriptingServer::new(
+            self.scripting_client,
+            self.ulid,
+            self.telemetry.clone().service("scripting"),
+        );
 
         #[cfg(feature = "batman")]
-        let debug = DebugServer::new(self.debug_command_sender);
+        let debug = DebugServer::new(
+            self.debug_command_sender,
+            self.telemetry.clone().service("debug"),
+        );
 
         tracing::debug!(id=?self.ulid, "Starting bridge");
 
