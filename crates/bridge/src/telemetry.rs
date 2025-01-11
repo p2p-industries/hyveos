@@ -13,7 +13,7 @@ pub struct Telemetry {
 impl Default for Telemetry {
     fn default() -> Self {
         Self {
-            posthog: option_env!("POSTHOG_KEY").map(|key| posthog_rs::client(key)),
+            posthog: option_env!("POSTHOG_TOKEN").map(|key| posthog_rs::client(key)),
             context: vec![],
             image: None,
             service: None,
@@ -28,6 +28,7 @@ impl Telemetry {
     }
 
     pub fn opt_out(&mut self) {
+        tracing::trace!("Opted out of telemetry");
         self.posthog = None;
     }
 
@@ -60,6 +61,8 @@ impl Telemetry {
                     tracing::trace!("Failed to send telemetry event: {e}");
                 }
             });
+        } else {
+            tracing::trace!("Telemetry event: {event:?}");
         }
     }
 }
