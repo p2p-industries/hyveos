@@ -13,5 +13,6 @@ await build({
     name: 'hyveos-server',
     version: Deno.args[0],
     description: 'HyveOS connection for the server',
+    license: 'MIT',
   },
 })
