@@ -1,9 +1,10 @@
+use std::convert::Infallible;
+
 use libp2p::kad::{
     AddProviderError, AddProviderOk, BootstrapError, BootstrapOk, GetProvidersError,
     GetProvidersOk, GetRecordError, GetRecordOk, PutRecordError, PutRecordOk, Quorum, Record,
     RecordKey,
 };
-use void::Void;
 
 use crate::{
     command::{SendMultipleResult, SendResult},
@@ -26,7 +27,7 @@ pub enum Command {
     },
     RemoveRecord {
         key: RecordKey,
-        sender: SendResult<(), Void>,
+        sender: SendResult<(), Infallible>,
     },
     GetProviders {
         key: RecordKey,
@@ -38,7 +39,7 @@ pub enum Command {
     },
     StopProviding {
         key: RecordKey,
-        sender: SendResult<(), Void>,
+        sender: SendResult<(), Infallible>,
     },
 }
 

@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{convert::Infallible, time::Instant};
 
 use futures::stream::Stream;
 use libp2p::kad::{
@@ -8,7 +8,6 @@ use libp2p::kad::{
 };
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::ReceiverStream;
-use void::Void;
 
 use super::Command;
 use crate::client::{RequestError, RequestResult, SpecialClient};
@@ -63,7 +62,7 @@ impl Client {
         Ok(ReceiverStream::new(receiver))
     }
 
-    pub async fn remove_record(&self, key: RecordKey) -> RequestResult<(), Void> {
+    pub async fn remove_record(&self, key: RecordKey) -> RequestResult<(), Infallible> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .request(Command::RemoveRecord { key, sender }, receiver)
@@ -104,7 +103,7 @@ impl Client {
             .await
     }
 
-    pub async fn stop_providing(&self, key: RecordKey) -> RequestResult<(), Void> {
+    pub async fn stop_providing(&self, key: RecordKey) -> RequestResult<(), Infallible> {
         let (sender, receiver) = oneshot::channel();
         self.inner
             .request(Command::StopProviding { key, sender }, receiver)
