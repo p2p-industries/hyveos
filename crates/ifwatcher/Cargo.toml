@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 publish = { workspace = true }
+license = "GPL-3"
 
 [dependencies]
 futures = { workspace = true }
