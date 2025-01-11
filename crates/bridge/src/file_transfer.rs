@@ -37,14 +37,16 @@ use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
 #[derive(Clone)]
 pub struct FileTransferServer {
     client: Client,
-    shared_dir_path: Option<PathBuf>,
+    shared_dir_path: PathBuf,
+    running_for_container: bool,
 }
 
 impl FileTransferServer {
-    pub fn new(client: Client, shared_dir_path: Option<PathBuf>) -> Self {
+    pub fn new(client: Client, shared_dir_path: PathBuf, running_for_container: bool) -> Self {
         Self {
             client,
             shared_dir_path,
+            running_for_container,
         }
     }
 
@@ -52,10 +54,17 @@ impl FileTransferServer {
         path: PathBuf,
         ulid_string: impl AsRef<Path>,
         shared_dir_path: impl AsRef<Path>,
+        running_for_container: bool,
     ) -> std::io::Result<PathBuf> {
-        tokio::fs::copy(path, shared_dir_path.as_ref().join(&ulid_string)).await?;
+        let dest_path = shared_dir_path.as_ref().join(&ulid_string);
 
-        Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
+        tokio::fs::copy(path, &dest_path).await?;
+
+        if running_for_container {
+            Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
+        } else {
+            Ok(dest_path)
+        }
     }
 }
 
@@ -70,16 +79,22 @@ impl FileTransfer for FileTransferServer {
 
         let file_path = PathBuf::from(file_path);
 
-        let file_path = if let Some(shared_dir_path) = &self.shared_dir_path {
-            shared_dir_path.join(file_path.strip_prefix(CONTAINER_SHARED_DIR).map_err(|_| {
-                Status::invalid_argument(concatcp!(
-                    "File must be in shared directory (",
-                    CONTAINER_SHARED_DIR,
-                    ")"
-                ))
-            })?)
-        } else {
+        let file_path = if self.running_for_container {
+            self.shared_dir_path
+                .join(file_path.strip_prefix(CONTAINER_SHARED_DIR).map_err(|_| {
+                    Status::invalid_argument(concatcp!(
+                        "File must be in shared directory (",
+                        CONTAINER_SHARED_DIR,
+                        ")"
+                    ))
+                })?)
+        } else if file_path.starts_with(&self.shared_dir_path) {
             file_path
+        } else {
+            return Err(Status::invalid_argument(format!(
+                "File must be in shared directory ({})",
+                self.shared_dir_path.to_string_lossy(),
+            )));
         };
 
         self.client
@@ -105,15 +120,16 @@ impl FileTransfer for FileTransferServer {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let file_path = if let Some(shared_dir_path) = &self.shared_dir_path {
-            Self::copy_file(store_path, &ulid_string, shared_dir_path)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?
-        } else {
-            store_path
-        };
+        let container_file_path = Self::copy_file(
+            store_path,
+            &ulid_string,
+            &self.shared_dir_path,
+            self.running_for_container,
+        )
+        .await
+        .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(TonicResponse::new(file_path.try_into()?))
+        Ok(TonicResponse::new(container_file_path.try_into()?))
     }
 
     async fn get_file_with_progress(
@@ -125,6 +141,7 @@ impl FileTransfer for FileTransferServer {
         tracing::debug!(request=?cid, "Received get_file request");
 
         let shared_dir_path = Arc::new(self.shared_dir_path.clone());
+        let running_for_container = self.running_for_container;
         let ulid_string = Arc::new(cid.id.ulid.clone());
 
         let stream = self
@@ -139,15 +156,16 @@ impl FileTransfer for FileTransferServer {
                 let ulid_string = ulid_string.clone();
                 async move {
                     if let DownloadEvent::Ready(store_path) = event {
-                        let file_path = if let Some(shared_dir_path) = shared_dir_path.as_ref() {
-                            Self::copy_file(store_path, ulid_string.as_str(), shared_dir_path)
-                                .await
-                                .map_err(|e| Status::internal(e.to_string()))?
-                        } else {
-                            store_path
-                        };
+                        let container_file_path = Self::copy_file(
+                            store_path,
+                            ulid_string.as_str(),
+                            shared_dir_path.as_path(),
+                            running_for_container,
+                        )
+                        .await
+                        .map_err(|e| Status::internal(e.to_string()))?;
 
-                        Ok(DownloadEvent::Ready(file_path))
+                        Ok(DownloadEvent::Ready(container_file_path))
                     } else {
                         Ok(event)
                     }
@@ -183,21 +201,11 @@ impl FileTransferServer {
     where
         E: Into<BoxError>,
     {
-        use std::borrow::Cow;
-
         let file_name = PathBuf::from(file_name);
         let file_stem = file_name.file_stem().unwrap_or_default().to_os_string();
         let file_ext = file_name.extension().map(OsString::from);
 
-        let dir = if let Some(shared_dir_path) = &self.shared_dir_path {
-            Cow::Borrowed(shared_dir_path)
-        } else {
-            let temp_dir = std::env::temp_dir().join("hyveos").join("bridge");
-            tokio::fs::create_dir_all(&temp_dir).await?;
-            Cow::Owned(temp_dir)
-        };
-
-        let mut file_path = dir.join(file_name);
+        let mut file_path = self.shared_dir_path.join(file_name);
         for i in 1.. {
             if file_path.exists() {
                 break;
@@ -210,7 +218,7 @@ impl FileTransferServer {
                 file_name.push(ext);
             }
 
-            file_path = dir.join(file_name);
+            file_path = self.shared_dir_path.join(file_name);
         }
 
         let reader = StreamReader::new(

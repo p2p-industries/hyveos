@@ -250,10 +250,10 @@ impl Runtime {
                     db_client,
                     cli_bridge_base_path,
                     socket_path,
-                    None,
                     #[cfg(feature = "batman")]
                     debug_command_sender,
                     scripting_client.clone(),
+                    false,
                 )
                 .await?;
 

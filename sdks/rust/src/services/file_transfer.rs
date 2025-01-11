@@ -1,6 +1,8 @@
 use std::{
+    borrow::Cow,
     env,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 #[cfg(feature = "network")]
 use std::{
@@ -108,7 +110,7 @@ enum Client {
 #[derive(Debug, Clone)]
 pub struct Service {
     client: Client,
-    use_bridge_shared_dir: bool,
+    shared_dir_path: Option<Arc<PathBuf>>,
 }
 
 impl Service {
@@ -124,15 +126,16 @@ impl Service {
 
         Self {
             client,
-            use_bridge_shared_dir: connection.use_bridge_shared_dir,
+            shared_dir_path: connection.shared_dir_path.clone(),
         }
     }
 
     /// Publishes a file in the mesh network and returns its content ID.
     ///
     /// Before it's published, the file is copied to the shared directory if it is not already
-    /// there. The shared directory is defined by the `HYVEOS_BRIDGE_SHARED_DIR` environment
-    /// variable ([`hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR`]).
+    /// there. By default, the shared directory is defined by the `HYVEOS_BRIDGE_SHARED_DIR`
+    /// environment variable ([`hyveos_core::BRIDGE_SHARED_DIR_ENV_VAR`]). However, it can be
+    /// set to a custom path when using a custom connection ([`ConnectionBuilder::custom`]).
     ///
     /// # Errors
     ///
@@ -158,6 +161,8 @@ impl Service {
     /// println!("Content ID: {cid:?}");
     /// # }
     /// ```
+    ///
+    /// [`ConnectionBuilder::custom`]: crate::connection::ConnectionBuilder::custom
     #[tracing::instrument(skip(self, path), fields(path = %path.as_ref().display()))]
     pub async fn publish_file(&mut self, path: impl AsRef<Path>) -> Result<Cid> {
         let path = path.as_ref().canonicalize()?;
@@ -193,25 +198,28 @@ impl Service {
             }
         };
 
-        let path = if self.use_bridge_shared_dir {
-            let shared_dir = env::var(BRIDGE_SHARED_DIR_ENV_VAR)
-                .map_err(|e| Error::EnvVarMissing(BRIDGE_SHARED_DIR_ENV_VAR, e))?;
-
-            if path.starts_with(&shared_dir) {
-                path
-            } else {
-                let (shared_path, _) = Path::new(&shared_dir).join(file_name).unique_file().await?;
-
-                tokio::fs::copy(&path, &shared_path).await?;
-
-                shared_path
-            }
+        let shared_dir = if let Some(shared_dir) = &self.shared_dir_path {
+            Cow::Borrowed(shared_dir.as_ref())
         } else {
-            path
+            Cow::Owned(
+                env::var(BRIDGE_SHARED_DIR_ENV_VAR)
+                    .map_err(|e| Error::EnvVarMissing(BRIDGE_SHARED_DIR_ENV_VAR, e))?
+                    .into(),
+            )
         };
 
+        let path: FilePath = if path.starts_with(shared_dir.as_path()) {
+            path.try_into()
+        } else {
+            let (shared_path, _) = shared_dir.join(file_name).unique_file().await?;
+
+            tokio::fs::copy(&path, &shared_path).await?;
+
+            shared_path.try_into()
+        }?;
+
         client
-            .publish_file(<PathBuf as TryInto<FilePath>>::try_into(path)?)
+            .publish_file(path)
             .await?
             .into_inner()
             .try_into()

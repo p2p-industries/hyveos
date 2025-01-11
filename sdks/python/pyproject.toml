@@ -11,14 +11,14 @@ authors = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-grpcio = "^1.68.0"
-protobuf = "^5.29.0"
-aiohttp = "^3.11.10"
+grpcio = "^1.69.0"
+protobuf = "^5.29.2"
+aiohttp = "^3.11.11"
 yarl = "^1.18.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.6"
-grpcio-tools = "^1.68.0"
+grpcio-tools = "^1.69.0"
 pdoc3 = "^0.11.5"
 
 [tool.ruff]

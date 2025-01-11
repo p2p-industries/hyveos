@@ -1,4 +1,4 @@
-import type { Graph, TopologyUpdateData, EventData } from '$lib/types';
+import type { EventData, Graph, TopologyUpdateData } from '$lib/types';
 
 function addVertex(g: Graph, peerId: string) {
   if (g.nodes.find((node) => node.peerId == peerId) == undefined) {

@@ -28,16 +28,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Frontend & Backend
-            context: .
-            file: endpoint/ws-graph/Dockerfile
-            image: ws-graph
-          - name: Frontend & Backend + Faker
-            context: .
-            file: endpoint/ws-graph/Dockerfile
-            image: ws-graph-faker
-            arg:
-              - EXTRA_FEATURES=faker
           - name: Data collector
             context: .
             file: endpoint/data-collector/Dockerfile
