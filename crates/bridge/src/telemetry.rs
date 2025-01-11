@@ -16,6 +16,7 @@ struct Event {
     event: Arc<str>,
     distinct_id: Arc<str>,
     properties: HashMap<Arc<str>, serde_json::Value>,
+    #[serde(rename = "$timestamp")]
     timestamp: chrono::NaiveDateTime,
 }
 
