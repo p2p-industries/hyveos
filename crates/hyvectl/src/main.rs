@@ -135,7 +135,7 @@ async fn main() -> miette::Result<()> {
             _ => {
                 if cli.json {
                     command_output
-                        .write_json(&mut stdout, is_tty)
+                        .write_json(&mut stdout)
                         .map_err(HyveCtlError::from)?;
                 } else if let Some(sp) = &spinner {
                     command_output

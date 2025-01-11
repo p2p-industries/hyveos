@@ -22,7 +22,6 @@ ulid = { workspace = true }
 thiserror = { workspace = true }
 libp2p-identity = { workspace = true, features = ["peerid"] }
 miette = { version = "6.0.1", features = ["derive", "fancy"] }
-colored_json = "5.0.0"
 
 [build-dependencies]
 hyvectl-commands = { workspace = true }
