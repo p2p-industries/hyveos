@@ -9,6 +9,10 @@ const QUEUE_SIZE: usize = 100;
 #[derive(Clone, Serialize, Builder, Debug)]
 #[builder(on(Arc<str>, into))]
 struct Event {
+    #[expect(
+        clippy::struct_field_names,
+        reason = "We need to keep this name since it's important for the serialization."
+    )]
     event: Arc<str>,
     distinct_id: Arc<str>,
     properties: HashMap<Arc<str>, serde_json::Value>,
@@ -20,7 +24,7 @@ impl Event {
         Self {
             event: event.into(),
             distinct_id: distinct_id.into(),
-            properties: Default::default(),
+            properties: HashMap::default(),
             timestamp: chrono::Utc::now().naive_utc(),
         }
     }
@@ -50,6 +54,10 @@ impl Event {
 struct Batch {
     api_key: Arc<str>,
     historical_migration: bool,
+    #[expect(
+        clippy::struct_field_names,
+        reason = "We need to keep this name since it's important for the serialization."
+    )]
     batch: Vec<Event>,
 }
 
@@ -117,9 +125,6 @@ impl Default for Telemetry {
             Client::new(options)
         });
         tokio::spawn(async move {
-            let mut inner_queue = Vec::with_capacity(QUEUE_SIZE);
-            let mut ticker = interval(Duration::from_secs(30));
-
             async fn drain_queue(queue: &mut Vec<Event>, client: &mut Option<Client>) {
                 if queue.is_empty() {
                     return;
@@ -132,6 +137,9 @@ impl Default for Telemetry {
                     tracing::trace!("Telemetry client not initialized");
                 }
             }
+
+            let mut inner_queue = Vec::with_capacity(QUEUE_SIZE);
+            let mut ticker = interval(Duration::from_secs(30));
 
             loop {
                 tokio::select! {
