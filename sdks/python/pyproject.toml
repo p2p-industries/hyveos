@@ -1,5 +1,9 @@
-[tool.poetry]
+[project]
 name = "hyveos-sdk"
+dynamic = [ "version" ]
+license = { text = "MIT" }
+
+[tool.poetry]
 version = "0.1.0"
 description = ""
 authors = [
@@ -32,10 +36,6 @@ quote-style = 'single'
 indent-style = 'space'
 line-ending = 'auto'
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[project]
-license = {text = "MIT License"}
