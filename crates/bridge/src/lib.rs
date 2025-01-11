@@ -24,7 +24,7 @@ use ulid::Ulid;
 
 #[cfg(feature = "batman")]
 use crate::debug::DebugServer;
-pub use crate::{db::DbClient, scripting::ScriptingClient};
+pub use crate::{db::DbClient, scripting::ScriptingClient, telemetry::Telemetry};
 use crate::{
     db::DbServer, dht::DhtServer, discovery::DiscoveryServer, file_transfer::FileTransferServer,
     gossipsub::GossipSubServer, req_resp::ReqRespServer, scripting::ScriptingServer,
@@ -39,6 +39,7 @@ mod file_transfer;
 mod gossipsub;
 mod req_resp;
 mod scripting;
+mod telemetry;
 
 pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 
@@ -73,6 +74,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
         running_for_container: bool,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -106,6 +108,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
             debug_command_sender,
             scripting_client,
             running_for_container,
+            telemetry,
         };
 
         Ok(Self {
@@ -131,6 +134,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
         socket_addr: SocketAddr,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -156,6 +160,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
             debug_command_sender,
             scripting_client,
             running_for_container: false,
+            telemetry,
         };
 
         Ok(Self {
@@ -180,6 +185,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
         mut base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
@@ -201,6 +207,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
             debug_command_sender,
             scripting_client,
             true,
+            telemetry.context("scripting"),
         )
         .await?;
 
@@ -236,6 +243,7 @@ pub struct BridgeClient<Db, Scripting> {
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
     scripting_client: Scripting,
     running_for_container: bool,
+    telemetry: Telemetry,
 }
 
 macro_rules! build_tonic {

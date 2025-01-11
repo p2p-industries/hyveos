@@ -27,6 +27,7 @@ tower = { version = "0.5.2" }
 tracing = { workspace = true }
 trait-variant = "0.1.2"
 ulid = { workspace = true }
+posthog-rs = { workspace = true }
 
 [features]
 default = ["network"]
