@@ -39,18 +39,18 @@ impl CommandFamily for PubSub {
         match self {
             PubSub::Publish { topic, message } => {
                 boxed_try_stream! {
-                    pubsub.publish(topic.clone(), message.clone()).await?;
+                    pubsub.publish(&topic, message.clone()).await?;
 
                     yield CommandOutput::result()
-                        .with_field("topic", topic.clone())
-                        .with_field("message", message.clone())
+                        .with_field("topic", topic)
+                        .with_field("message", message)
                         .with_tty_template("📨 Published { {message} } to { {topic} }")
                         .with_non_tty_template("{message},{topic}")
                 }
             }
             PubSub::Get { topic } => {
                 boxed_try_stream! {
-                    let mut message_stream = pubsub.subscribe(topic.clone()).await?;
+                    let mut message_stream = pubsub.subscribe(&topic).await?;
 
                     yield CommandOutput::spinner("Waiting for Messages...", &["◐", "◒", "◑", "◓"]);
 

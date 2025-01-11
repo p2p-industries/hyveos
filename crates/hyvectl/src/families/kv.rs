@@ -21,10 +21,9 @@ impl CommandFamily for Kv {
                         None => {"🔑 Retrieved { {value} } under { {key} }"}
                     };
 
-                    let topic = topic.clone().unwrap_or_default();
+                    let topic = topic.unwrap_or_default();
 
-
-                    let result = dht.get_record(topic.clone(), key.clone()).await?;
+                    let result = dht.get_record(&topic, key.clone()).await?;
 
                     match result {
                         Some(res) => yield CommandOutput::result()
@@ -48,13 +47,12 @@ impl CommandFamily for Kv {
                         None => {"🔑 Added { {value} } under { {key} }"}
                     };
 
-                    let t = topic.clone().unwrap_or_default();
+                    let topic = topic.unwrap_or_default();
 
-
-                    dht.put_record(t.clone(), key.clone(), value.clone()).await?;
+                    dht.put_record(&topic, key.clone(), value.clone()).await?;
 
                     yield CommandOutput::result()
-                        .with_field("topic", t)
+                        .with_field("topic", topic)
                         .with_field("key", key.clone())
                         .with_field("value", value.clone())
                         .with_tty_template(template)
@@ -64,14 +62,14 @@ impl CommandFamily for Kv {
             Kv::Provide { key, topic } => {
                 boxed_try_stream! {
                     let template = match topic {
-                        Some(_) => {"🔑 Retrieved { {value} } under { {key} } in topic { {topic} }"},
-                        None => {"🔑 Retrieved { {value} } under { {key} }"}
+                        Some(_) => {"🔑 Now provides { {value} } under { {key} } in topic { {topic} }"},
+                        None => {"🔑 Now provides { {value} } under { {key} }"}
                     };
 
-                    let topic = topic.clone().unwrap_or_default();
+                    let topic = topic.unwrap_or_default();
 
 
-                    dht.provide(topic.clone(), key.clone()).await?;
+                    dht.provide(&topic, key.clone()).await?;
 
                     yield CommandOutput::result()
                         .with_field("topic", topic)
@@ -102,8 +100,23 @@ impl CommandFamily for Kv {
                     }
                 }
             }
-            Kv::StopProvide { key: _, topic: _ } => {
-                todo!()
+            Kv::StopProvide { key, topic } => {
+                boxed_try_stream! {
+                    let template = match topic {
+                        Some(_) => {"🔑 Stopped providing { {key} } in topic { {topic} }"},
+                        None => {"🔑 Stopped providing { {key} }"}
+                    };
+
+                    let topic = topic.unwrap_or_default();
+
+                    dht.stop_providing(&topic, key.clone()).await?;
+
+                    yield CommandOutput::result()
+                        .with_field("topic", topic)
+                        .with_field("key", key)
+                        .with_tty_template(template)
+                        .with_non_tty_template("{key},{topic}")
+                }
             }
         }
     }

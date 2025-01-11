@@ -51,7 +51,7 @@ impl CommandFamily for Hyve {
             }
             Hyve::List { peer } => {
                 boxed_try_stream! {
-                    let peer_parsed = match peer.clone() {
+                    let peer_parsed = match peer {
                         Some (p) => Some(p.parse::<PeerId>()?),
                         None => None
                     };

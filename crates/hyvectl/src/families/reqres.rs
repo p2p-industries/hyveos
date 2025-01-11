@@ -42,7 +42,7 @@ impl CommandFamily for ReqRes {
 
                     yield CommandOutput::spinner("Waiting for Response", &["◐", "◒", "◑", "◓"]);
 
-                    let response = reqres.send_request(peer_id, message.clone(), topic.clone()).await?;
+                    let response = reqres.send_request(peer_id, message, topic).await?;
 
                     let mut output = CommandOutput::result();
 
