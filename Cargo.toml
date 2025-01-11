@@ -18,7 +18,7 @@ resolver = "2"
 [workspace.package]
 rust-version = "1.80.0"
 publish = false
-license-file = "LICENSE.md"
+license = "GPL-3"
 
 [workspace.dependencies]
 async-compression = { version = "0.4.10" }
