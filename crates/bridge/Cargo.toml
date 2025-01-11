@@ -16,7 +16,7 @@ hyveos-core = { workspace = true }
 hyveos-p2p-stack = { workspace = true }
 prost = { workspace = true }
 regex = { workspace = true }
-serde = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs", "sync"] }
 tokio-stream = { workspace = true }
@@ -27,7 +27,10 @@ tower = { version = "0.5.2" }
 tracing = { workspace = true }
 trait-variant = "0.1.2"
 ulid = { workspace = true }
-posthog-rs = { workspace = true }
+reqwest = { version = "0.12.12", default-features = false, features = ["rustls-tls", "json"] }
+serde_json = { workspace = true }
+chrono = { version = "0.4.39", features = ["serde"] }
+bon = "3.3.2"
 
 [features]
 default = ["network"]
