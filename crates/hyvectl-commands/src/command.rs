@@ -7,7 +7,7 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Families,
     /// Output results in JSON format
-    #[arg(long)]
+    #[arg(short, long)]
     pub json: bool,
 }
 

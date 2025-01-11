@@ -129,6 +129,7 @@ impl InboundRequestHandle<'_> {
             .await
     }
 
+    #[doc(hidden)]
     pub fn id(&self) -> u64 {
         self.id
     }

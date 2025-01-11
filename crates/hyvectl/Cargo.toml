@@ -16,12 +16,13 @@ futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 colored = "2.2.0"
 async-stream = "0.3.6"
-indicatif = "0.17.9"
-serde_json = "1.0.133"
+indicatif = { workspace = true }
+serde_json = { workspace = true }
 ulid = { workspace = true }
 thiserror = { workspace = true }
 libp2p-identity = { workspace = true, features = ["peerid"] }
 miette = { version = "6.0.1", features = ["derive", "fancy"] }
+colored_json = "5.0.0"
 
 [build-dependencies]
 hyvectl-commands = { workspace = true }

@@ -22,13 +22,15 @@ impl CommandFamily for Hyve {
                 peer,
                 ports,
                 persistent,
-                ..
+                local,
             } => {
                 boxed_try_stream! {
                     let mut config = ScriptingConfig::new(&image);
 
-                    config = if let Some(peer) = peer.clone(){config.target(peer.clone().parse()?)}
-                    else {config.local()};
+                    config = if let Some(peer) = peer.clone() { config.target(peer.parse()?) }
+                    else { config };
+
+                    config = if local { config.local() } else { config };
 
                     config = if persistent { config.persistent() } else { config };
 
@@ -47,7 +49,7 @@ impl CommandFamily for Hyve {
                         .with_non_tty_template("{image}")
                 }
             }
-            Hyve::List { peer, .. } => {
+            Hyve::List { peer } => {
                 boxed_try_stream! {
                     let peer_parsed = match peer.clone() {
                         Some (p) => Some(p.parse::<PeerId>()?),
@@ -75,7 +77,7 @@ impl CommandFamily for Hyve {
                     }
                 }
             }
-            Hyve::Stop { peer, id, .. } => {
+            Hyve::Stop { peer, id } => {
                 boxed_try_stream! {
 
                     let peer_parsed = match peer.clone() {

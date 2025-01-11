@@ -68,7 +68,7 @@ impl CommandOutput {
         self
     }
 
-    fn to_json(&self) -> Result<String> {
+    fn to_json(&self, is_tty: bool) -> Result<String> {
         use serde_json::{json, Map, Value};
 
         match &self {
@@ -80,7 +80,16 @@ impl CommandOutput {
                     obj.insert((*key).to_string(), val);
                 }
 
-                let s = serde_json::to_string_pretty(&Value::Object(obj))?;
+                let s = if is_tty {
+                    let mut buffer = Vec::new();
+
+                    colored_json::write_colored_json(&Value::Object(obj), &mut buffer)?;
+
+                    String::from_utf8_lossy(&buffer).to_string()
+                } else {
+                    serde_json::to_string_pretty(&Value::Object(obj))?
+                };
+
                 Ok(s)
             }
             _ => Err(std::io::Error::new(
@@ -103,8 +112,8 @@ impl CommandOutput {
         }
     }
 
-    pub fn write_json(&self, output_stream: &mut dyn Write) -> Result<()> {
-        let out = self.to_json()?;
+    pub fn write_json(&self, output_stream: &mut dyn Write, is_tty: bool) -> Result<()> {
+        let out = self.to_json(is_tty)?;
 
         Self::safe_write_line(output_stream, &out)
     }

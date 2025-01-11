@@ -8,15 +8,14 @@ pub enum Hyve {
         image: String,
 
         /// Peer-Id of the target node
-        #[arg(conflicts_with = "local")]
         peer: Option<String>,
 
         /// Ports to expose from target to application
         #[arg(long)]
         ports: Vec<u16>,
 
-        /// Deploy the image locally
-        #[arg(long, conflicts_with = "peer")]
+        /// Indicates if the image is present locally
+        #[arg(long)]
         local: bool,
 
         /// Deploy the image persistent, meaning it will be restarted when the runtime is restarted
@@ -27,12 +26,7 @@ pub enum Hyve {
     /// List running applications on a given node
     List {
         /// Peer-Id of the target node
-        #[arg(conflicts_with = "local")]
         peer: Option<String>,
-
-        /// List local running scripts
-        #[arg(long, conflicts_with = "peer")]
-        local: bool,
     },
 
     /// Stops an application on a given node
@@ -42,9 +36,5 @@ pub enum Hyve {
 
         /// Peer-Id of the target node
         peer: Option<String>,
-
-        /// List local running scripts
-        #[arg(long, conflicts_with = "peer")]
-        local: bool,
     },
 }

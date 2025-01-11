@@ -7,7 +7,6 @@ use futures::StreamExt;
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
-use std::path::PathBuf;
 
 impl CommandFamily for File {
     async fn run(
@@ -19,7 +18,7 @@ impl CommandFamily for File {
         match self {
             File::Publish { path } => {
                 boxed_try_stream! {
-                    let input_path = PathBuf::from(path).canonicalize()?;
+                    let input_path = path.canonicalize()?;
 
                     yield CommandOutput::spinner("Publishing File...", &["◐", "◒", "◑", "◓"]);
 
@@ -41,20 +40,13 @@ impl CommandFamily for File {
                     yield CommandOutput::message("Starting Download...");
 
                     while let Some(event) = download_stream.next().await {
-
-                        let event: DownloadEvent = match event {
-                            Ok(e) => e,
-                            Err(e) => { Err(e)? },
-                        };
-
-                        match event {
+                        match event? {
                             DownloadEvent::Progress(p) => {
                                 yield CommandOutput::progress(p)
                             }
                             DownloadEvent::Ready(path) => {
                                 let path = match out.clone() {
                                     Some(o) => {
-                                        let o = PathBuf::from(o);
                                         tokio::fs::copy(path, &o).await?;
                                         o
                                     },

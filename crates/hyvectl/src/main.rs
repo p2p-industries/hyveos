@@ -35,23 +35,21 @@ impl CommandFamily for Families {
     }
 }
 
-#[allow(clippy::never_loop)]
 fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
-    for p in ["/run", "/var/run"]
+    let candidates = ["/run", "/var/run"]
         .into_iter()
         .map(PathBuf::from)
-        .chain(Some(std::env::temp_dir()))
-    {
-        let candidate = p.join("hyved").join("bridge").join(endpoint);
-        match candidate
+        .chain(std::iter::once(std::env::temp_dir()));
+
+    for dir in candidates {
+        let candidate = dir.join("hyved").join("bridge").join(endpoint);
+
+        if let Ok(path) = candidate
             .canonicalize()
             .into_diagnostic()
-            .wrap_err("Unable to connect to hyveOS bridge".to_string())
+            .wrap_err("Unable to connect to hyveOS bridge")
         {
-            Ok(path) => return Ok(path),
-            Err(e) => {
-                return Err(e);
-            }
+            return Ok(path);
         }
     }
 
@@ -137,7 +135,7 @@ async fn main() -> miette::Result<()> {
             _ => {
                 if cli.json {
                     command_output
-                        .write_json(&mut stdout)
+                        .write_json(&mut stdout, is_tty)
                         .map_err(HyveCtlError::from)?;
                 } else if let Some(sp) = &spinner {
                     command_output
