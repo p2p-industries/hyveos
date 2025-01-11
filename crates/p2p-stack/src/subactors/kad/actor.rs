@@ -109,6 +109,11 @@ impl SubActor for Actor {
             Command::GetRecord { key, sender } => {
                 call_behaviour!(self, get_record, get_record, behaviour, sender; key)
             }
+            Command::RemoveRecord { key, sender } => {
+                behaviour.kad.remove_record(&key);
+                let _ = sender.send(Ok(()));
+                Ok(())
+            }
             Command::Bootstrap { sender } => call_behaviour!(
                 throws;
                 self,
@@ -130,6 +135,11 @@ impl SubActor for Actor {
                     sender;
                     key
                 )
+            }
+            Command::StopProviding { key, sender } => {
+                behaviour.kad.stop_providing(&key);
+                let _ = sender.send(Ok(()));
+                Ok(())
             }
         }
     }

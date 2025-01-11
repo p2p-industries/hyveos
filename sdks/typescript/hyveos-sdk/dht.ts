@@ -103,6 +103,26 @@ export class DHT extends BaseService<typeof Service> {
   }
 
   /**
+   * Remove a record from the DHT.
+   *
+   * This only affects the local node and will only take effect in the network once the record expires.
+   *
+   * @param topic The topic to remove the record from.
+   * @param key The key of the record.
+   */
+  public async removeRecord(
+    topic: string,
+    key: Uint8Array,
+  ): Promise<void> {
+    await this.client.removeRecord({
+      key,
+      topic: {
+        topic,
+      },
+    })
+  }
+
+  /**
    * Register as a provider for a given key in a topic.
    *
    * @param topic The topic to provide the key in.
@@ -139,5 +159,22 @@ export class DHT extends BaseService<typeof Service> {
       },
     )
     return new ProvidersStream(stream, abortController)
+  }
+
+  /**
+   * Stop providing a key in a topic.
+   *
+   * This only affects the local node and will only take effect in the network once the record expires.
+   *
+   * @param topic The topic to stop providing the key in.
+   * @param key The key to stop providing.
+   */
+  public async stopProviding(topic: string, key: Uint8Array): Promise<void> {
+    await this.client.stopProviding({
+      key,
+      topic: {
+        topic,
+      },
+    })
   }
 }

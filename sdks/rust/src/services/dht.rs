@@ -305,6 +305,22 @@ impl Service {
             .map_err(Into::into)
     }
 
+    /// Removes a record from the DHT.
+    ///
+    /// This only applies to the local node and only affects the network once the record expires.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the RPC call fails.
+    pub async fn remove_record(
+        &mut self,
+        topic: impl Into<String>,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<()> {
+        self.remove_record(topic, key).await?;
+        Ok(())
+    }
+
     /// Marks the local runtime as a provider for a key in the DHT.
     ///
     /// # Errors
@@ -394,5 +410,26 @@ impl Service {
                     .map(|res| res?.map_err(Into::into))
             })
             .map_err(Into::into)
+    }
+
+    /// Stops providing a key in the DHT.
+    ///
+    /// Only affects the local node and only affects the network once the record expires.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the RPC call fails.
+    pub async fn stop_providing(
+        &mut self,
+        topic: impl Into<String>,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<()> {
+        self.client
+            .stop_providing(DhtKey::from(Key {
+                topic: topic.into(),
+                key: key.into(),
+            }))
+            .await?;
+        Ok(())
     }
 }
