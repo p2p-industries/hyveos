@@ -13,7 +13,7 @@ pub struct Telemetry {
 impl Default for Telemetry {
     fn default() -> Self {
         Self {
-            posthog: option_env!("POSTHOG_TOKEN").map(|key| posthog_rs::client(key)),
+            posthog: option_env!("POSTHOG_TOKEN").map(posthog_rs::client),
             context: vec![],
             image: None,
             service: None,
@@ -22,6 +22,7 @@ impl Default for Telemetry {
 }
 
 impl Telemetry {
+    #[must_use]
     pub fn context(mut self, context: impl Into<Arc<str>>) -> Self {
         self.context.push(context.into());
         self
@@ -32,11 +33,13 @@ impl Telemetry {
         self.posthog = None;
     }
 
+    #[must_use]
     pub fn image(mut self, image: impl Into<Arc<str>>) -> Self {
         self.image = Some(image.into());
         self
     }
 
+    #[must_use]
     pub fn service(mut self, service: impl Into<Arc<str>>) -> Self {
         self.service = Some(service.into());
         self
@@ -44,17 +47,17 @@ impl Telemetry {
 
     pub fn track(&self, event: &str) {
         let mut event = Event::new(event, "distinct_id");
-        event.insert_prop("component", "bridge").unwrap();
+        let _ = event.insert_prop("component", "bridge");
         if let Some(image) = self.image.as_ref() {
-            event.insert_prop("image", image).unwrap();
+            let _ = event.insert_prop("image", image);
         }
         if let Some(service) = self.service.as_ref() {
-            event.insert_prop("service", service).unwrap();
+            let _ = event.insert_prop("service", service);
         }
         if !self.context.is_empty() {
-            event.insert_prop("context", self.context.clone()).unwrap();
+            let _ = event.insert_prop("context", self.context.clone());
         }
-        event.insert_prop("$process_person_profile", false).unwrap();
+        let _ = event.insert_prop("$process_person_profile", false);
         if let Some(posthog) = self.posthog.clone() {
             tokio::spawn(async move {
                 if let Err(e) = posthog.async_capture(event).await {
