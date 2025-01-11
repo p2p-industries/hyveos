@@ -36,3 +36,6 @@ line-ending = 'auto'
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[project]
+license = {file = "LICENSE.md"}

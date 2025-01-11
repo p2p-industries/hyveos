@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 publish = { workspace = true }
+license-file = "LICENSE.md"
 
 [dependencies]
 hex_fmt = "0.3.0"
