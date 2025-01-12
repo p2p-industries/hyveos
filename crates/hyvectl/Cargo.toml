@@ -2,9 +2,13 @@
 name = "hyvectl"
 version = "0.1.0"
 edition = "2021"
-rust-version.workspace = true
-publish.workspace = true
-build = "build.rs"
+authors = [
+    "Linus Meierhoefer <linusmeierhoefer@protonmail.com>",
+    "Josef Zoller <josef@walterzollerpiano.com>",
+]
+rust-version = { workspace = true }
+publish = { workspace = true }
+license = { workspace = true }
 
 [dependencies]
 clap = { workspace = true }
@@ -27,6 +31,12 @@ dialoguer = { version = "0.11.0", default-features = false }
 
 [build-dependencies]
 hyvectl-commands = { workspace = true }
-clap = { workspace = true }
 clap_mangen = "0.2.24"
 clap_complete = "4.5.40"
+
+[package.metadata.deb]
+name = "hyvectl"
+copyright = "Copyright (c) 2024-present P2P Industries Inc."
+license-file = ["../../LICENSE.md", "11"]
+depends = "hyved"
+assets = [["target/release/hyvectl", "usr/bin/", "755"]]

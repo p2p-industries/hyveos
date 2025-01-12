@@ -116,11 +116,21 @@ impl internal::ConnectionType for UriConnection {
         let (url, if_name) = uri_to_url_and_if_name(self.uri.clone())?;
         let channel = Endpoint::from(self.uri).connect().await?;
 
+        #[cfg_attr(
+            not(any(target_os = "android", target_os = "fuchsia", target_os = "linux")),
+            expect(unused_mut)
+        )]
         let mut client_builder = reqwest::Client::builder();
 
+        #[cfg(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))]
         if let Some(if_name) = if_name {
             client_builder = client_builder.interface(&if_name);
         }
+        #[cfg(not(any(target_os = "android", target_os = "fuchsia", target_os = "linux")))]
+        assert!(
+            if_name.is_none(),
+            "Interface name in URI is only supported on Android, Fuchsia, and Linux"
+        );
 
         let client = client_builder.build()?;
 

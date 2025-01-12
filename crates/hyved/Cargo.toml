@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
 rust-version = { workspace = true }
 publish = { workspace = true }
-license = "GPL-3"
+license = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
@@ -32,7 +32,8 @@ mdns = ["hyveos-runtime/mdns"]
 
 [package.metadata.deb]
 name = "hyved"
-features = ["batman", "network"]
+copyright = "Copyright (c) 2024-present P2P Industries Inc."
+license-file = ["../../LICENSE.md", "11"]
 depends = "batman-neighbours-daemon, docker-ce, wpasupplicant"
 assets = [
     [
@@ -57,6 +58,7 @@ assets = [
     ],
 ]
 maintainer-scripts = "systemd/debian/"
+features = ["batman", "network"]
 systemd-units = [
     { unit-name = "hyved", enable = false },
     { unit-name = "hyveos-batman", enable = true },
