@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf};
 #[cfg(feature = "network")]
-use std::{net::SocketAddr, str::FromStr};
+use std::net::SocketAddr;
 
 use clap::Parser;
 use dirs::data_local_dir;
