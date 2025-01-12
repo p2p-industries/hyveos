@@ -31,3 +31,10 @@ miette = { version = "6.0.1", features = ["derive", "fancy"] }
 hyvectl-commands = { workspace = true }
 clap_mangen = "0.2.24"
 clap_complete = "4.5.40"
+
+[package.metadata.deb]
+name = "hyvectl"
+copyright = "Copyright (c) 2024-present P2P Industries Inc."
+license-file = ["../../LICENSE.md", "11"]
+depends = "hyved"
+assets = [["target/release/hyvectl", "usr/bin/", "755"]]
