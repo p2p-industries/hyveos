@@ -3,8 +3,10 @@ name = "hyveos-core"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
-publish = { workspace = true }
 license = "MIT"
+homepage = "docs.p2p.industries"
+repository = "https://github.com/p2p-industries/hyveos/tree/main/crates/core"
+readme = "Readme.md"
 
 [dependencies]
 hex_fmt = "0.3.0"
