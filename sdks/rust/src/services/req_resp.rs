@@ -128,6 +128,11 @@ impl InboundRequestHandle<'_> {
             .respond(self.id, Response::Error(error.into().into()))
             .await
     }
+
+    #[doc(hidden)]
+    pub fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 /// A typed response that was received from a remote peer.
@@ -479,8 +484,9 @@ impl Service {
             .map_err(Into::into)
     }
 
+    #[doc(hidden)]
     #[tracing::instrument(skip(self))]
-    async fn respond(&mut self, id: u64, response: Response) -> Result<()> {
+    pub async fn respond(&mut self, id: u64, response: Response) -> Result<()> {
         let send_response = SendResponse {
             seq: id,
             response: response.into(),

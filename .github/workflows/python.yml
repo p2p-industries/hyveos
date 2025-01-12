@@ -79,8 +79,7 @@ jobs:
         working-directory: sdks/python/hyveos_sdk
         run: |
           mkdir proto-check
-          poetry run python -m grpc_tools.protoc -I../../../protos --python_out=./proto-check --pyi_out=./proto-check --grpc_python_out=./proto-check ../../../protos/script.proto
-          ../../../scripts/fix_grpc_imports.sh ./proto-check
+          ../generate.sh ./proto-check
           diff -r --exclude='__init__.py' ./proto-check ./protocol
 
   build-doc:

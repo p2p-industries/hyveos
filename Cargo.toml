@@ -10,6 +10,7 @@ exclude = ["crates/libp2p"]
 default-members = [
     "crates/batman-neighbours-daemon",
     "crates/hyved",
+    "crates/hyvectl",
     "sdks/rust",
 ]
 resolver = "2"
@@ -17,6 +18,7 @@ resolver = "2"
 [workspace.package]
 rust-version = "1.80.0"
 publish = false
+license = "GPL-3"
 
 [workspace.dependencies]
 async-compression = { version = "0.4.10" }
@@ -30,6 +32,7 @@ clap = { version = "4.5.24", features = ["derive"] }
 hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
+hyvectl-commands = { version = "0.1.0", path = "crates/hyvectl-commands" }
 hyveos-sdk = { version = "0.1.0", path = "sdks/rust" }
 hyveos-ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
 hyveos-ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
