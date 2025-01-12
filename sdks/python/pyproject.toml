@@ -4,6 +4,7 @@ dynamic = [ "version" ]
 license = { text = "MIT" }
 
 [tool.poetry]
+name = "hyveos-sdk"
 version = "0.1.0"
 description = ""
 authors = [
