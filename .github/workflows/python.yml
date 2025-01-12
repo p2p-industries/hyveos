@@ -89,6 +89,9 @@ jobs:
         run: poetry build
 
       - name: Upload build artifacts
+        if: >
+          startsWith(github.ref, 'refs/tags')
+          && endsWith(github.ref_name, '-python')
         uses: actions/upload-artifact@v4
         with:
           name: python-dist
@@ -199,27 +202,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-      
-      
-      
-      
-      
