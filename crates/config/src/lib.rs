@@ -16,6 +16,10 @@ pub struct Config {
     #[serde(default)]
     pub batman_interface: Option<String>,
     #[serde(default)]
+    pub wifi_interface: Option<String>,
+    #[serde(default)]
+    pub bridge_interface: Option<String>,
+    #[serde(default)]
     pub store_directory: Option<PathBuf>,
     #[serde(default)]
     pub db_file: Option<PathBuf>,

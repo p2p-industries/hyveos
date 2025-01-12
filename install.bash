@@ -244,8 +244,6 @@ else
 	sudo apt install hyved
 fi
 
-# TODO: Configure interfaces with hyvectl
-
 echo -e "${RED}WARNING: If you choose yes in the following step, the wifi interface over which you might be connected will change its config and you won't be able to connect to it conventionally anymore. Please make sure you are connected via an alternative interface or ok with losing access. You can still access the computer with an attached monitor and keyboard or via other devices in the network.${RESET}"
 read -p "Do you want to configure the interfaces now? (y/n) " -n 1 -r
 
@@ -253,12 +251,13 @@ echo
 
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	echo -e "${GREEN}Configuring interfaces${RESET}"
-	interface=$(hyvectl init-config --json | jq -r '.selected-interface')
+	output=$(hyvectl init --config)
+	wifi_interface=$(echo $output | jq -r '.wifi_interface')
 
-	echo "Configuring interface $interface"
+	echo "Configuring interface $wifi_interface"
 
-	sudo systemctl enable --now wpa_supplicant@$interface
-	sudo systemctl enable --now hyveos-batman@$interface
+	sudo systemctl enable --now wpa_supplicant@$wifi_interface
+	sudo systemctl enable --now hyveos-batman@$wifi_interface
 fi
 
 echo -e "${GREEN}Enabling docker and the batman-neighbours-daemon to run at boot.${RESET}"

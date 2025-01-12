@@ -1,12 +1,9 @@
-use crate::boxed_try_stream;
-use crate::error::HyveCtlResult;
-use crate::out::CommandOutput;
-use crate::util::CommandFamily;
-use futures::stream::BoxStream;
-use futures::StreamExt;
+use futures::{stream::BoxStream, StreamExt};
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
+
+use crate::{boxed_try_stream, error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
 
 impl CommandFamily for File {
     async fn run(

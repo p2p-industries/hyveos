@@ -1,6 +1,6 @@
 mod file;
 mod hyve;
-mod init;
+pub mod init;
 pub mod inspect;
 pub mod kv;
 pub mod pubsub;

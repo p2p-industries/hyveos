@@ -14,6 +14,7 @@ license = { workspace = true }
 clap = { workspace = true }
 hyveos-sdk = { workspace = true, features = ["scripting", "network"] }
 hyveos-core = { workspace = true }
+hyveos-config = { workspace = true, features = ["batman"] }
 hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
@@ -28,6 +29,7 @@ libp2p-identity = { workspace = true, features = ["peerid"] }
 miette = { version = "6.0.1", features = ["derive", "fancy"] }
 default-net = "0.22.0"
 dialoguer = { version = "0.11.0", default-features = false }
+anyhow = { workspace = true }
 
 [build-dependencies]
 hyvectl-commands = { workspace = true }

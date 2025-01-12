@@ -1726,6 +1726,7 @@ dependencies = [
 name = "hyvectl"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-stream",
  "clap",
  "clap_complete",
@@ -1735,6 +1736,7 @@ dependencies = [
  "dialoguer",
  "futures",
  "hyvectl-commands",
+ "hyveos-config",
  "hyveos-core",
  "hyveos-sdk",
  "indicatif",
