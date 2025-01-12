@@ -67,3 +67,34 @@ impl From<grpc::FilePath> for PathBuf {
         path.path.into()
     }
 }
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum DownloadEvent {
+    Progress(u64),
+    Ready(PathBuf),
+}
+
+impl TryFrom<DownloadEvent> for grpc::DownloadEvent {
+    type Error = Error;
+
+    fn try_from(event: DownloadEvent) -> Result<Self> {
+        let event = match event {
+            DownloadEvent::Progress(progress) => grpc::download_event::Event::Progress(progress),
+            DownloadEvent::Ready(path) => grpc::download_event::Event::Ready(path.try_into()?),
+        };
+
+        Ok(Self { event: Some(event) })
+    }
+}
+
+impl TryFrom<grpc::DownloadEvent> for DownloadEvent {
+    type Error = Error;
+
+    fn try_from(event: grpc::DownloadEvent) -> Result<Self> {
+        Ok(match event.event.ok_or(Error::MissingEvent)? {
+            grpc::download_event::Event::Progress(progress) => DownloadEvent::Progress(progress),
+            grpc::download_event::Event::Ready(path) => DownloadEvent::Ready(path.into()),
+        })
+    }
+}

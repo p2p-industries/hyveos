@@ -79,6 +79,20 @@ impl Dht for DhtServer {
         Ok(TonicResponse::new(value.into()))
     }
 
+    async fn remove_record(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
+        let key = request.into_inner();
+
+        tracing::debug!(request=?key, "Received remove_record request");
+
+        self.client
+            .kad()
+            .remove_record(convert_key(key)?)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(TonicResponse::new(grpc::Empty {}))
+    }
+
     async fn provide(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
         let key = request.into_inner();
 
@@ -116,8 +130,26 @@ impl Dht for DhtServer {
                 ))
             })
             .map_err(|e| Status::internal(e.to_string()))
-            .try_flatten();
+            .try_flatten()
+            .boxed();
 
-        Ok(TonicResponse::new(Box::pin(stream)))
+        Ok(TonicResponse::new(stream))
+    }
+
+    async fn stop_providing(
+        &self,
+        request: TonicRequest<grpc::DhtKey>,
+    ) -> TonicResult<grpc::Empty> {
+        let key = request.into_inner();
+
+        tracing::debug!(request=?key, "Received stop_providing request");
+
+        self.client
+            .kad()
+            .stop_providing(convert_key(key)?)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(TonicResponse::new(grpc::Empty {}))
     }
 }

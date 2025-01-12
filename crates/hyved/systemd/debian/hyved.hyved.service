@@ -5,9 +5,11 @@ After=batman-neighbours-daemon.service
 
 [Service]
 ExecStart=/usr/bin/hyved
+RuntimeDirectory=hyved
 Type=exec
 Restart=on-failure
 User=hyveos
+Group=hyveos
 
 [Install]
 WantedBy=multi-user.target

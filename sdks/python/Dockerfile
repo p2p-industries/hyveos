@@ -24,7 +24,7 @@ WORKDIR /app/python/sdks
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry install --only main
+RUN poetry install --no-root
 
 COPY hyveos_sdk ./hyveos_sdk
 

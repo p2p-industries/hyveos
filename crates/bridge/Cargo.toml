@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 publish = { workspace = true }
+license = "GPL-3"
 
 [dependencies]
 anyhow = { workspace = true, optional = true }
@@ -22,10 +23,13 @@ tokio = { workspace = true, features = ["fs", "sync"] }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 tonic = { workspace = true }
+tonic-web = { version = "0.12.3", optional = true }
+tower = { version = "0.5.2" }
 tracing = { workspace = true }
 trait-variant = "0.1.2"
 ulid = { workspace = true }
 
 [features]
+default = ["network"]
 batman = ["hyveos-p2p-stack/batman"]
-network = ["dep:anyhow", "dep:axum"]
+network = ["dep:anyhow", "dep:axum", "dep:tonic-web"]

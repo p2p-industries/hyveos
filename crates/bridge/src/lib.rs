@@ -3,11 +3,9 @@
 
 #[cfg(feature = "network")]
 use std::net::SocketAddr;
-use std::{io, path::PathBuf, pin::Pin};
+use std::{io, os::unix::fs::PermissionsExt as _, path::PathBuf};
 
-#[cfg(feature = "network")]
-use file_transfer::FileTransferHTTPServer;
-use futures::stream::Stream;
+use futures::stream::BoxStream;
 use hyveos_core::grpc;
 use hyveos_p2p_stack::Client;
 #[cfg(feature = "batman")]
@@ -46,7 +44,7 @@ pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 
 type TonicResult<T> = tonic::Result<tonic::Response<T>>;
 
-type ServerStream<T> = Pin<Box<dyn Stream<Item = tonic::Result<T>> + Send>>;
+type ServerStream<T> = BoxStream<'static, tonic::Result<T>>;
 
 #[cfg(feature = "batman")]
 pub type DebugCommandSender = mpsc::Sender<DebugClientCommand>;
@@ -74,6 +72,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         socket_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
+        running_for_container: bool,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -89,6 +88,10 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
 
         let socket = UnixListener::bind(&socket_path)?;
 
+        let mut permissions = socket_path.metadata()?.permissions();
+        permissions.set_mode(0o775);
+        tokio::fs::set_permissions(&socket_path, permissions).await?;
+
         let cancellation_token = CancellationToken::new();
 
         let client = BridgeClient {
@@ -102,6 +105,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
             #[cfg(feature = "batman")]
             debug_command_sender,
             scripting_client,
+            running_for_container,
         };
 
         Ok(Self {
@@ -151,6 +155,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
             #[cfg(feature = "batman")]
             debug_command_sender,
             scripting_client,
+            running_for_container: false,
         };
 
         Ok(Self {
@@ -195,6 +200,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
             #[cfg(feature = "batman")]
             debug_command_sender,
             scripting_client,
+            true,
         )
         .await?;
 
@@ -229,6 +235,7 @@ pub struct BridgeClient<Db, Scripting> {
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
     scripting_client: Scripting,
+    running_for_container: bool,
 }
 
 macro_rules! build_tonic {
@@ -240,18 +247,27 @@ macro_rules! build_tonic {
         $gossipsub:ident,
         $req_resp:ident,
         $scripting:ident,
-        $debug:ident
+        $debug:ident,
+        $transform:expr
     ) => {{
         let tmp = $tonic
-            .add_service(grpc::db_server::DbServer::new($db))
-            .add_service(grpc::dht_server::DhtServer::new($dht))
-            .add_service(grpc::discovery_server::DiscoveryServer::new($discovery))
-            .add_service(grpc::gossip_sub_server::GossipSubServer::new($gossipsub))
-            .add_service(grpc::req_resp_server::ReqRespServer::new($req_resp))
-            .add_service(grpc::scripting_server::ScriptingServer::new($scripting));
+            .add_service($transform(grpc::db_server::DbServer::new($db)))
+            .add_service($transform(grpc::dht_server::DhtServer::new($dht)))
+            .add_service($transform(grpc::discovery_server::DiscoveryServer::new(
+                $discovery,
+            )))
+            .add_service($transform(grpc::gossip_sub_server::GossipSubServer::new(
+                $gossipsub,
+            )))
+            .add_service($transform(grpc::req_resp_server::ReqRespServer::new(
+                $req_resp,
+            )))
+            .add_service($transform(grpc::scripting_server::ScriptingServer::new(
+                $scripting,
+            )));
 
         #[cfg(feature = "batman")]
-        let tmp = tmp.add_service(grpc::debug_server::DebugServer::new($debug));
+        let tmp = tmp.add_service($transform(grpc::debug_server::DebugServer::new($debug)));
 
         tmp
     }};
@@ -262,8 +278,13 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
         let db = DbServer::new(self.db_client);
         let dht = DhtServer::new(self.client.clone());
         let discovery = DiscoveryServer::new(self.client.clone());
+        let file_transfer = FileTransferServer::new(
+            self.client.clone(),
+            self.shared_dir_path,
+            self.running_for_container,
+        );
         let gossipsub = GossipSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client.clone());
+        let req_resp = ReqRespServer::new(self.client);
         let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
 
         #[cfg(feature = "batman")]
@@ -273,8 +294,6 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
 
         match self.connection {
             Connection::Local(socket) => {
-                let file_transfer = FileTransferServer::new(self.client, self.shared_dir_path);
-
                 let router = build_tonic!(
                     TonicServer::builder(),
                     db,
@@ -283,7 +302,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
                     gossipsub,
                     req_resp,
                     scripting,
-                    debug
+                    debug,
+                    std::convert::identity
                 )
                 .add_service(grpc::file_transfer_server::FileTransferServer::new(
                     file_transfer,
@@ -299,17 +319,14 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
             }
             #[cfg(feature = "network")]
             Connection::Network(listener) => {
-                // TODO: We should support tls/https here
-                let file_transfer = FileTransferHTTPServer::new(self.client, self.shared_dir_path);
-
                 let router = axum::Router::new()
                     .route(
                         "/file-transfer/publish-file/:file_name",
-                        axum::routing::post(FileTransferHTTPServer::publish_file),
+                        axum::routing::post(FileTransferServer::publish_file_http),
                     )
                     .route(
                         "/file-transfer/get-file",
-                        axum::routing::get(FileTransferHTTPServer::get_file),
+                        axum::routing::get(FileTransferServer::get_file_http),
                     )
                     .with_state(file_transfer);
 
@@ -321,7 +338,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
                     gossipsub,
                     req_resp,
                     scripting,
-                    debug
+                    debug,
+                    tonic_web::enable
                 );
 
                 let router = tonic_routes.into_axum_router();

@@ -1,12 +1,11 @@
 <script lang="ts">
-  import type { Readable } from 'svelte/store';
   import * as d3 from 'd3';
   import type { SimulationNodeDatum, SimulationLinkDatum } from 'd3';
   import type { Node, Graph } from '$lib/types';
   import { onMount } from 'svelte';
 
   interface Props {
-    graph: Readable<Graph>;
+    graph: Graph;
   }
 
   let { graph }: Props = $props();
@@ -205,8 +204,8 @@
 
   onMount(() => {
     simulator = new Simulator({ nodes: [], links: [] });
-    graph.subscribe((newGraph) => {
-      simulator!.update(newGraph);
+    $effect(() => {
+      simulator!.update($state.snapshot(graph));
     });
     container?.addEventListener('click', () => {
       simulator!.handleBackgroundClick();

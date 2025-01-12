@@ -8,6 +8,7 @@ authors = [
 ]
 rust-version = { workspace = true }
 publish = { workspace = true }
+license = "GPL-3"
 
 [dependencies]
 anyhow = { workspace = true }
@@ -21,7 +22,7 @@ libp2p = { workspace = true, features = ["identify", "gossipsub"] }
 pin-project = { workspace = true }
 hyveos-core = { workspace = true }
 hyveos-p2p-stack = { workspace = true }
-redb = "2.1.1"
+redb = "2.4.0"
 serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

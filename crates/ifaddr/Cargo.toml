@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 publish = { workspace = true }
+license = "GPL-3"
 
 [dependencies]
-libc = "0.2.153"
+libc = { workspace = true }
 multiaddr = { workspace = true }
 thiserror = { workspace = true }

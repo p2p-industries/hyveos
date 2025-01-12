@@ -109,6 +109,11 @@ impl SubActor for Actor {
             Command::GetRecord { key, sender } => {
                 call_behaviour!(self, get_record, get_record, behaviour, sender; key)
             }
+            Command::RemoveRecord { key, sender } => {
+                behaviour.kad.remove_record(&key);
+                let _ = sender.send(Ok(()));
+                Ok(())
+            }
             Command::Bootstrap { sender } => call_behaviour!(
                 throws;
                 self,
@@ -131,6 +136,11 @@ impl SubActor for Actor {
                     key
                 )
             }
+            Command::StopProviding { key, sender } => {
+                behaviour.kad.stop_providing(&key);
+                let _ = sender.send(Ok(()));
+                Ok(())
+            }
         }
     }
 }
@@ -144,58 +154,58 @@ impl Actor {
     ) -> Result<(), EventError> {
         match result {
             QueryResult::GetRecord(res) => {
-                let sender = self
-                    .get_record
-                    .remove(&id)
-                    .ok_or(EventError::QueryIdNotFound(id))?;
-                sender
-                    .try_send(res)
-                    .map_err(EventError::GetRecordSendError)?;
-                if !step.last {
-                    self.get_record.insert(id, sender);
+                if let Some(sender) = self.get_record.remove(&id) {
+                    sender
+                        .try_send(res)
+                        .map_err(EventError::GetRecordSendError)?;
+                    if !step.last {
+                        self.get_record.insert(id, sender);
+                    }
+                } else {
+                    tracing::trace!(?id, "GetRecord result for unknown query id");
                 }
                 Ok(())
             }
             QueryResult::PutRecord(res) => {
-                let sender = self
-                    .put_record
-                    .remove(&id)
-                    .ok_or(EventError::QueryIdNotFound(id))?;
-                sender.send(res).map_err(EventError::PutRecordSendError)?;
+                if let Some(sender) = self.put_record.remove(&id) {
+                    sender.send(res).map_err(EventError::PutRecordSendError)?;
+                } else {
+                    tracing::trace!(?id, "PutRecord result for unknown query id");
+                }
                 Ok(())
             }
             QueryResult::Bootstrap(res) => {
-                let sender = self
-                    .bootstrap
-                    .remove(&id)
-                    .ok_or(EventError::QueryIdNotFound(id))?;
-                sender
-                    .try_send(res)
-                    .map_err(EventError::BootstrapSendError)?;
-                if !step.last {
-                    self.bootstrap.insert(id, sender);
+                if let Some(sender) = self.bootstrap.remove(&id) {
+                    sender
+                        .try_send(res)
+                        .map_err(EventError::BootstrapSendError)?;
+                    if !step.last {
+                        self.bootstrap.insert(id, sender);
+                    }
+                } else {
+                    tracing::trace!(?id, "Bootstrap result for unknown query id");
                 }
                 Ok(())
             }
             QueryResult::GetProviders(res) => {
-                let sender = self
-                    .get_providers
-                    .remove(&id)
-                    .ok_or(EventError::QueryIdNotFound(id))?;
-                sender
-                    .try_send(res)
-                    .map_err(EventError::GetProvidersSendError)?;
-                if !step.last {
-                    self.get_providers.insert(id, sender);
+                if let Some(sender) = self.get_providers.remove(&id) {
+                    sender
+                        .try_send(res)
+                        .map_err(EventError::GetProvidersSendError)?;
+                    if !step.last {
+                        self.get_providers.insert(id, sender);
+                    }
+                } else {
+                    tracing::trace!(?id, "GetProviders result for unknown query id");
                 }
                 Ok(())
             }
             QueryResult::StartProviding(res) => {
-                let sender = self
-                    .start_providing
-                    .remove(&id)
-                    .ok_or(EventError::QueryIdNotFound(id))?;
-                sender.send(res).map_err(EventError::AddProviderSendError)?;
+                if let Some(sender) = self.start_providing.remove(&id) {
+                    sender.send(res).map_err(EventError::AddProviderSendError)?;
+                } else {
+                    tracing::trace!(?id, "StartProviding result for unknown query id");
+                }
                 Ok(())
             }
             _ => Ok(()),
