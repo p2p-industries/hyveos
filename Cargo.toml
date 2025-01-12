@@ -10,6 +10,7 @@ exclude = ["crates/libp2p"]
 default-members = [
     "crates/batman-neighbours-daemon",
     "crates/hyved",
+    "crates/hyvectl",
     "sdks/rust",
 ]
 resolver = "2"
