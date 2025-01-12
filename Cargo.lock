@@ -1931,6 +1931,7 @@ dependencies = [
 name = "hyveos-sdk"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "derive-where",
  "futures",
  "http 1.2.0",
