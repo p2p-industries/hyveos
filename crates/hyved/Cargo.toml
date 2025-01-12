@@ -13,6 +13,7 @@ clap = { workspace = true }
 dirs = "5.0.1"
 futures = { workspace = true }
 hyveos-core = { workspace = true }
+hyveos-config = { workspace = true }
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }

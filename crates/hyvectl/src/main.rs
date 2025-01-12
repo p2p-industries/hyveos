@@ -56,7 +56,7 @@ fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
     Err(miette::miette!("No possible path to hyveOS Bridge sock"))
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> miette::Result<()> {
     let cli = Cli::parse();
 
