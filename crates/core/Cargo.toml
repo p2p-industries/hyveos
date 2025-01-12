@@ -6,7 +6,7 @@ rust-version = { workspace = true }
 license = "MIT"
 homepage = "docs.p2p.industries"
 repository = "https://github.com/p2p-industries/hyveos/tree/main/crates/core"
-readme = "Readme.md"
+readme = "README.md"
 
 [dependencies]
 hex_fmt = "0.3.0"
