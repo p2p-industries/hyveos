@@ -1,8 +1,11 @@
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use ulid::Ulid;
 
 use crate::{
@@ -135,8 +138,9 @@ impl TryFrom<grpc::DownloadEvent> for DownloadEvent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
+
+    use super::*;
 
     #[test]
     fn test_cid_to_string() {

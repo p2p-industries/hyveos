@@ -1,7 +1,8 @@
+use std::string::FromUtf8Error;
+
 use hyveos_core::req_resp::ResponseError;
 use libp2p_identity::ParseError;
 use miette::Diagnostic;
-use std::string::FromUtf8Error;
 use thiserror::Error;
 use ulid::DecodeError;
 
@@ -48,6 +49,11 @@ pub enum HyveCtlError {
     #[error("Response error")]
     #[diagnostic(code(hyvectl::response_error))]
     Response(#[from] ResponseError),
+
+    /// Init error
+    #[error("Init error")]
+    #[diagnostic(code(hyvectl::init_error))]
+    Init(#[from] crate::families::init::Error),
 }
 
 pub type HyveCtlResult<T> = Result<T, HyveCtlError>;

@@ -13,6 +13,7 @@ clap = { workspace = true }
 dirs = "5.0.1"
 futures = { workspace = true }
 hyveos-core = { workspace = true }
+hyveos-config = { workspace = true }
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }
@@ -24,9 +25,9 @@ toml = "0.8.13"
 tracing = { workspace = true }
 
 [features]
-batman = ["hyveos-runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
+batman = ["hyveos-runtime/batman", "hyveos-config/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
 console-subscriber = ["hyveos-runtime/console-subscriber"]
-network = ["hyveos-runtime/network"]
+network = ["hyveos-runtime/network", "hyveos-config/network"]
 mdns = ["hyveos-runtime/mdns"]
 
 [package.metadata.deb]

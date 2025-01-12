@@ -1,7 +1,9 @@
-use crate::color::Theme;
+use std::io::{Result, Write};
+
 use indicatif::ProgressBar;
 use serde::Serialize;
-use std::io::{Result, Write};
+
+use crate::color::Theme;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum CommandOutput {

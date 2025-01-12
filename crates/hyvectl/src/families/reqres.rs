@@ -1,13 +1,9 @@
-use crate::boxed_try_stream;
-use crate::error::HyveCtlResult;
-use crate::out::CommandOutput;
-use crate::util::CommandFamily;
-use futures::stream::BoxStream;
-use futures::{StreamExt, TryStreamExt};
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use hyvectl_commands::families::reqres::ReqRes;
 use hyveos_core::req_resp::Response;
-use hyveos_sdk::Connection;
-use hyveos_sdk::PeerId;
+use hyveos_sdk::{Connection, PeerId};
+
+use crate::{boxed_try_stream, error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
 
 impl CommandFamily for ReqRes {
     async fn run(
