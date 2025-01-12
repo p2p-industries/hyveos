@@ -4,7 +4,7 @@ use std::{net::SocketAddr, str::FromStr};
 
 use clap::Parser;
 use dirs::data_local_dir;
-use hyveos_config::{Config, LogFilter, ScriptManagementConfig};
+use hyveos_config::{Config, LogFilter, ScriptManagementConfig, parse_socket_addr};
 use hyveos_core::DAEMON_NAME;
 #[cfg(feature = "batman")]
 use hyveos_ifaddr::if_name_to_index;

@@ -25,9 +25,9 @@ toml = "0.8.13"
 tracing = { workspace = true }
 
 [features]
-batman = ["hyveos-runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
+batman = ["hyveos-runtime/batman", "hyveos-config/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
 console-subscriber = ["hyveos-runtime/console-subscriber"]
-network = ["hyveos-runtime/network"]
+network = ["hyveos-runtime/network", "hyveos-config/network"]
 mdns = ["hyveos-runtime/mdns"]
 
 [package.metadata.deb]

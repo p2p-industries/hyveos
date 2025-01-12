@@ -134,7 +134,8 @@ where
 }
 
 #[cfg(feature = "network")]
-fn parse_socket_addr(s: &str) -> Result<SocketAddr, anyhow::Error> {
+pub fn parse_socket_addr(s: &str) -> Result<SocketAddr, anyhow::Error> {
+    use hyveos_ifaddr::IfAddr;
     use std::str::FromStr;
 
     if let Some(s) = s.strip_prefix("[") {
