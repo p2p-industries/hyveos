@@ -64,7 +64,7 @@ tracing = { version = "0.1.40" }
 ulid = { version = "1.1.4", features = ["serde"] }
 void = { version = "1.0.2" }
 hyveos-libp2p-addr-filter = { path = "crates/libp2p/addr-filter" }
-posthog-rs = { git = "https://github.com/p2p-industries/posthog-rs.git", branch = "add-async-functionality" }
+reqwest = { version = "0.12.12" }
 
 [profile.perf]
 inherits = "release"

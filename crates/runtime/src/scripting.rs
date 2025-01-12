@@ -488,7 +488,7 @@ struct ExecutionManager<'a> {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     scripting_client: Option<ScriptingClient>,
-    telemetry: hyveos_bridge::Telemetry,
+    telemetry: Telemetry,
 }
 
 impl ExecutionManager<'_> {

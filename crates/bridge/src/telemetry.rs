@@ -9,11 +9,8 @@ const QUEUE_SIZE: usize = 100;
 #[derive(Clone, Serialize, Builder, Debug)]
 #[builder(on(Arc<str>, into))]
 struct Event {
-    #[expect(
-        clippy::struct_field_names,
-        reason = "We need to keep this name since it's important for the serialization."
-    )]
-    event: Arc<str>,
+    #[serde(rename = "event")]
+    name: Arc<str>,
     distinct_id: Arc<str>,
     properties: HashMap<Arc<str>, serde_json::Value>,
     #[serde(rename = "$timestamp")]
@@ -23,7 +20,7 @@ struct Event {
 impl Event {
     pub fn new(event: impl Into<Arc<str>>, distinct_id: impl Into<Arc<str>>) -> Self {
         Self {
-            event: event.into(),
+            name: event.into(),
             distinct_id: distinct_id.into(),
             properties: HashMap::default(),
             timestamp: chrono::Utc::now().naive_utc(),
