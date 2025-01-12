@@ -1,0 +1,30 @@
+[package]
+name = "hyvectl"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+publish.workspace = true
+build = "build.rs"
+
+[dependencies]
+clap = { workspace = true }
+hyveos-sdk = { workspace = true, features = ["scripting", "network"] }
+hyveos-core = { workspace = true }
+hyvectl-commands = { workspace = true }
+tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
+futures = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+colored = "2.2.0"
+async-stream = "0.3.6"
+indicatif = { workspace = true }
+serde_json = { workspace = true }
+ulid = { workspace = true }
+thiserror = { workspace = true }
+libp2p-identity = { workspace = true, features = ["peerid"] }
+miette = { version = "6.0.1", features = ["derive", "fancy"] }
+
+[build-dependencies]
+hyvectl-commands = { workspace = true }
+clap = { workspace = true }
+clap_mangen = "0.2.24"
+clap_complete = "4.5.40"
