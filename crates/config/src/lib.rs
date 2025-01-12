@@ -1,10 +1,9 @@
-use hyveos_core::DAEMON_NAME;
-#[cfg(any(feature = "network", feature = "batman"))]
-use hyveos_ifaddr::IfAddr;
-use serde::{Deserialize, Serialize};
 #[cfg(feature = "network")]
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+
+use hyveos_core::DAEMON_NAME;
+use serde::{Deserialize, Serialize};
 use tracing::level_filters::LevelFilter;
 
 #[derive(Debug, Serialize, Deserialize, Default)]

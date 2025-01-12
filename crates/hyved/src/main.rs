@@ -213,6 +213,7 @@ async fn main() -> anyhow::Result<()> {
         cli_socket_path: config_cli_socket_path,
         #[cfg(feature = "network")]
             cli_socket_addr: config_cli_socket_addr,
+        ..
     } = Config::load(config_file)?;
 
     let listen_addrs = if let Some(addrs) = listen_addrs.map(|e| {

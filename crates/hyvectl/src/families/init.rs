@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use colored::{Colorize};
+use colored::Colorize;
 use default_net::{get_interfaces, interface::InterfaceType, Interface};
 use dialoguer::Select;
 use futures::future::join_all;
@@ -169,7 +169,12 @@ async fn choose_bridge_network_interface() -> Result<Option<String>, Error> {
         .default(0)
         .interact()?;
 
-    Ok(Some(iface_info.get(selection).map(|info| info.iface.name.clone()).unwrap()))
+    Ok(Some(
+        iface_info
+            .get(selection)
+            .map(|info| info.iface.name.clone())
+            .unwrap(),
+    ))
 }
 
 async fn choose_wirless_network_interface() -> Result<Option<String>, Error> {
