@@ -447,6 +447,11 @@ class DHTStub(object):
                 request_serializer=script__pb2.DHTKey.SerializeToString,
                 response_deserializer=script__pb2.OptionalData.FromString,
                 _registered_method=True)
+        self.RemoveRecord = channel.unary_unary(
+                '/script.DHT/RemoveRecord',
+                request_serializer=script__pb2.DHTKey.SerializeToString,
+                response_deserializer=script__pb2.Empty.FromString,
+                _registered_method=True)
         self.Provide = channel.unary_unary(
                 '/script.DHT/Provide',
                 request_serializer=script__pb2.DHTKey.SerializeToString,
@@ -456,6 +461,11 @@ class DHTStub(object):
                 '/script.DHT/GetProviders',
                 request_serializer=script__pb2.DHTKey.SerializeToString,
                 response_deserializer=script__pb2.Peer.FromString,
+                _registered_method=True)
+        self.StopProviding = channel.unary_unary(
+                '/script.DHT/StopProviding',
+                request_serializer=script__pb2.DHTKey.SerializeToString,
+                response_deserializer=script__pb2.Empty.FromString,
                 _registered_method=True)
 
 
@@ -477,6 +487,14 @@ class DHTServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RemoveRecord(self, request, context):
+        """Remove a record from the DHT
+        This only has local effects and only affects the DHT once the records expire.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Provide(self, request, context):
         """Mark the current runtime as a provider for a key in the DHT
         """
@@ -486,6 +504,14 @@ class DHTServicer(object):
 
     def GetProviders(self, request, context):
         """Get the providers of a key in the DHT
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopProviding(self, request, context):
+        """Stop providing a key in the DHT.
+        This only has local effects and only affects the DHT once the providers records expire.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -504,6 +530,11 @@ def add_DHTServicer_to_server(servicer, server):
                     request_deserializer=script__pb2.DHTKey.FromString,
                     response_serializer=script__pb2.OptionalData.SerializeToString,
             ),
+            'RemoveRecord': grpc.unary_unary_rpc_method_handler(
+                    servicer.RemoveRecord,
+                    request_deserializer=script__pb2.DHTKey.FromString,
+                    response_serializer=script__pb2.Empty.SerializeToString,
+            ),
             'Provide': grpc.unary_unary_rpc_method_handler(
                     servicer.Provide,
                     request_deserializer=script__pb2.DHTKey.FromString,
@@ -513,6 +544,11 @@ def add_DHTServicer_to_server(servicer, server):
                     servicer.GetProviders,
                     request_deserializer=script__pb2.DHTKey.FromString,
                     response_serializer=script__pb2.Peer.SerializeToString,
+            ),
+            'StopProviding': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopProviding,
+                    request_deserializer=script__pb2.DHTKey.FromString,
+                    response_serializer=script__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -580,6 +616,33 @@ class DHT(object):
             _registered_method=True)
 
     @staticmethod
+    def RemoveRecord(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.DHT/RemoveRecord',
+            script__pb2.DHTKey.SerializeToString,
+            script__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def Provide(request,
             target,
             options=(),
@@ -623,6 +686,33 @@ class DHT(object):
             '/script.DHT/GetProviders',
             script__pb2.DHTKey.SerializeToString,
             script__pb2.Peer.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StopProviding(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/script.DHT/StopProviding',
+            script__pb2.DHTKey.SerializeToString,
+            script__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

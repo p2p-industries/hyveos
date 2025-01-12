@@ -274,11 +274,19 @@ service DHT {
   // is not found.
   rpc GetRecord(DHTKey) returns (OptionalData) {}
 
+  // Remove a record from the DHT
+  // This only has local effects and only affects the DHT once the records expire.
+  rpc RemoveRecord(DHTKey) returns (Empty) {}
+
   // Mark the current runtime as a provider for a key in the DHT
   rpc Provide(DHTKey) returns (Empty) {}
 
   // Get the providers of a key in the DHT
   rpc GetProviders(DHTKey) returns (stream Peer) {}
+
+  // Stop providing a key in the DHT.
+  // This only has local effects and only affects the DHT once the providers records expire.
+  rpc StopProviding(DHTKey) returns (Empty) {}
 }
 
 service DB {

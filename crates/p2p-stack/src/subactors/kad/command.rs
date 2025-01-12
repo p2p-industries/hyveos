@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use libp2p::kad::{
     AddProviderError, AddProviderOk, BootstrapError, BootstrapOk, GetProvidersError,
     GetProvidersOk, GetRecordError, GetRecordOk, PutRecordError, PutRecordOk, Quorum, Record,
@@ -23,6 +25,10 @@ pub enum Command {
         key: RecordKey,
         sender: SendMultipleResult<GetRecordOk, GetRecordError>,
     },
+    RemoveRecord {
+        key: RecordKey,
+        sender: SendResult<(), Infallible>,
+    },
     GetProviders {
         key: RecordKey,
         sender: SendMultipleResult<GetProvidersOk, GetProvidersError>,
@@ -30,6 +36,10 @@ pub enum Command {
     StartProviding {
         key: RecordKey,
         sender: SendResult<AddProviderOk, AddProviderError>,
+    },
+    StopProviding {
+        key: RecordKey,
+        sender: SendResult<(), Infallible>,
     },
 }
 

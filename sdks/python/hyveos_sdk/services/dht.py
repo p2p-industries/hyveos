@@ -33,6 +33,13 @@ class DHTService:
         )
         return record
 
+    async def remove_record(self, topic: str, key: str | bytes) -> None:
+        """
+        Removes a record from the DHT table under a specific topic and key.
+        Only applies to the local node and will only take effect in the network if the record is expired since it's not republished.
+        """
+        await self.stub.RemoveRecord(DHTKey(topic=Topic(topic=topic), key=enc(key)))
+
     async def provide(self, topic: str, key: str | bytes) -> None:
         """
         Marks the peer as a provider of a record under a specific topic
@@ -45,3 +52,9 @@ class DHTService:
         """
         stream = self.stub.GetProviders(DHTKey(topic=Topic(topic=topic), key=enc(key)))
         return ManagedStream(stream)
+
+    async def stop_providing(self, topic: str, key: str | bytes) -> None:
+        """
+        Stops providing a record under a specific topic
+        """
+        await self.stub.StopProviding(DHTKey(topic=Topic(topic=topic), key=enc(key)))

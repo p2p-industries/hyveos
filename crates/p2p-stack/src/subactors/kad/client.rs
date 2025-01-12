@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{convert::Infallible, time::Instant};
 
 use futures::stream::Stream;
 use libp2p::kad::{
@@ -62,6 +62,14 @@ impl Client {
         Ok(ReceiverStream::new(receiver))
     }
 
+    pub async fn remove_record(&self, key: RecordKey) -> RequestResult<(), Infallible> {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .request(Command::RemoveRecord { key, sender }, receiver)
+            .await?;
+        Ok(())
+    }
+
     pub async fn bootstrap(
         &self,
     ) -> Result<impl Stream<Item = Result<BootstrapOk, BootstrapError>>, RequestError> {
@@ -93,5 +101,13 @@ impl Client {
         self.inner
             .request(Command::StartProviding { key, sender }, receiver)
             .await
+    }
+
+    pub async fn stop_providing(&self, key: RecordKey) -> RequestResult<(), Infallible> {
+        let (sender, receiver) = oneshot::channel();
+        self.inner
+            .request(Command::StopProviding { key, sender }, receiver)
+            .await?;
+        Ok(())
     }
 }

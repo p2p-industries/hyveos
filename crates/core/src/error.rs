@@ -22,6 +22,8 @@ pub enum Error {
     InvalidFilePath,
     #[error("Invalid key: {0}")]
     InvalidKey(String),
+    #[error("Invalid cid format")]
+    InvalidCidFormat,
 }
 
 impl From<libp2p_identity::ParseError> for Error {

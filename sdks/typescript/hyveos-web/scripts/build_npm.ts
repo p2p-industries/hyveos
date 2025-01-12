@@ -16,5 +16,6 @@ await build({
     name: 'hyveos-web',
     version: Deno.args[0],
     description: 'HyveOS connector for the browser',
+    license: 'MIT',
   },
 })

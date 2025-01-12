@@ -171,6 +171,7 @@ jobs:
         run: |
           cd apt-repo
           dpkg-scanpackages -m . > Packages
+          sed -i Packages -e 's|Filename: \./|Filename: |'
           gzip -k -f Packages
           touch Release
           echo "Origin: P2P Industries Repository" >> Release

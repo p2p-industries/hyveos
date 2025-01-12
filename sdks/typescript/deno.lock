@@ -23,6 +23,7 @@
     "jsr:@ts-morph/bootstrap@0.24": "0.24.0",
     "jsr:@ts-morph/common@0.24": "0.24.0",
     "jsr:@valibot/valibot@*": "0.42.1",
+    "npm:@bufbuild/buf@*": "1.47.2",
     "npm:@bufbuild/protobuf@*": "2.2.3",
     "npm:@bufbuild/protobuf@^2.2.3": "2.2.3",
     "npm:@bufbuild/protoc-gen-es@^2.2.3": "2.2.3_@bufbuild+protobuf@2.2.3",
@@ -139,6 +140,39 @@
     }
   },
   "npm": {
+    "@bufbuild/buf-darwin-arm64@1.47.2": {
+      "integrity": "sha512-74WerFn06y+azgVfsnzhfbI5wla/OLPDnIvaNJBWHaqya/3bfascJkDylW2GVNHmwG1K/cscpmcc/RJPaO7ntQ=="
+    },
+    "@bufbuild/buf-darwin-x64@1.47.2": {
+      "integrity": "sha512-adAiOacOQe8Ym/YXPCEiq9mrPeKRmDtF2TgqPWTcDy6mF7TqR7hMJINkEEuMd1EeACmXnzMOnXlm9ICtvdYgPg=="
+    },
+    "@bufbuild/buf-linux-aarch64@1.47.2": {
+      "integrity": "sha512-52vY+Owffr5diw2PyfQJqH+Fld6zW6NhNZak4zojvc2MjZKubWM0TfNyM9jXz2YrwyB+cyxkabE60nBI80m37w=="
+    },
+    "@bufbuild/buf-linux-armv7@1.47.2": {
+      "integrity": "sha512-g9KtpObDeHZ/VG/0b5ZCieOao7L/WYZ0fPqFSs4N07D3APgEDhJG6vLyUcDgJMDgyLcgkNjNz0+XdYQb/tXyQw=="
+    },
+    "@bufbuild/buf-linux-x64@1.47.2": {
+      "integrity": "sha512-MODCK2BzD1Mgoyr+5Sp8xA8qMNdytj8hYheyhA5NnCGTkQf8sfqAjpBSAAmKk6Zar8HOlVXML6tzE/ioDFFGwQ=="
+    },
+    "@bufbuild/buf-win32-arm64@1.47.2": {
+      "integrity": "sha512-563YKYWJl3LrCY3G3+zuhb8HwOs6DzWslwGPFkKV2hwHyWyvd1DR1JjiLvw9zX64IKNctQ0HempSqc3kcboaqQ=="
+    },
+    "@bufbuild/buf-win32-x64@1.47.2": {
+      "integrity": "sha512-Sqcdv7La2xBDh3bTdEYb2f4UTMMqCcYe/D0RELhvQ5wDn6I35V3/2YT1OF5fRuf0BZLCo0OdO37S9L47uHSz2g=="
+    },
+    "@bufbuild/buf@1.47.2": {
+      "integrity": "sha512-glY5kCAoO4+a7HvDb+BLOdoHSdCk4mdXdkp53H8JFz7maOnkxCiHHXgRX+taFyEu25N8ybn7NjZFrZSdRwq2sA==",
+      "dependencies": [
+        "@bufbuild/buf-darwin-arm64",
+        "@bufbuild/buf-darwin-x64",
+        "@bufbuild/buf-linux-aarch64",
+        "@bufbuild/buf-linux-armv7",
+        "@bufbuild/buf-linux-x64",
+        "@bufbuild/buf-win32-arm64",
+        "@bufbuild/buf-win32-x64"
+      ]
+    },
     "@bufbuild/protobuf@2.2.3": {
       "integrity": "sha512-tFQoXHJdkEOSwj5tRIZSPNUuXK3RaR7T1nUrPgbYX1pUbvqqaaZAsfo+NXBPsz5rZMSKVFrgK1WL8Q/MSLvprg=="
     },
