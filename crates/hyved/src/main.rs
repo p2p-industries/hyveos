@@ -27,6 +27,10 @@ fn default_store_directory() -> PathBuf {
         .join(DAEMON_NAME)
 }
 
+fn toml_default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 struct Config {
@@ -54,6 +58,8 @@ struct Config {
     #[cfg(feature = "network")]
     #[serde(default, deserialize_with = "deserialize_socket_addr")]
     cli_socket_addr: Option<SocketAddr>,
+    #[serde(default = "toml_default_true")]
+    telemetry: bool,
 }
 
 impl Config {
@@ -308,6 +314,7 @@ async fn main() -> anyhow::Result<()> {
         cli_socket_path: config_cli_socket_path,
         #[cfg(feature = "network")]
             cli_socket_addr: config_cli_socket_addr,
+        telemetry,
     } = Config::load(config_file)?;
 
     let listen_addrs = if let Some(addrs) = listen_addrs.map(|e| {
@@ -428,6 +435,7 @@ async fn main() -> anyhow::Result<()> {
         log_dir,
         log_level,
         cli_connection,
+        telemetry,
     };
 
     Runtime::new(args).await?.run().await

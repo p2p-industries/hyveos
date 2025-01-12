@@ -5,15 +5,16 @@ use hyveos_p2p_stack::Client;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 pub struct ReqRespServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl ReqRespServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -22,6 +23,7 @@ impl ReqResp for ReqRespServer {
     type RecvStream = ServerStream<grpc::RecvRequest>;
 
     async fn send(&self, request: TonicRequest<grpc::SendRequest>) -> TonicResult<grpc::Response> {
+        self.telemetry.track("req_resp.send");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received send request");
@@ -40,6 +42,7 @@ impl ReqResp for ReqRespServer {
         &self,
         request: TonicRequest<grpc::OptionalTopicQuery>,
     ) -> TonicResult<Self::RecvStream> {
+        self.telemetry.track("req_resp.recv");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received recv request");
@@ -67,6 +70,7 @@ impl ReqResp for ReqRespServer {
     }
 
     async fn respond(&self, request: TonicRequest<grpc::SendResponse>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("req_resp.respond");
         let response = request.into_inner();
 
         tracing::debug!(request=?response, "Received respond request");

@@ -6,15 +6,16 @@ use hyveos_core::grpc::{self, discovery_server::Discovery};
 use hyveos_p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 pub struct DiscoveryServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl DiscoveryServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -27,6 +28,8 @@ impl Discovery for DiscoveryServer {
         &self,
         _request: TonicRequest<grpc::Empty>,
     ) -> TonicResult<Self::SubscribeEventsStream> {
+        self.telemetry.track("discovery.subscribe_events");
+
         tracing::debug!("Received subscribe_events request");
 
         let stream = self
@@ -51,6 +54,7 @@ impl Discovery for DiscoveryServer {
     }
 
     async fn get_own_id(&self, _request: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Peer> {
+        self.telemetry.track("discovery.get_own_id");
         tracing::debug!("Received get_own_id request");
 
         Ok(TonicResponse::new(self.client.peer_id().into()))

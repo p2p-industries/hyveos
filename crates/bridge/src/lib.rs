@@ -24,7 +24,7 @@ use ulid::Ulid;
 
 #[cfg(feature = "batman")]
 use crate::debug::DebugServer;
-pub use crate::{db::DbClient, scripting::ScriptingClient};
+pub use crate::{db::DbClient, scripting::ScriptingClient, telemetry::Telemetry};
 use crate::{
     db::DbServer, dht::DhtServer, discovery::DiscoveryServer, file_transfer::FileTransferServer,
     gossipsub::GossipSubServer, req_resp::ReqRespServer, scripting::ScriptingServer,
@@ -39,6 +39,7 @@ mod file_transfer;
 mod gossipsub;
 mod req_resp;
 mod scripting;
+mod telemetry;
 
 pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 
@@ -65,6 +66,7 @@ pub struct Bridge<Db, Scripting> {
 }
 
 impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
+    #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
     pub async fn new(
         client: Client,
         db_client: Db,
@@ -73,6 +75,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
         running_for_container: bool,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -106,6 +109,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
             debug_command_sender,
             scripting_client,
             running_for_container,
+            telemetry,
         };
 
         Ok(Self {
@@ -131,6 +135,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
         socket_addr: SocketAddr,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -156,6 +161,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
             debug_command_sender,
             scripting_client,
             running_for_container: false,
+            telemetry,
         };
 
         Ok(Self {
@@ -180,6 +186,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
         mut base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         scripting_client: Scripting,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
@@ -201,6 +208,7 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
             debug_command_sender,
             scripting_client,
             true,
+            telemetry.context("scripting"),
         )
         .await?;
 
@@ -236,6 +244,7 @@ pub struct BridgeClient<Db, Scripting> {
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
     scripting_client: Scripting,
     running_for_container: bool,
+    telemetry: Telemetry,
 }
 
 macro_rules! build_tonic {
@@ -275,20 +284,34 @@ macro_rules! build_tonic {
 
 impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
     pub async fn run(self) -> Result<(), Error> {
-        let db = DbServer::new(self.db_client);
-        let dht = DhtServer::new(self.client.clone());
-        let discovery = DiscoveryServer::new(self.client.clone());
+        let db = DbServer::new(self.db_client, self.telemetry.clone().service("db"));
+        let dht = DhtServer::new(self.client.clone(), self.telemetry.clone().service("dht"));
+        let discovery = DiscoveryServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("discovery"),
+        );
         let file_transfer = FileTransferServer::new(
             self.client.clone(),
             self.shared_dir_path,
             self.running_for_container,
+            self.telemetry.clone().service("file_transfer"),
         );
-        let gossipsub = GossipSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client);
-        let scripting = ScriptingServer::new(self.scripting_client, self.ulid);
+        let gossipsub = GossipSubServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("gossipsub"),
+        );
+        let req_resp = ReqRespServer::new(self.client, self.telemetry.clone().service("req_resp"));
+        let scripting = ScriptingServer::new(
+            self.scripting_client,
+            self.ulid,
+            self.telemetry.clone().service("scripting"),
+        );
 
         #[cfg(feature = "batman")]
-        let debug = DebugServer::new(self.debug_command_sender);
+        let debug = DebugServer::new(
+            self.debug_command_sender,
+            self.telemetry.clone().service("debug"),
+        );
 
         tracing::debug!(id=?self.ulid, "Starting bridge");
 

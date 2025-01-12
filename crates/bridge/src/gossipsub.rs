@@ -5,15 +5,16 @@ use libp2p::gossipsub::IdentTopic;
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 pub struct GossipSubServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl GossipSubServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -25,6 +26,7 @@ impl GossipSub for GossipSubServer {
         &self,
         request: TonicRequest<grpc::Topic>,
     ) -> TonicResult<Self::SubscribeStream> {
+        self.telemetry.track("gossipsub.subscribe");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received subscribe request");
@@ -51,6 +53,7 @@ impl GossipSub for GossipSubServer {
         &self,
         request: TonicRequest<grpc::GossipSubMessage>,
     ) -> TonicResult<grpc::GossipSubMessageId> {
+        self.telemetry.track("gossipsub.publish");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received publish request");

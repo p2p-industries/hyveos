@@ -32,21 +32,28 @@ use tokio::{fs::File, io::BufWriter};
 use tokio_util::io::{ReaderStream, StreamReader};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
+use crate::{ServerStream, Telemetry, TonicResult, CONTAINER_SHARED_DIR};
 
 #[derive(Clone)]
 pub struct FileTransferServer {
     client: Client,
     shared_dir_path: PathBuf,
     running_for_container: bool,
+    telemetry: Telemetry,
 }
 
 impl FileTransferServer {
-    pub fn new(client: Client, shared_dir_path: PathBuf, running_for_container: bool) -> Self {
+    pub fn new(
+        client: Client,
+        shared_dir_path: PathBuf,
+        running_for_container: bool,
+        telemetry: Telemetry,
+    ) -> Self {
         Self {
             client,
             shared_dir_path,
             running_for_container,
+            telemetry,
         }
     }
 
@@ -73,6 +80,7 @@ impl FileTransfer for FileTransferServer {
     type GetFileWithProgressStream = ServerStream<grpc::DownloadEvent>;
 
     async fn publish_file(&self, request: TonicRequest<grpc::FilePath>) -> TonicResult<grpc::Cid> {
+        self.telemetry.track("file_transfer.publish_file");
         let file_path = request.into_inner();
 
         tracing::debug!(request=?file_path, "Received publish_file request");
@@ -107,6 +115,7 @@ impl FileTransfer for FileTransferServer {
     }
 
     async fn get_file(&self, request: TonicRequest<grpc::Cid>) -> TonicResult<grpc::FilePath> {
+        self.telemetry.track("file_transfer.get_file");
         let cid = request.into_inner();
 
         tracing::debug!(request=?cid, "Received get_file request");
@@ -136,6 +145,7 @@ impl FileTransfer for FileTransferServer {
         &self,
         request: TonicRequest<grpc::Cid>,
     ) -> TonicResult<Self::GetFileWithProgressStream> {
+        self.telemetry.track("file_transfer.get_file_with_progress");
         let cid = request.into_inner();
 
         tracing::debug!(request=?cid, "Received get_file request");
