@@ -1,0 +1,17 @@
+[Unit]
+Description=HyveOS DHCP Client (%i)
+Requires=hyved@%i.hyveos-batman.service
+After=hyved@%i.hyveos-batman.service
+ConditionPathExists=/etc/hyved/dhcp-client
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/usr/sbin/batctl gw_mode client
+ExecStart=/usr/sbin/dhcpcd %i
+
+ExecStop=/usr/sbin/dhcpcd -x %i
+
+[Install]
+WantedBy=multi-user.target
