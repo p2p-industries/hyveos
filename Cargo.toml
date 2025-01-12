@@ -67,7 +67,7 @@ tracing = { version = "0.1.40" }
 ulid = { version = "1.1.4", features = ["serde"] }
 void = { version = "1.0.2" }
 hyveos-libp2p-addr-filter = { path = "crates/libp2p/addr-filter" }
-reqwest = { version = "0.12.12" }
+reqwest = { version = "0.12.12", default-features = false }
 
 [profile.perf]
 inherits = "release"
