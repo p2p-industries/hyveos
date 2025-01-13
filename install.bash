@@ -230,7 +230,7 @@ else
 	echo "deb https://apt.p2p.industries /" | sudo tee /etc/apt/sources.list.d/p2p-industries.list
 	wget -qO - https://apt.p2p.industries/key.gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/p2p-industries.gpg
 	sudo apt update -y
-	sudo apt install -y hyved
+	sudo apt install -y hyved hyvectl
 fi
 
 ###############################################################################
@@ -244,7 +244,7 @@ echo
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	echo -e "${GREEN}Configuring Wi-Fi interface${RESET}"
 	# Example: 'hyvectl init --json' => {"wifi_interface":"wlan0",...}
-	OUTPUT=$(sudo ./hyvectl --json init)
+	OUTPUT=$(sudo hyvectl --json init)
 	echo $OUTPUT | jq -r .
 	wifi_interface=$(echo "$OUTPUT" | jq -r '.wifi_interface')
 
