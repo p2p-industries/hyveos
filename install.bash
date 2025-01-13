@@ -395,22 +395,6 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	echo "Using '$DEFAULT_IFACE' as the main Ethernet interface with Internet."
 
 	###########################################################################
-	# 4. Optionally detect a Wi-Fi interface for bridging
-	###########################################################################
-	echo -e "${YELLOW}Do you also want to add a Wi-Fi interface to the bridge?${RESET}"
-	echo -e "(Bridging a Wi-Fi interface in managed mode usually doesn't work as a real L2 bridge.)"
-	read -p "Add Wi-Fi to the bridge as well? (y/n) " -n 1 -r
-	echo
-
-	WIFI_BRIDGE_IFACE=""
-	if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-		read -p "Enter the Wi-Fi interface name (e.g., wlan0): " WIFI_BRIDGE_IFACE
-		echo "Wi-Fi interface to be added: $WIFI_BRIDGE_IFACE"
-		echo "If it’s in managed mode, bridging may degrade or fail."
-		echo
-	fi
-
-	###########################################################################
 	# 5. Create systemd-networkd configurations for bridging
 	###########################################################################
 	read -p "Enter the desired bridge name [default: br0]: " BRIDGE_NAME
@@ -455,19 +439,6 @@ Name=bat0
 DHCP=no
 Bridge=$BRIDGE_NAME
 EOF
-	fi
-
-	# If user wants to add Wi-Fi
-	if [[ -n "$WIFI_BRIDGE_IFACE" ]]; then
-		cat <<EOF | sudo tee /etc/systemd/network/40-$WIFI_BRIDGE_IFACE.network
-[Match]
-Name=$WIFI_BRIDGE_IFACE
-
-[Network]
-DHCP=no
-Bridge=$BRIDGE_NAME
-EOF
-		echo -e "${YELLOW}WARNING: Bridging a Wi-Fi client interface is not a true L2 bridge in most drivers.${RESET}"
 	fi
 
 	#### Ask the user to restart after this step ####
