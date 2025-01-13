@@ -43,7 +43,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: [changes, gather_crates]
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
       matrix:
@@ -117,7 +119,9 @@ jobs:
     name: Run clippy
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -146,7 +150,9 @@ jobs:
   rustfmt:
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -164,7 +170,9 @@ jobs:
     name: Ensure that `Cargo.lock` is up-to-date
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -175,7 +183,9 @@ jobs:
     name: Gather crates
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
@@ -190,7 +200,9 @@ jobs:
     name: Enforce dependency licenses and advisories
     runs-on: ubuntu-24.04
     needs: [changes, ensure-lockfile-uptodate]
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: > 
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -231,11 +243,13 @@ jobs:
       - name: Parse crate name from tag
         id: parse_crate
         run: |
-          TAG_NAME="${GITHUB_RED_NAME}"
+          TAG_NAME="${GITHUB_REF_NAME}"
           TAG_STRIPPED="${TAG_NAME#v}"
-          IFS='-' read -ra parts <<< "$TAG_STRIPPED"
-          CRATE_NAME="${parts[1]}"
-          echo "crate_name=${CRATE_NAME}" >> $GITHUB_OUTPUT
+          TAG_STRIPPED="${TAG_STRIPPED%-rust}"
+          
+          CRATE_NAME="${TAG_STRIPPED#*-}"
+          
+          echo "crate_name=${CRATE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Publish to crates.io
         run: cargo publish -p ${{ steps.parse_crate.outputs.crate_name }} --dry-run
