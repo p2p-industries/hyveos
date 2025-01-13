@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use hyveos_core::{file_transfer::Cid, scripting::RunningScript};
+use hyveos_core::{apps::RunningApp, file_transfer::Cid};
 use hyveos_docker::Compression;
 use libp2p::{
     request_response::{
@@ -40,7 +40,7 @@ pub enum Request {
     },
 }
 
-pub type ListContainersResult = Result<Vec<RunningScript>, String>;
+pub type ListContainersResult = Result<Vec<RunningApp>, String>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Response {

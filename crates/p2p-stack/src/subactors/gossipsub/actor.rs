@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use hyveos_core::{
     debug::MessageDebugEventType,
-    gossipsub::{Message, MessageId, ReceivedMessage},
+    pub_sub::{Message, MessageId, ReceivedMessage},
 };
 use libp2p::gossipsub::{Behaviour, Event, IdentTopic, PublishError, SubscriptionError, TopicHash};
 use tokio::sync::broadcast;
@@ -60,7 +60,7 @@ impl SubActor for Actor {
             } => {
                 if let Some(debug_sender) = self.debug_sender.take() {
                     if debug_sender
-                        .send(MessageDebugEventType::GossipSub(Message {
+                        .send(MessageDebugEventType::PubSub(Message {
                             data: data.clone(),
                             topic: topic.to_string(),
                         }))

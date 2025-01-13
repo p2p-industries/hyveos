@@ -12,7 +12,7 @@ license = { workspace = true }
 
 [dependencies]
 clap = { workspace = true }
-hyveos-sdk = { workspace = true, features = ["scripting", "network"] }
+hyveos-sdk = { workspace = true, features = ["app-management", "network"] }
 hyveos-core = { workspace = true }
 hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
