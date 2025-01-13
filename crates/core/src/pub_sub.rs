@@ -13,14 +13,14 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MessageId(pub Vec<u8>);
 
-impl From<MessageId> for grpc::GossipSubMessageId {
+impl From<MessageId> for grpc::PubSubMessageId {
     fn from(id: MessageId) -> Self {
         Self { id: id.0 }
     }
 }
 
-impl From<grpc::GossipSubMessageId> for MessageId {
-    fn from(id: grpc::GossipSubMessageId) -> Self {
+impl From<grpc::PubSubMessageId> for MessageId {
+    fn from(id: grpc::PubSubMessageId) -> Self {
         Self(id.id)
     }
 }
@@ -46,7 +46,7 @@ pub struct Message {
     pub topic: String,
 }
 
-impl From<Message> for grpc::GossipSubMessage {
+impl From<Message> for grpc::PubSubMessage {
     fn from(message: Message) -> Self {
         Self {
             data: grpc::Data { data: message.data },
@@ -57,8 +57,8 @@ impl From<Message> for grpc::GossipSubMessage {
     }
 }
 
-impl From<grpc::GossipSubMessage> for Message {
-    fn from(message: grpc::GossipSubMessage) -> Self {
+impl From<grpc::PubSubMessage> for Message {
+    fn from(message: grpc::PubSubMessage) -> Self {
         Self {
             data: message.data.data,
             topic: message.topic.topic,
@@ -75,7 +75,7 @@ pub struct ReceivedMessage {
     pub message: Message,
 }
 
-impl From<ReceivedMessage> for grpc::GossipSubRecvMessage {
+impl From<ReceivedMessage> for grpc::PubSubRecvMessage {
     fn from(message: ReceivedMessage) -> Self {
         Self {
             propagation_source: message.propagation_source.into(),
@@ -86,10 +86,10 @@ impl From<ReceivedMessage> for grpc::GossipSubRecvMessage {
     }
 }
 
-impl TryFrom<grpc::GossipSubRecvMessage> for ReceivedMessage {
+impl TryFrom<grpc::PubSubRecvMessage> for ReceivedMessage {
     type Error = Error;
 
-    fn try_from(message: grpc::GossipSubRecvMessage) -> Result<Self> {
+    fn try_from(message: grpc::PubSubRecvMessage) -> Result<Self> {
         Ok(Self {
             propagation_source: message.propagation_source.try_into()?,
             source: message.source.map(TryInto::try_into).transpose()?,

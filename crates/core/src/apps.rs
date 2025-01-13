@@ -11,14 +11,14 @@ use crate::{
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct RunningScript {
+pub struct RunningApp {
     pub id: Ulid,
     pub image: Arc<str>,
     pub name: Option<Arc<str>>,
 }
 
-impl From<RunningScript> for grpc::RunningScript {
-    fn from(script: RunningScript) -> Self {
+impl From<RunningApp> for grpc::RunningApp {
+    fn from(script: RunningApp) -> Self {
         Self {
             id: script.id.into(),
             image: grpc::DockerImage {
@@ -29,10 +29,10 @@ impl From<RunningScript> for grpc::RunningScript {
     }
 }
 
-impl TryFrom<grpc::RunningScript> for RunningScript {
+impl TryFrom<grpc::RunningApp> for RunningApp {
     type Error = Error;
 
-    fn try_from(script: grpc::RunningScript) -> Result<Self> {
+    fn try_from(script: grpc::RunningApp) -> Result<Self> {
         Ok(Self {
             id: script.id.try_into()?,
             image: script.image.name.into(),

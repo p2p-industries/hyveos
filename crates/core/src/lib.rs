@@ -8,16 +8,16 @@ use ulid::Ulid;
 
 pub use crate::error::{Error, Result};
 
+#[doc(hidden)]
+#[cfg(feature = "app-management")]
+pub mod apps;
 pub mod debug;
 pub mod dht;
-pub mod discovery;
 pub mod error;
 pub mod file_transfer;
-pub mod gossipsub;
+pub mod neighbours;
+pub mod pub_sub;
 pub mod req_resp;
-#[doc(hidden)]
-#[cfg(feature = "scripting")]
-pub mod scripting;
 #[doc(hidden)]
 #[cfg(feature = "serde")]
 pub mod serde;
@@ -25,7 +25,7 @@ pub mod serde;
 pub mod grpc {
     #![allow(clippy::pedantic, clippy::expect_used, clippy::unwrap_used)]
 
-    tonic::include_proto!("script");
+    tonic::include_proto!("bridge");
 }
 
 pub const BRIDGE_SHARED_DIR_ENV_VAR: &str = "HYVEOS_BRIDGE_SHARED_DIR";

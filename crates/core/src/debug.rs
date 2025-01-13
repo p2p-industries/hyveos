@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 use crate::{
-    discovery::NeighbourEvent,
     error::{Error, Result},
-    gossipsub, grpc,
+    grpc,
+    neighbours::NeighbourEvent,
+    pub_sub,
     req_resp::{Request, Response},
 };
 
@@ -99,7 +100,7 @@ impl TryFrom<grpc::ResponseDebugEvent> for ResponseDebugEvent {
 pub enum MessageDebugEventType {
     Request(RequestDebugEvent),
     Response(ResponseDebugEvent),
-    GossipSub(gossipsub::Message),
+    PubSub(pub_sub::Message),
 }
 
 impl From<MessageDebugEventType> for grpc::message_debug_event::Event {
@@ -107,7 +108,7 @@ impl From<MessageDebugEventType> for grpc::message_debug_event::Event {
         match event {
             MessageDebugEventType::Request(req) => Self::Req(req.into()),
             MessageDebugEventType::Response(res) => Self::Res(res.into()),
-            MessageDebugEventType::GossipSub(msg) => Self::Gos(msg.into()),
+            MessageDebugEventType::PubSub(msg) => Self::PubSub(msg.into()),
         }
     }
 }
@@ -119,7 +120,7 @@ impl TryFrom<grpc::message_debug_event::Event> for MessageDebugEventType {
         Ok(match event {
             grpc::message_debug_event::Event::Req(req) => Self::Request(req.try_into()?),
             grpc::message_debug_event::Event::Res(res) => Self::Response(res.try_into()?),
-            grpc::message_debug_event::Event::Gos(msg) => Self::GossipSub(msg.into()),
+            grpc::message_debug_event::Event::PubSub(msg) => Self::PubSub(msg.into()),
         })
     }
 }
