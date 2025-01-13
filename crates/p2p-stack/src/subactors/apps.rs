@@ -55,10 +55,7 @@ pub type Event = <Behaviour as NetworkBehaviour>::ToSwarm;
 
 pub fn new() -> Behaviour {
     cbor::Behaviour::new(
-        [(
-            StreamProtocol::new("/scripting/0.1.0"),
-            ProtocolSupport::Full,
-        )],
+        [(StreamProtocol::new("/apps/0.1.0"), ProtocolSupport::Full)],
         Config::default().with_request_timeout(REQUEST_TIMEOUT),
     )
 }
@@ -124,7 +121,7 @@ pub enum Command {
     },
 }
 
-impl_from_special_command!(Scripting);
+impl_from_special_command!(Apps);
 
 pub struct Actor {
     inflight_deploy: HashMap<OutboundRequestId, oneshot::Sender<Result<Ulid, String>>>,
@@ -174,7 +171,7 @@ impl SubActor for Actor {
                 persistent,
                 sender,
             } => {
-                let req_id = behaviour.scripting.send_request(
+                let req_id = behaviour.apps.send_request(
                     &to,
                     Request::DeployImage {
                         root_fs,
@@ -188,7 +185,7 @@ impl SubActor for Actor {
             Command::DeployedImage { id, result } => {
                 if let Some(channel) = self.client_inflight.remove(&id) {
                     if let Err(e) = behaviour
-                        .scripting
+                        .apps
                         .send_response(channel, Response::DeployedImage { result })
                     {
                         tracing::error!(error = ?e, "Failed to send response");
@@ -197,14 +194,14 @@ impl SubActor for Actor {
             }
             Command::ListContainers { peer_id, sender } => {
                 let req_id = behaviour
-                    .scripting
+                    .apps
                     .send_request(&peer_id, Request::ListContainers);
                 self.inflight_list.insert(req_id, sender);
             }
             Command::ListContainersResponse { id, result } => {
                 if let Some(channel) = self.client_inflight.remove(&id) {
                     if let Err(e) = behaviour
-                        .scripting
+                        .apps
                         .send_response(channel, Response::ListContainers { result })
                     {
                         tracing::error!(error = ?e, "Failed to send response");
@@ -217,7 +214,7 @@ impl SubActor for Actor {
                 sender,
             } => {
                 let req_id = behaviour
-                    .scripting
+                    .apps
                     .send_request(&peer_id, Request::StopContainer { id });
                 self.inflight_stop.insert(req_id, sender);
             }
@@ -227,14 +224,14 @@ impl SubActor for Actor {
                 sender,
             } => {
                 let req_id = behaviour
-                    .scripting
+                    .apps
                     .send_request(&peer_id, Request::StopAllContainers { kill });
                 self.inflight_stop.insert(req_id, sender);
             }
             Command::StopContainerResponse { id, result } => {
                 if let Some(channel) = self.client_inflight.remove(&id) {
                     if let Err(e) = behaviour
-                        .scripting
+                        .apps
                         .send_response(channel, Response::StopContainer { result })
                     {
                         tracing::error!(error = ?e, "Failed to send response");

@@ -18,8 +18,8 @@ pub mod file_transfer {
     pub use crate::subactors::file_transfer::ClientError;
 }
 
-pub mod scripting {
-    pub use crate::subactors::scripting::ActorToClient;
+pub mod apps {
+    pub use crate::subactors::apps::ActorToClient;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -86,7 +86,7 @@ pub type FullActor = Actor<
     subactors::identify::Actor,
     NeighbourActor,
     subactors::req_resp::Actor,
-    subactors::scripting::Actor,
+    subactors::apps::Actor,
     subactors::file_transfer::Actor,
     DebugActor,
     EventError,

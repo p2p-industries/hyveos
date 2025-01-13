@@ -17,12 +17,12 @@ use futures::{
 };
 #[cfg(feature = "batman")]
 use hyveos_bridge::DebugCommandSender;
-use hyveos_bridge::{Error as BridgeError, ScriptingBridge, CONTAINER_SHARED_DIR};
+use hyveos_bridge::{ApplicationBridge, Error as BridgeError, CONTAINER_SHARED_DIR};
 use hyveos_core::{
-    file_transfer::Cid, scripting::RunningScript, BRIDGE_SHARED_DIR_ENV_VAR, BRIDGE_SOCKET_ENV_VAR,
+    apps::RunningApp, file_transfer::Cid, BRIDGE_SHARED_DIR_ENV_VAR, BRIDGE_SOCKET_ENV_VAR,
 };
 use hyveos_docker::{Compression, ContainerManager, NetworkMode, PulledImage, StoppedContainer};
-use hyveos_p2p_stack::{file_transfer, scripting::ActorToClient, Client as P2PClient};
+use hyveos_p2p_stack::{apps::ActorToClient, file_transfer, Client as P2PClient};
 use libp2p::PeerId;
 use tokio::{
     fs::{metadata, File},
@@ -42,7 +42,7 @@ const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize))]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum ScriptManagementConfig {
+pub enum ApplicationManagementConfig {
     Allow,
     #[default]
     Deny,
@@ -56,7 +56,7 @@ enum SelfCommand {
         sender: oneshot::Sender<Result<Ulid, ExecutionError>>,
     },
     ListContainers {
-        sender: oneshot::Sender<Vec<RunningScript>>,
+        sender: oneshot::Sender<Vec<RunningApp>>,
     },
     StopContainer {
         container_id: Ulid,
@@ -68,24 +68,24 @@ enum SelfCommand {
     },
 }
 
-pub struct ScriptingManagerBuilder {
+pub struct ApplicationManagerBuilder {
     command_broker: mpsc::Receiver<ActorToClient>,
     client: P2PClient,
     db_client: DbClient,
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
-    script_management: ScriptManagementConfig,
+    apps_management: ApplicationManagementConfig,
 }
 
-impl ScriptingManagerBuilder {
+impl ApplicationManagerBuilder {
     pub fn new(
         command_broker: mpsc::Receiver<ActorToClient>,
         client: P2PClient,
         db_client: DbClient,
         base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
-        script_management: ScriptManagementConfig,
+        apps_management: ApplicationManagementConfig,
     ) -> Self {
         Self {
             command_broker,
@@ -94,11 +94,11 @@ impl ScriptingManagerBuilder {
             base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
-            script_management,
+            apps_management,
         }
     }
 
-    pub fn build(self) -> (ScriptingManager, ScriptingClient) {
+    pub fn build(self) -> (ApplicationManager, AppsClient) {
         let Self {
             command_broker,
             client,
@@ -106,20 +106,20 @@ impl ScriptingManagerBuilder {
             base_path,
             #[cfg(feature = "batman")]
             debug_command_sender,
-            script_management,
+            apps_management,
         } = self;
         let (self_command_sender, self_command_receiver) = mpsc::channel(1);
 
-        let scripting_client = ScriptingClient::new(client.clone(), self_command_sender);
+        let apps_client = AppsClient::new(client.clone(), self_command_sender);
 
         let manager = {
-            let scripting_client = if let ScriptManagementConfig::Allow = script_management {
-                Some(scripting_client.clone())
+            let apps_client = if let ApplicationManagementConfig::Allow = apps_management {
+                Some(apps_client.clone())
             } else {
                 None
             };
 
-            ScriptingManager {
+            ApplicationManager {
                 command_broker,
                 self_command_receiver,
                 container_manager: ContainerManager::new()
@@ -129,16 +129,16 @@ impl ScriptingManagerBuilder {
                 base_path,
                 #[cfg(feature = "batman")]
                 debug_command_sender,
-                scripting_client,
+                apps_client,
                 container_handles: FutureMap::new(),
             }
         };
 
-        (manager, scripting_client)
+        (manager, apps_client)
     }
 }
 
-pub struct ScriptingManager {
+pub struct ApplicationManager {
     command_broker: mpsc::Receiver<ActorToClient>,
     self_command_receiver: mpsc::Receiver<SelfCommand>,
     container_manager: ContainerManager,
@@ -147,11 +147,11 @@ pub struct ScriptingManager {
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
-    scripting_client: Option<ScriptingClient>,
+    apps_client: Option<AppsClient>,
     container_handles: FutureMap<Ulid, ContainerHandle>,
 }
 
-impl ScriptingManager {
+impl ApplicationManager {
     fn execution_manager(&self) -> ExecutionManager {
         ExecutionManager {
             container_manger: &self.container_manager,
@@ -160,7 +160,7 @@ impl ScriptingManager {
             base_path: self.base_path.clone(),
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
-            scripting_client: self.scripting_client.clone(),
+            apps_client: self.apps_client.clone(),
         }
     }
 
@@ -207,11 +207,10 @@ impl ScriptingManager {
                     .exec_foreign(root_fs, compression, ports)
                     .await;
 
-                let scripting = self.client.scripting().clone();
+                let apps = self.client.apps().clone();
 
                 self.add_handle(handle, persisted_ports, move |id| async move {
-                    scripting
-                        .deployed_image(request_id, id.map_err(|e| e.to_string()))
+                    apps.deployed_image(request_id, id.map_err(|e| e.to_string()))
                         .map(|_| ())
                         .await;
                 })
@@ -221,7 +220,7 @@ impl ScriptingManager {
                 let result = Ok(self.list_containers());
                 let _ = self
                     .client
-                    .scripting()
+                    .apps()
                     .send_list_containers_response(request_id, result)
                     .await;
             }
@@ -229,7 +228,7 @@ impl ScriptingManager {
                 let result = self.stop_container(id).await.map_err(|e| e.to_string());
                 let _ = self
                     .client
-                    .scripting()
+                    .apps()
                     .send_stop_container_response(request_id, result)
                     .await;
             }
@@ -240,7 +239,7 @@ impl ScriptingManager {
                     .map_err(|e| e.to_string());
                 let _ = self
                     .client
-                    .scripting()
+                    .apps()
                     .send_stop_container_response(request_id, result)
                     .await;
             }
@@ -294,7 +293,7 @@ impl ScriptingManager {
                 if let Some(ports) = persisted_ports {
                     if let Err(e) = self
                         .db_client
-                        .insert_startup_script(image_name.as_ref(), ports)
+                        .insert_startup_app(image_name.as_ref(), ports)
                     {
                         Err(e.into())
                     } else {
@@ -313,13 +312,13 @@ impl ScriptingManager {
         send(id).await;
     }
 
-    fn list_containers(&self) -> Vec<RunningScript> {
+    fn list_containers(&self) -> Vec<RunningApp> {
         self.container_handles
             .iter()
-            .map(|(id, handle)| RunningScript {
+            .map(|(id, handle)| RunningApp {
                 id: *id,
                 image: handle.image_name.clone(),
-                name: handle.script_name.clone(),
+                name: handle.app_name.clone(),
             })
             .collect()
     }
@@ -332,8 +331,7 @@ impl ScriptingManager {
                         "Stopped container: {container_id} ({})",
                         container.image.image
                     );
-                    self.db_client
-                        .remove_startup_script(container.image.image)?;
+                    self.db_client.remove_startup_app(container.image.image)?;
                     Ok(())
                 }
                 Err(e) => {
@@ -396,7 +394,7 @@ pub enum ExecutionError {
     ListContainersError(String),
     #[error("Container stop error: `{0}`")]
     StopContainerError(String),
-    #[error("Error persisting script: `{0}`")]
+    #[error("Error persisting app: `{0}`")]
     Persistence(#[from] db::Error),
 }
 
@@ -404,7 +402,7 @@ pub enum ExecutionError {
 struct ContainerHandle {
     id: Ulid,
     image_name: Arc<str>,
-    script_name: Option<Arc<str>>,
+    app_name: Option<Arc<str>>,
     stop_sender: oneshot::Sender<bool>,
     #[pin]
     handle: TryMaybeDone<JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>>,
@@ -416,7 +414,7 @@ impl ContainerHandle {
     fn new(
         id: Ulid,
         image_name: Arc<str>,
-        script_name: Option<Arc<str>>,
+        app_name: Option<Arc<str>>,
         stop_sender: oneshot::Sender<bool>,
         handle: JoinHandle<Result<StoppedContainer<'static>, ExecutionError>>,
         bridge_handle: JoinHandle<Result<(), BridgeError>>,
@@ -424,7 +422,7 @@ impl ContainerHandle {
         Self {
             id,
             image_name,
-            script_name,
+            app_name,
             stop_sender,
             handle: try_maybe_done(handle),
             bridge_handle: try_maybe_done(bridge_handle),
@@ -480,7 +478,7 @@ struct ExecutionManager<'a> {
     base_path: PathBuf,
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
-    scripting_client: Option<ScriptingClient>,
+    apps_client: Option<AppsClient>,
 }
 
 impl ExecutionManager<'_> {
@@ -518,26 +516,26 @@ impl ExecutionManager<'_> {
         image: PulledImage<'_>,
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
-        if let Some(scripting_client) = self.scripting_client {
-            let bridge = ScriptingBridge::new(
+        if let Some(apps_client) = self.apps_client {
+            let bridge = ApplicationBridge::new(
                 self.client,
                 self.db_client,
                 self.base_path,
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
-                scripting_client,
+                apps_client,
             )
             .await?;
 
             Self::exec_with_bridge(bridge, image, ports).await
         } else {
-            let bridge = ScriptingBridge::new(
+            let bridge = ApplicationBridge::new(
                 self.client,
                 self.db_client,
                 self.base_path,
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
-                ForbiddenScriptingClient,
+                ForbiddenAppsClient,
             )
             .await?;
 
@@ -546,11 +544,11 @@ impl ExecutionManager<'_> {
     }
 
     async fn exec_with_bridge(
-        bridge: ScriptingBridge<DbClient, impl hyveos_bridge::ScriptingClient>,
+        bridge: ApplicationBridge<DbClient, impl hyveos_bridge::AppsClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
     ) -> Result<ContainerHandle, ExecutionError> {
-        let ScriptingBridge {
+        let ApplicationBridge {
             client,
             cancellation_token,
             ulid,
@@ -560,8 +558,8 @@ impl ExecutionManager<'_> {
 
         let image_name = Arc::from(&*image.image);
 
-        let script_name = image
-            .get_label("industries.p2p.script.name")
+        let app_name = image
+            .get_label("industries.p2p.app.name")
             .await?
             .map(Into::into);
 
@@ -627,7 +625,7 @@ impl ExecutionManager<'_> {
         Ok(ContainerHandle::new(
             ulid,
             image_name,
-            script_name,
+            app_name,
             stop_sender,
             handle,
             bridge_handle,
@@ -636,14 +634,14 @@ impl ExecutionManager<'_> {
 }
 
 #[derive(Clone)]
-pub struct ScriptingClient {
+pub struct AppsClient {
     client: P2PClient,
     container_manager: ContainerManager,
     self_command_sender: mpsc::Sender<SelfCommand>,
     exported_images: Arc<Mutex<HashMap<String, Cid>>>,
 }
 
-impl ScriptingClient {
+impl AppsClient {
     fn new(client: P2PClient, self_command_sender: mpsc::Sender<SelfCommand>) -> Self {
         Self {
             client,
@@ -676,7 +674,7 @@ impl ScriptingClient {
     ) -> Result<(), ExecutionError> {
         if let Some(peer_id) = peer_id {
             self.client
-                .scripting()
+                .apps()
                 .stop_all_containers(peer_id, kill)
                 .await
                 .map_err(ExecutionError::StopContainerError)
@@ -696,7 +694,7 @@ impl ScriptingClient {
     }
 }
 
-impl hyveos_bridge::ScriptingClient for ScriptingClient {
+impl hyveos_bridge::AppsClient for AppsClient {
     type Error = ExecutionError;
 
     async fn deploy_image(
@@ -742,7 +740,7 @@ impl hyveos_bridge::ScriptingClient for ScriptingClient {
 
         let remote_ulid = self
             .client
-            .scripting()
+            .apps()
             .deploy_image(peer_id, cid, Compression::Zstd, ports, persistent)
             .await
             .map_err(ExecutionError::RemoteDeployError)?;
@@ -779,10 +777,10 @@ impl hyveos_bridge::ScriptingClient for ScriptingClient {
     async fn list_containers(
         &self,
         peer_id: Option<PeerId>,
-    ) -> Result<Vec<RunningScript>, ExecutionError> {
+    ) -> Result<Vec<RunningApp>, ExecutionError> {
         if let Some(peer_id) = peer_id {
             self.client
-                .scripting()
+                .apps()
                 .list_containers(peer_id)
                 .await
                 .map_err(ExecutionError::ListContainersError)
@@ -808,7 +806,7 @@ impl hyveos_bridge::ScriptingClient for ScriptingClient {
     ) -> Result<(), ExecutionError> {
         if let Some(peer_id) = peer_id {
             self.client
-                .scripting()
+                .apps()
                 .stop_container(peer_id, container_id)
                 .await
                 .map_err(ExecutionError::StopContainerError)
@@ -831,9 +829,9 @@ impl hyveos_bridge::ScriptingClient for ScriptingClient {
     }
 }
 
-struct ForbiddenScriptingClient;
+struct ForbiddenAppsClient;
 
-impl hyveos_bridge::ScriptingClient for ForbiddenScriptingClient {
+impl hyveos_bridge::AppsClient for ForbiddenAppsClient {
     type Error = String;
 
     async fn deploy_image(
@@ -845,7 +843,7 @@ impl hyveos_bridge::ScriptingClient for ForbiddenScriptingClient {
         _ports: impl IntoIterator<Item = u16> + Send,
         _persistent: bool,
     ) -> Result<Ulid, String> {
-        Err("Scripting is not allowed".to_string())
+        Err("Application management is not allowed".to_string())
     }
 
     async fn self_deploy_image(
@@ -856,14 +854,11 @@ impl hyveos_bridge::ScriptingClient for ForbiddenScriptingClient {
         _ports: impl IntoIterator<Item = u16> + Send,
         _persistent: bool,
     ) -> Result<Ulid, String> {
-        Err("Scripting is not allowed".to_string())
+        Err("Application management is not allowed".to_string())
     }
 
-    async fn list_containers(
-        &self,
-        _peer_id: Option<PeerId>,
-    ) -> Result<Vec<RunningScript>, String> {
-        Err("Scripting is not allowed".to_string())
+    async fn list_containers(&self, _peer_id: Option<PeerId>) -> Result<Vec<RunningApp>, String> {
+        Err("Application management is not allowed".to_string())
     }
 
     async fn stop_container(
@@ -871,6 +866,6 @@ impl hyveos_bridge::ScriptingClient for ForbiddenScriptingClient {
         _container_id: Ulid,
         _peer_id: Option<PeerId>,
     ) -> Result<(), String> {
-        Err("Scripting is not allowed".to_string())
+        Err("Application management is not allowed".to_string())
     }
 }

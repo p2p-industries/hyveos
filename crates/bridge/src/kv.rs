@@ -1,38 +1,36 @@
 use futures::{
     future,
-    stream::{self, StreamExt as _, TryStreamExt as _},
+    stream::{StreamExt as _, TryStreamExt as _},
 };
 use hyveos_core::{
     dht::Key as DhtKey,
-    grpc::{self, dht_server::Dht},
+    grpc::{self, kv_server::Kv},
 };
 use hyveos_p2p_stack::Client;
-use libp2p::kad::{GetProvidersOk, GetRecordOk, Quorum, RecordKey};
+use libp2p::kad::{GetRecordOk, Quorum, RecordKey};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::TonicResult;
 
-fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
+pub(crate) fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
     DhtKey::from(key)
         .into_bytes()
         .map(Into::into)
         .map_err(Into::into)
 }
 
-pub struct DhtServer {
+pub struct KvServer {
     client: Client,
 }
 
-impl DhtServer {
+impl KvServer {
     pub fn new(client: Client) -> Self {
         Self { client }
     }
 }
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
-impl Dht for DhtServer {
-    type GetProvidersStream = ServerStream<grpc::Peer>;
-
+impl Kv for KvServer {
     async fn put_record(&self, request: TonicRequest<grpc::DhtRecord>) -> TonicResult<grpc::Empty> {
         let record = request.into_inner();
 
@@ -87,66 +85,6 @@ impl Dht for DhtServer {
         self.client
             .kad()
             .remove_record(convert_key(key)?)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(TonicResponse::new(grpc::Empty {}))
-    }
-
-    async fn provide(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
-        let key = request.into_inner();
-
-        tracing::debug!(request=?key, "Received provide request");
-
-        self.client
-            .kad()
-            .start_providing(convert_key(key)?)
-            .await
-            .map(|_| TonicResponse::new(grpc::Empty {}))
-            .map_err(|e| Status::internal(e.to_string()))
-    }
-
-    async fn get_providers(
-        &self,
-        request: TonicRequest<grpc::DhtKey>,
-    ) -> TonicResult<Self::GetProvidersStream> {
-        let key = request.into_inner();
-
-        tracing::debug!(request=?key, "Received get_providers request");
-
-        let stream = self
-            .client
-            .kad()
-            .get_providers(convert_key(key)?)
-            .await
-            .map_err(|e| Status::internal(format!("{e:?}")))?
-            .try_filter_map(|providers| {
-                future::ready(Ok(
-                    if let GetProvidersOk::FoundProviders { providers, .. } = providers {
-                        Some(stream::iter(providers).map(Into::into).map(Ok))
-                    } else {
-                        None
-                    },
-                ))
-            })
-            .map_err(|e| Status::internal(e.to_string()))
-            .try_flatten()
-            .boxed();
-
-        Ok(TonicResponse::new(stream))
-    }
-
-    async fn stop_providing(
-        &self,
-        request: TonicRequest<grpc::DhtKey>,
-    ) -> TonicResult<grpc::Empty> {
-        let key = request.into_inner();
-
-        tracing::debug!(request=?key, "Received stop_providing request");
-
-        self.client
-            .kad()
-            .stop_providing(convert_key(key)?)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 

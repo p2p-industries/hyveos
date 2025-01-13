@@ -38,15 +38,15 @@ use crate::{ServerStream, TonicResult, CONTAINER_SHARED_DIR};
 pub struct FileTransferServer {
     client: Client,
     shared_dir_path: PathBuf,
-    running_for_container: bool,
+    is_application_bridge: bool,
 }
 
 impl FileTransferServer {
-    pub fn new(client: Client, shared_dir_path: PathBuf, running_for_container: bool) -> Self {
+    pub fn new(client: Client, shared_dir_path: PathBuf, is_application_bridge: bool) -> Self {
         Self {
             client,
             shared_dir_path,
-            running_for_container,
+            is_application_bridge,
         }
     }
 
@@ -54,13 +54,13 @@ impl FileTransferServer {
         path: PathBuf,
         ulid_string: impl AsRef<Path>,
         shared_dir_path: impl AsRef<Path>,
-        running_for_container: bool,
+        is_application_bridge: bool,
     ) -> std::io::Result<PathBuf> {
         let dest_path = shared_dir_path.as_ref().join(&ulid_string);
 
         tokio::fs::copy(path, &dest_path).await?;
 
-        if running_for_container {
+        if is_application_bridge {
             Ok(PathBuf::from(CONTAINER_SHARED_DIR).join(ulid_string))
         } else {
             Ok(dest_path)
@@ -70,16 +70,16 @@ impl FileTransferServer {
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl FileTransfer for FileTransferServer {
-    type GetFileWithProgressStream = ServerStream<grpc::DownloadEvent>;
+    type GetWithProgressStream = ServerStream<grpc::DownloadEvent>;
 
-    async fn publish_file(&self, request: TonicRequest<grpc::FilePath>) -> TonicResult<grpc::Cid> {
+    async fn publish(&self, request: TonicRequest<grpc::FilePath>) -> TonicResult<grpc::Cid> {
         let file_path = request.into_inner();
 
-        tracing::debug!(request=?file_path, "Received publish_file request");
+        tracing::debug!(request=?file_path, "Received publish request");
 
         let file_path = PathBuf::from(file_path);
 
-        let file_path = if self.running_for_container {
+        let file_path = if self.is_application_bridge {
             self.shared_dir_path
                 .join(file_path.strip_prefix(CONTAINER_SHARED_DIR).map_err(|_| {
                     Status::invalid_argument(concatcp!(
@@ -106,7 +106,7 @@ impl FileTransfer for FileTransferServer {
             .map_err(|e| Status::internal(e.to_string()))
     }
 
-    async fn get_file(&self, request: TonicRequest<grpc::Cid>) -> TonicResult<grpc::FilePath> {
+    async fn get(&self, request: TonicRequest<grpc::Cid>) -> TonicResult<grpc::FilePath> {
         let cid = request.into_inner();
 
         tracing::debug!(request=?cid, "Received get_file request");
@@ -124,7 +124,7 @@ impl FileTransfer for FileTransferServer {
             store_path,
             &ulid_string,
             &self.shared_dir_path,
-            self.running_for_container,
+            self.is_application_bridge,
         )
         .await
         .map_err(|e| Status::internal(e.to_string()))?;
@@ -132,16 +132,16 @@ impl FileTransfer for FileTransferServer {
         Ok(TonicResponse::new(container_file_path.try_into()?))
     }
 
-    async fn get_file_with_progress(
+    async fn get_with_progress(
         &self,
         request: TonicRequest<grpc::Cid>,
-    ) -> TonicResult<Self::GetFileWithProgressStream> {
+    ) -> TonicResult<Self::GetWithProgressStream> {
         let cid = request.into_inner();
 
         tracing::debug!(request=?cid, "Received get_file request");
 
         let shared_dir_path = Arc::new(self.shared_dir_path.clone());
-        let running_for_container = self.running_for_container;
+        let is_application_bridge = self.is_application_bridge;
         let ulid_string = Arc::new(cid.id.ulid.clone());
 
         let stream = self
@@ -160,7 +160,7 @@ impl FileTransfer for FileTransferServer {
                             store_path,
                             ulid_string.as_str(),
                             shared_dir_path.as_path(),
-                            running_for_container,
+                            is_application_bridge,
                         )
                         .await
                         .map_err(|e| Status::internal(e.to_string()))?;
@@ -180,20 +180,20 @@ impl FileTransfer for FileTransferServer {
 
 #[cfg(feature = "network")]
 impl FileTransferServer {
-    pub async fn publish_file_http(
+    pub async fn publish_http(
         State(this): State<Self>,
         extract::Path(file_name): extract::Path<String>,
         request: Request,
     ) -> Json<JsonResult<Cid, ClientError>> {
         let result = this
-            .publish_file_http_impl(file_name, request.into_body().into_data_stream())
+            .publish_http_impl(file_name, request.into_body().into_data_stream())
             .await;
 
         Json(result.into())
     }
 
     #[tracing::instrument(skip(self, stream))]
-    async fn publish_file_http_impl<E>(
+    async fn publish_http_impl<E>(
         &self,
         file_name: String,
         stream: impl Stream<Item = Result<Bytes, E>>,
@@ -237,18 +237,15 @@ impl FileTransferServer {
             .map_err(Into::into)
     }
 
-    pub async fn get_file_http(
-        State(this): State<Self>,
-        Query(cid): Query<Cid>,
-    ) -> impl IntoResponse {
-        this.get_file_http_impl(cid)
+    pub async fn get_http(State(this): State<Self>, Query(cid): Query<Cid>) -> impl IntoResponse {
+        this.get_http_impl(cid)
             .await
             .map(|body| ([(header::CONTENT_TYPE, "application/octet-stream")], body))
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
     }
 
     #[tracing::instrument(skip(self, cid))]
-    async fn get_file_http_impl(&self, cid: Cid) -> Result<Body, ClientError> {
+    async fn get_http_impl(&self, cid: Cid) -> Result<Body, ClientError> {
         let store_path = self.client.file_transfer().get_cid(cid).await?;
 
         let bytes = File::open(store_path).await?;

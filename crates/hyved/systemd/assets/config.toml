@@ -4,6 +4,6 @@
 # db-file = "/tmp/hyved/db"
 # key-file = "/tmp/hyved/keypair"
 # random-directory = true
-# script-management = "deny"
+# application-management = "deny"
 # log-dir = "/tmp/hyved/logs"
 # log-level = "info"

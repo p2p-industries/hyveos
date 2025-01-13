@@ -1,5 +1,5 @@
 use futures::stream::{StreamExt as _, TryStreamExt as _};
-use hyveos_core::grpc::{self, gossip_sub_server::GossipSub};
+use hyveos_core::grpc::{self, pub_sub_server::PubSub};
 use hyveos_p2p_stack::Client;
 use libp2p::gossipsub::IdentTopic;
 use tokio_stream::wrappers::BroadcastStream;
@@ -7,19 +7,19 @@ use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::{ServerStream, TonicResult};
 
-pub struct GossipSubServer {
+pub struct PubSubServer {
     client: Client,
 }
 
-impl GossipSubServer {
+impl PubSubServer {
     pub fn new(client: Client) -> Self {
         Self { client }
     }
 }
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
-impl GossipSub for GossipSubServer {
-    type SubscribeStream = ServerStream<grpc::GossipSubRecvMessage>;
+impl PubSub for PubSubServer {
+    type SubscribeStream = ServerStream<grpc::PubSubRecvMessage>;
 
     async fn subscribe(
         &self,
@@ -49,13 +49,13 @@ impl GossipSub for GossipSubServer {
 
     async fn publish(
         &self,
-        request: TonicRequest<grpc::GossipSubMessage>,
-    ) -> TonicResult<grpc::GossipSubMessageId> {
+        request: TonicRequest<grpc::PubSubMessage>,
+    ) -> TonicResult<grpc::PubSubMessageId> {
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received publish request");
 
-        let grpc::GossipSubMessage {
+        let grpc::PubSubMessage {
             data,
             topic: grpc::Topic { topic },
         } = request;

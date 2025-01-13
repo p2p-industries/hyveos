@@ -1,6 +1,6 @@
 use hyveos_core::{
-    grpc::{self, scripting_server::Scripting},
-    scripting::RunningScript,
+    apps::RunningApp,
+    grpc::{self, apps_server::Apps},
 };
 use libp2p::PeerId;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
@@ -9,7 +9,7 @@ use ulid::Ulid;
 use crate::TonicResult;
 
 #[trait_variant::make(Send)]
-pub trait ScriptingClient: Sync + 'static {
+pub trait AppsClient: Sync + 'static {
     type Error: ToString;
 
     async fn deploy_image(
@@ -34,7 +34,7 @@ pub trait ScriptingClient: Sync + 'static {
     async fn list_containers(
         &self,
         peer_id: Option<PeerId>,
-    ) -> Result<Vec<RunningScript>, Self::Error>;
+    ) -> Result<Vec<RunningApp>, Self::Error>;
 
     async fn stop_container(
         &self,
@@ -43,30 +43,27 @@ pub trait ScriptingClient: Sync + 'static {
     ) -> Result<(), Self::Error>;
 }
 
-pub struct ScriptingServer<C> {
+pub struct AppsServer<C> {
     client: C,
     ulid: Option<Ulid>,
 }
 
-impl<C: ScriptingClient> ScriptingServer<C> {
+impl<C: AppsClient> AppsServer<C> {
     pub fn new(client: C, ulid: Option<Ulid>) -> Self {
         Self { client, ulid }
     }
 }
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
-impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
-    async fn deploy_script(
-        &self,
-        request: TonicRequest<grpc::DeployScriptRequest>,
-    ) -> TonicResult<grpc::Id> {
+impl<C: AppsClient> Apps for AppsServer<C> {
+    async fn deploy(&self, request: TonicRequest<grpc::DeployAppRequest>) -> TonicResult<grpc::Id> {
         let request = request.into_inner();
 
-        tracing::debug!(?request, "Received deploy_script request");
+        tracing::debug!(?request, "Received deploy request");
 
-        let grpc::DeployScriptRequest {
-            script:
-                grpc::DockerScript {
+        let grpc::DeployAppRequest {
+            app:
+                grpc::DockerApp {
                     image: grpc::DockerImage { name },
                     ports,
                 },
@@ -95,13 +92,13 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
         Ok(TonicResponse::new(id.into()))
     }
 
-    async fn list_running_scripts(
+    async fn list_running(
         &self,
-        request: TonicRequest<grpc::ListRunningScriptsRequest>,
-    ) -> TonicResult<grpc::RunningScripts> {
+        request: TonicRequest<grpc::ListRunningAppsRequest>,
+    ) -> TonicResult<grpc::RunningApps> {
         let request = request.into_inner();
 
-        tracing::debug!(?request, "Received list_running_scripts request");
+        tracing::debug!(?request, "Received list_running request");
 
         let peer_id = request.peer.map(TryInto::try_into).transpose()?;
 
@@ -109,22 +106,19 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
             .list_containers(peer_id)
             .await
             .map(|containers| {
-                let scripts = containers.into_iter().map(Into::into).collect();
+                let apps = containers.into_iter().map(Into::into).collect();
 
-                TonicResponse::new(grpc::RunningScripts { scripts })
+                TonicResponse::new(grpc::RunningApps { apps })
             })
             .map_err(|e| Status::internal(e.to_string()))
     }
 
-    async fn stop_script(
-        &self,
-        request: TonicRequest<grpc::StopScriptRequest>,
-    ) -> TonicResult<grpc::Empty> {
+    async fn stop(&self, request: TonicRequest<grpc::StopAppRequest>) -> TonicResult<grpc::Empty> {
         let request = request.into_inner();
 
-        tracing::debug!(?request, "Received stop_script request");
+        tracing::debug!(?request, "Received stop request");
 
-        let grpc::StopScriptRequest { id, peer } = request;
+        let grpc::StopAppRequest { id, peer } = request;
 
         let peer_id = peer.map(TryInto::try_into).transpose()?;
 
@@ -135,10 +129,10 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
             .map_err(|e| Status::internal(e.to_string()))
     }
 
-    async fn get_own_id(&self, _: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Id> {
+    async fn get_own_app_id(&self, _: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Id> {
         self.ulid
             .map(Into::into)
             .map(TonicResponse::new)
-            .ok_or(Status::internal("Can only get ID of scripting bridge"))
+            .ok_or(Status::internal("Can only get ID of application bridge"))
     }
 }

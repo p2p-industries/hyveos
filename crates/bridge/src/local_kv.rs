@@ -1,4 +1,4 @@
-use hyveos_core::grpc::{self, db_server::Db};
+use hyveos_core::grpc::{self, local_kv_server::LocalKv};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
 use crate::TonicResult;
@@ -16,24 +16,27 @@ pub trait DbClient: Sync + 'static {
     async fn get(&self, key: String) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
-pub struct DbServer<C> {
+pub struct LocalKvServer<C> {
     client: C,
 }
 
-impl<C: DbClient> DbServer<C> {
+impl<C: DbClient> LocalKvServer<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
 }
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
-impl<C: DbClient> Db for DbServer<C> {
-    async fn put(&self, request: TonicRequest<grpc::DbRecord>) -> TonicResult<grpc::OptionalData> {
+impl<C: DbClient> LocalKv for LocalKvServer<C> {
+    async fn put(
+        &self,
+        request: TonicRequest<grpc::LocalKvRecord>,
+    ) -> TonicResult<grpc::OptionalData> {
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received put request");
 
-        let grpc::DbRecord { key, value } = request;
+        let grpc::LocalKvRecord { key, value } = request;
 
         let value = self
             .client
@@ -44,12 +47,15 @@ impl<C: DbClient> Db for DbServer<C> {
         Ok(TonicResponse::new(value.into()))
     }
 
-    async fn get(&self, request: TonicRequest<grpc::DbKey>) -> TonicResult<grpc::OptionalData> {
+    async fn get(
+        &self,
+        request: TonicRequest<grpc::LocalKvKey>,
+    ) -> TonicResult<grpc::OptionalData> {
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received get request");
 
-        let grpc::DbKey { key } = request;
+        let grpc::LocalKvKey { key } = request;
 
         let value = self
             .client

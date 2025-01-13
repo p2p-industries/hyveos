@@ -12,7 +12,9 @@ use hyveos_core::DAEMON_NAME;
 use hyveos_ifaddr::if_name_to_index;
 #[cfg(any(feature = "network", feature = "batman"))]
 use hyveos_ifaddr::IfAddr;
-use hyveos_runtime::{CliConnectionType, LogFilter, Runtime, RuntimeArgs, ScriptManagementConfig};
+use hyveos_runtime::{
+    ApplicationManagementConfig, CliConnectionType, LogFilter, Runtime, RuntimeArgs,
+};
 use libp2p::{
     identity::Keypair,
     multiaddr::{Multiaddr, Protocol},
@@ -44,7 +46,7 @@ struct Config {
     #[serde(default)]
     random_directory: bool,
     #[serde(default)]
-    script_management: Option<ScriptManagementConfig>,
+    application_management: Option<ApplicationManagementConfig>,
     #[serde(default)]
     log_dir: Option<PathBuf>,
     #[serde(default)]
@@ -142,9 +144,9 @@ pub struct Opts {
     /// Generate a random subdirectory in `store_directory` to store other runtime data in.
     #[clap(short, long)]
     pub random_directory: bool,
-    /// Whether to enable script management through the CLI or by other scripts.
+    /// Whether to enable application management by other running applications.
     #[clap(long, value_enum)]
-    pub script_management: Option<ScriptManagementConfig>,
+    pub application_management: Option<ApplicationManagementConfig>,
     /// Clean the store directory on startup.
     #[clap(long)]
     pub clean: bool,
@@ -285,7 +287,7 @@ async fn main() -> anyhow::Result<()> {
         db_file,
         key_file,
         random_directory,
-        script_management,
+        application_management,
         clean,
         log_dir,
         log_level,
@@ -302,7 +304,7 @@ async fn main() -> anyhow::Result<()> {
         db_file: config_db_file,
         key_file: config_key_file,
         random_directory: config_random_directory,
-        script_management: config_script_management,
+        application_management: config_application_management,
         log_dir: config_log_dir,
         log_level: config_log_level,
         cli_socket_path: config_cli_socket_path,
@@ -373,8 +375,8 @@ async fn main() -> anyhow::Result<()> {
 
     let random_directory = random_directory || config_random_directory;
 
-    let script_management = script_management
-        .or(config_script_management)
+    let apps_management = application_management
+        .or(config_application_management)
         .unwrap_or_default();
 
     let log_dir = log_dir.or(config_log_dir);
@@ -423,7 +425,7 @@ async fn main() -> anyhow::Result<()> {
         db_file,
         keypair,
         random_directory,
-        script_management,
+        apps_management,
         clean,
         log_dir,
         log_level,
