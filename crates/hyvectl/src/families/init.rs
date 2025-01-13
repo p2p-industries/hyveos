@@ -5,7 +5,7 @@ use std::{
 
 use colored::Colorize;
 use default_net::{get_interfaces, interface::InterfaceType, Interface};
-use dialoguer::{console::Term, Select};
+use dialoguer::{console::Term, Confirm, Select};
 use futures::future::join_all;
 use hyvectl_commands::families::init::Init;
 use hyveos_config::Config;
@@ -180,10 +180,17 @@ pub async fn init(_: Init) -> HyveCtlResult<CommandOutput> {
         None => Err(Error::NoWirelessInterface)?,
     };
 
+    let telemetry = Confirm::new()
+        .with_prompt("Do you want to enable telemetry?")
+        .default(true)
+        .interact_on(&Term::stderr())
+        .map_err(Error::Dialoguer)?;
+
     let config = Config {
         interfaces: Some(vec![wifi_interface.clone(), "bat0".to_string()]),
         wifi_interface: Some(wifi_interface.clone()),
         batman_interface: Some("bat0".to_string()),
+        telemetry,
         ..Default::default()
     };
 
