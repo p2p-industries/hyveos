@@ -6,6 +6,7 @@ Portions of this software are licensed as follows:
 * All content that resides under https://github.com/p2p-industries/hyveos/tree/main/sdks/rust directory of this repository is licensed under the license defined in "sdks/rust/LICENSE.md".
 * All content that resides under https://github.com/p2p-industries/hyveos/tree/main/sdks/typescript directory of this repository is licensed under the license defined in "sdks/typescript/LICENSE.md"
 * All content that resides under https://github.com/p2p-industries/hyveos/tree/main/crates/core directory of this repository is licensed under the license defined in "crates/core/LICENSE.md".
+* All content that resides under https://github.com/p2p-industries/hyveos/tree/main/crates/ifaddr directory of this repository is licensed under the license defined in "crates/ifaddr/LICENSE.md".
 * All third party components incorporated into the P2P Industries Inc. Software are licensed under the original license provided by the owner of the applicable component.
 * Content outside of the above mentioned directories or restrictions above is available under the "GNU General Public License - Version 3" license as defined below.
 
