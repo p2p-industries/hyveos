@@ -215,6 +215,7 @@ async fn main() -> anyhow::Result<()> {
         cli_socket_path: config_cli_socket_path,
         #[cfg(feature = "network")]
             cli_socket_addr: config_cli_socket_addr,
+        telemetry,
         ..
     } = Config::load(config_file)?;
 
@@ -336,6 +337,7 @@ async fn main() -> anyhow::Result<()> {
         log_dir,
         log_level,
         cli_connection,
+        telemetry,
     };
 
     Runtime::new(args).await?.run().await

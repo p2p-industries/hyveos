@@ -35,6 +35,12 @@ pub struct Config {
     #[cfg(feature = "network")]
     #[serde(default, deserialize_with = "deserialize_socket_addr")]
     pub cli_socket_addr: Option<SocketAddr>,
+    #[serde(default = "toml_default_true")]
+    pub telemetry: bool,
+}
+
+fn toml_default_true() -> bool {
+    true
 }
 
 impl Config {
