@@ -44,17 +44,19 @@ impl Config {
                 .map(|s| toml::from_str(&s))?
                 .map_err(Into::into)
         } else {
-            let base_path = Path::new("/etc");
+            let base_paths = [Path::new("/etc"), Path::new("/usr/lib")];
 
-            let path = base_path.join(DAEMON_NAME).join("config.toml");
-            match std::fs::read_to_string(&path) {
-                Ok(s) => {
-                    let config = toml::from_str(&s)?;
-                    tracing::debug!("Loaded config file from {}", path.display());
-                    return Ok(config);
-                }
-                Err(_) => {
-                    tracing::info!("Failed to load config file from {}", path.display());
+            for base_path in &base_paths {
+                let path = base_path.join(DAEMON_NAME).join("config.toml");
+                match std::fs::read_to_string(&path) {
+                    Ok(s) => {
+                        let config = toml::from_str(&s)?;
+                        tracing::debug!("Loaded config file from {}", path.display());
+                        return Ok(config);
+                    }
+                    Err(_) => {
+                        tracing::info!("Failed to load config file from {}", path.display());
+                    }
                 }
             }
 
@@ -67,14 +69,12 @@ impl Config {
             let s = toml::to_string(self)?;
             std::fs::write(path, s)?
         } else {
-            let base_paths = [Path::new("/etc"), Path::new("/usr/lib")];
+            let base_path = Path::new("/etc");
 
-            for base_path in &base_paths {
-                let path = base_path.join(DAEMON_NAME).join("config.toml");
-                let s = toml::to_string(self)?;
-                std::fs::write(&path, s)?;
-                tracing::debug!("Saved config file to {}", path.display());
-            }
+            let path = base_path.join(DAEMON_NAME).join("config.toml");
+            let s = toml::to_string(self)?;
+            std::fs::write(&path, s)?;
+            tracing::debug!("Saved config file to {}", path.display());
         }
         Ok(())
     }
