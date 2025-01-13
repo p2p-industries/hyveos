@@ -5,7 +5,7 @@ on:
   push:
     branches: ["main"]
     tags:
-      - "v*"
+      - "v*-python"
   pull_request:
     branches: ["main"]
 
