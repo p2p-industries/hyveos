@@ -57,7 +57,7 @@ impl CommandFamily for ReqRes {
                     };
 
                     yield output
-                        .with_tty_template("🗨 {response}")
+                        .with_tty_template("🗨  {response}")
                         .with_non_tty_template("{response}")
                 }
             }
