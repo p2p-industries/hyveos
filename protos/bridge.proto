@@ -252,7 +252,7 @@ service ReqResp {
 service Neighbours {
   // Subscribe to neighbour discovery events to get notified when new neighbour
   // peers are discovered or lost
-  rpc SubscribeEvents(Empty) returns (stream NeighbourEvent) {}
+  rpc Subscribe(Empty) returns (stream NeighbourEvent) {}
 }
 
 service PubSub {
@@ -306,14 +306,14 @@ service LocalKV {
 
 service FileTransfer {
   // Publish a file in the runtime and get the cid of the file
-  rpc PublishFile(FilePath) returns (CID) {}
+  rpc Publish(FilePath) returns (CID) {}
 
   // Request a file with a cid from the runtime
-  rpc GetFile(CID) returns (FilePath) {}
+  rpc Get(CID) returns (FilePath) {}
 
   // Request a file with a cid from the runtime and get notified about the
   // download progress
-  rpc GetFileWithProgress(CID) returns (stream DownloadEvent) {}
+  rpc GetWithProgress(CID) returns (stream DownloadEvent) {}
 }
 
 service Debug {
@@ -327,13 +327,13 @@ service Debug {
 
 service Apps {
   // Deploy an app to a peer and get the id of the deployed app
-  rpc DeployApp(DeployAppRequest) returns (ID) {}
+  rpc Deploy(DeployAppRequest) returns (ID) {}
 
   // List running apps on a peer
-  rpc ListRunningApps(ListRunningAppsRequest) returns (RunningApps) {}
+  rpc ListRunning(ListRunningAppsRequest) returns (RunningApps) {}
 
   // Stop a running app on a peer
-  rpc StopApp(StopAppRequest) returns (Empty) {}
+  rpc Stop(StopAppRequest) returns (Empty) {}
 
   // Get the id of the current app
   rpc GetOwnAppId(Empty) returns (ID) {}
