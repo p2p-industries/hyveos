@@ -15,7 +15,7 @@ hyveos-core = { workspace = true }
 hyveos-ifaddr = { workspace = true, optional = true }
 pin-project = { workspace = true }
 prost = { workspace = true }
-reqwest = { version = "0.12.12", default-features = false, features = [
+reqwest = { workspace = true, default-features = false, features = [
     "charset",
     "http2",
     "json",

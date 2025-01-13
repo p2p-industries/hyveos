@@ -6,7 +6,7 @@ use libp2p::PeerId;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 use ulid::Ulid;
 
-use crate::TonicResult;
+use crate::{Telemetry, TonicResult};
 
 #[trait_variant::make(Send)]
 pub trait ScriptingClient: Sync + 'static {
@@ -46,11 +46,16 @@ pub trait ScriptingClient: Sync + 'static {
 pub struct ScriptingServer<C> {
     client: C,
     ulid: Option<Ulid>,
+    telemetry: Telemetry,
 }
 
 impl<C: ScriptingClient> ScriptingServer<C> {
-    pub fn new(client: C, ulid: Option<Ulid>) -> Self {
-        Self { client, ulid }
+    pub fn new(client: C, ulid: Option<Ulid>, telemetry: Telemetry) -> Self {
+        Self {
+            client,
+            ulid,
+            telemetry,
+        }
     }
 }
 
@@ -60,6 +65,7 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
         &self,
         request: TonicRequest<grpc::DeployScriptRequest>,
     ) -> TonicResult<grpc::Id> {
+        self.telemetry.track("scripting.deploy_script");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received deploy_script request");
@@ -99,6 +105,7 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
         &self,
         request: TonicRequest<grpc::ListRunningScriptsRequest>,
     ) -> TonicResult<grpc::RunningScripts> {
+        self.telemetry.track("scripting.list_running_scripts");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received list_running_scripts request");
@@ -120,6 +127,7 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
         &self,
         request: TonicRequest<grpc::StopScriptRequest>,
     ) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("scripting.stop_script");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received stop_script request");
@@ -136,6 +144,7 @@ impl<C: ScriptingClient> Scripting for ScriptingServer<C> {
     }
 
     async fn get_own_id(&self, _: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Id> {
+        self.telemetry.track("scripting.get_own_id");
         self.ulid
             .map(Into::into)
             .map(TonicResponse::new)
