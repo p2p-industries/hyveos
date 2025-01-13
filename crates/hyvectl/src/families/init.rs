@@ -179,17 +179,11 @@ pub async fn init(_: Init) -> HyveCtlResult<CommandOutput> {
         }
         None => Err(Error::NoWirelessInterface)?,
     };
-    let batman_interface = dialoguer::Input::new()
-        .with_prompt("Enter the name for the batman interface")
-        .default("bat0".to_string())
-        .with_initial_text("bat0")
-        .interact_on(&Term::stderr())
-        .map_err(Error::Dialoguer)?;
 
     let config = Config {
-        interfaces: Some(vec![wifi_interface.clone(), batman_interface.clone()]),
+        interfaces: Some(vec![wifi_interface.clone(), "bat0".to_string()]),
         wifi_interface: Some(wifi_interface.clone()),
-        batman_interface: Some(batman_interface.clone()),
+        batman_interface: Some("bat0".to_string()),
         ..Default::default()
     };
 
@@ -197,5 +191,5 @@ pub async fn init(_: Init) -> HyveCtlResult<CommandOutput> {
 
     Ok(CommandOutput::result()
         .with_field("wifi_interface", wifi_interface)
-        .with_field("batman_interface", batman_interface))
+        .with_field("batman_interface", "bat0".to_string()))
 }
