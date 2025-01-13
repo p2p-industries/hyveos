@@ -12,12 +12,12 @@ use futures::{future, FutureExt as _, TryFutureExt as _};
 #[cfg(feature = "network")]
 use hyveos_bridge::NetworkBridge;
 use hyveos_bridge::{Bridge, ScriptingClient as _, Telemetry};
+use hyveos_config::{LogFilter, ScriptManagementConfig};
 use hyveos_core::{get_runtime_base_path, gossipsub::ReceivedMessage};
 #[cfg(feature = "batman")]
 use hyveos_p2p_stack::DebugClient;
 use hyveos_p2p_stack::{Client as P2PClient, FullActor};
 use libp2p::{self, gossipsub::IdentTopic, identity::Keypair, Multiaddr};
-pub use scripting::ScriptManagementConfig;
 use tokio::task::{AbortHandle, JoinHandle};
 use tokio_util::sync::CancellationToken;
 use tracing::level_filters::LevelFilter;
@@ -33,32 +33,6 @@ use crate::{
 mod db;
 mod future_map;
 mod scripting;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
-#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum LogFilter {
-    None,
-    Error,
-    Warn,
-    #[default]
-    Info,
-    Debug,
-    Trace,
-}
-
-impl From<LogFilter> for LevelFilter {
-    fn from(value: LogFilter) -> Self {
-        match value {
-            LogFilter::None => Self::OFF,
-            LogFilter::Error => Self::ERROR,
-            LogFilter::Warn => Self::WARN,
-            LogFilter::Info => Self::INFO,
-            LogFilter::Debug => Self::DEBUG,
-            LogFilter::Trace => Self::TRACE,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum CliConnectionType {

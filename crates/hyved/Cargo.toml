@@ -13,6 +13,7 @@ clap = { workspace = true }
 dirs = "5.0.1"
 futures = { workspace = true }
 hyveos-core = { workspace = true }
+hyveos-config = { workspace = true }
 hyveos-ifaddr = { workspace = true }
 hyveos-ifwatcher = { workspace = true, optional = true }
 libp2p = { workspace = true, features = ["identify"] }
@@ -24,9 +25,9 @@ toml = "0.8.13"
 tracing = { workspace = true }
 
 [features]
-batman = ["hyveos-runtime/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
+batman = ["hyveos-runtime/batman", "hyveos-config/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
 console-subscriber = ["hyveos-runtime/console-subscriber"]
-network = ["hyveos-runtime/network"]
+network = ["hyveos-runtime/network", "hyveos-config/network"]
 mdns = ["hyveos-runtime/mdns"]
 
 [package.metadata.deb]
@@ -51,8 +52,8 @@ assets = [
         "644",
     ],
     [
-        "systemd/assets/wpa_supplicant-wlan0.conf",
-        "/etc/wpa_supplicant/",
+        "systemd/assets/wpa_supplicant-generic.conf",
+        "/usr/lib/hyved/",
         "600",
     ],
 ]
@@ -61,4 +62,6 @@ features = ["batman", "network"]
 systemd-units = [
     { unit-name = "hyved", enable = false },
     { unit-name = "hyveos-batman", enable = true },
+    { unit-name = "hyveos-dhcp-client", enable = true },
+    { unit-name = "hyveos-gateway", enable = true }
 ]

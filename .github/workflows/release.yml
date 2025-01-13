@@ -71,6 +71,7 @@ jobs:
       - get-latest-release-number
     env:
       GH_TOKEN: ${{ github.token }}
+      POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
