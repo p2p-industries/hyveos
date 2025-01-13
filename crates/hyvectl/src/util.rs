@@ -1,8 +1,7 @@
+use futures::stream::BoxStream;
 use hyveos_sdk::Connection;
 
-use crate::error::HyveCtlResult;
-use crate::out::CommandOutput;
-use futures::stream::BoxStream;
+use crate::{error::HyveCtlResult, out::CommandOutput};
 
 pub trait CommandFamily {
     async fn run(self, connection: &Connection)
@@ -12,6 +11,8 @@ pub trait CommandFamily {
 #[macro_export]
 macro_rules! boxed_try_stream {
     ($($body:tt)*) => {
-        async_stream::try_stream!{ $($body)* }.boxed()
+        ::futures::stream::StreamExt::boxed(
+            ::async_stream::try_stream!{ $($body)* }
+        )
     }
 }

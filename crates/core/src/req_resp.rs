@@ -170,8 +170,10 @@ impl From<Response> for grpc::Response {
     }
 }
 
-impl From<Response> for Result<Vec<u8>, ResponseError> {
-    fn from(response: Response) -> Self {
+impl TryFrom<Response> for Vec<u8> {
+    type Error = ResponseError;
+
+    fn try_from(response: Response) -> Result<Self, Self::Error> {
         match response {
             Response::Data(data) => Ok(data),
             Response::Error(e) => Err(e),
