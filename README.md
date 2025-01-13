@@ -1,13 +1,29 @@
 # ![P2P Industries Logo](logo.png)
 [![Rust](https://github.com/p2p-industries/hyveos/actions/workflows/rust.yml/badge.svg)](https://github.com/p2p-industries/hyveos/actions/workflows/rust.yml)
 
-## P2P Industries builds the first decentralized robot communication system
+## hyveOS is the first decentralized robot orchestration system
 
-# [Documentation](https://docs.p2p.industries)
+hyveOS is an end-to-end decentralization engine that allows for multi-device orchestration without external infrastructure.
 
-## Installation
+hyveOS unifies mesh networking with a higher-level P2P networking stack, cutting both the need for connectivity infrastructure, like WiFi-Routers or mobile plans, and the need for orchestration servers, like dedicated MQTT brokers or remote ROS endpoints.
 
-### Debian/Ubuntu
+
+It aims to abstract away all networking issues that previously were hard to tackle when trying to set up and run applications involving multiple machines or robots.
+
+
+hyveOS comes with a set of high-level data-transfer services, like request-response, pub-sub, key-value store, which are all fully decentralized under-the-hood and are exposed via multi-language SDKs and a dedicated CLI.
+
+## [Documentation](https://docs.p2p.industries)
+
+## Installation - Debian/Ubuntu
+
+### By installer script
+
+```shell
+bash <(curl -ssL https://install.p2p.industries)
+```
+
+### Manual install
 
 Add the P2P Industries APT repo and install the prerequisites (B.A.T.M.A.N.-adv and docker):
 
