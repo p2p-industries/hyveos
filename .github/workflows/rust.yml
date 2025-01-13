@@ -252,6 +252,6 @@ jobs:
           echo "crate_name=${CRATE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Publish to crates.io
-        run: cargo publish -p ${{ steps.parse_crate.outputs.crate_name }} --dry-run
+        run: cargo publish -p ${{ steps.parse_crate.outputs.crate_name }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
