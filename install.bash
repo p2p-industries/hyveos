@@ -245,7 +245,6 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	echo -e "${GREEN}Configuring Wi-Fi interface${RESET}"
 	# Example: 'hyvectl init --json' => {"wifi_interface":"wlan0",...}
 	OUTPUT=$(sudo hyvectl --json init)
-	echo $OUTPUT | jq -r .
 	wifi_interface=$(echo "$OUTPUT" | jq -r '.wifi_interface')
 
 	echo "Detected Wi-Fi interface: $wifi_interface"
