@@ -1,5 +1,5 @@
 [Unit]
-Description=HyveOS DHCP Client (%i)
+Description=hyveOS DHCP Client (%i)
 Requires=hyveos-batman@%i.service
 After=hyveos-batman@%i.service
 ConditionPathExists=/etc/hyved/dhcp-client

@@ -1,40 +1,38 @@
 #!/usr/bin/env bash
 
-# Set color to green
+###############################################################################
+# COLORS
+###############################################################################
 GREEN="\033[0;32m"
-
-# Set color to red
 RED="\033[0;31m"
-
-# Set color to yellow
-
 YELLOW="\033[0;33m"
-
-# Reset color
-
 RESET="\033[0m"
 
+###############################################################################
+# INTERRUPT HANDLER
+###############################################################################
 int_handler() {
-	echo -e "\n${YELLOW}Interrupted.${RESET}"
-	# Kill the parent process of the script.
-	kill $PPID
+	echo -e "\n${YELLOW}Interrupted. Exiting.${RESET}"
+	# Just exit rather than killing the parent process to be less destructive.
 	exit 1
 }
 trap 'int_handler' INT
 
+###############################################################################
+# WELCOME
+###############################################################################
 echo -e "${GREEN}Welcome to hyveOS the installation script!${RESET}"
 
+###############################################################################
+# CONTINUE INSTALLATION FUNCTION
+###############################################################################
 function continue_installation() {
-	# Default is yes and if the users presses enter, it will continue with the installation.
+	# Default is yes; if the user presses enter, it continues.
 	read -p "Continue (Y/n)? " -n 1 -r
-
 	echo
 
-	# If the user presses enter, it will continue with the installation.
-
-	if [[ -z "$REPLY" ]]; then
-		echo -e "${GREEN}Continuing installation${RESET}"
-	elif [[ "$REPLY" =~ ^[Yy]$ ]]; then
+	# If empty or Y/y, continue
+	if [[ -z "$REPLY" || "$REPLY" =~ ^[Yy]$ ]]; then
 		echo -e "${GREEN}Continuing installation${RESET}"
 	else
 		echo -e "${RED}Exiting installation${RESET}"
@@ -42,365 +40,345 @@ function continue_installation() {
 	fi
 }
 
-# Detect the OS (Linux or MacOS)
-
+###############################################################################
+# OS CHECK
+###############################################################################
 if [[ "$(uname)" == "Darwin" ]]; then
 	echo -e "${RED}This script is not supported on MacOS${RESET}"
 	exit 1
-fi
-
-if [[ "$(uname)" == "Linux" ]]; then
+elif [[ "$(uname)" == "Linux" ]]; then
 	echo -e "${GREEN}Linux detected${RESET}"
 else
 	echo -e "${RED}Unsupported OS${RESET}"
 	echo -e "${RED}Proceed at your own risk?${RESET}"
-
 	continue_installation
 fi
 
-# Check if distro is Ubuntu or Raspberry Pi OS (Raspbian)
-
+###############################################################################
+# DISTRO CHECK (Ubuntu, Debian, Raspberry Pi OS)
+###############################################################################
 if [ -f /etc/os-release ]; then
 	. /etc/os-release
 	OS=$NAME
 	VER=$VERSION_ID
 
-	if [[ "$OS" == "Raspbian GNU/Linux" ]]; then
-		echo -e "${GREEN}Raspberry Pi OS detected${RESET}"
-	elif [[ "$OS" == "Ubuntu" ]]; then
+	case "$OS" in
+	"Ubuntu")
 		echo -e "${GREEN}Ubuntu detected${RESET}"
-
-		# Check if version is 22.04 or 24.04
 		if [[ "$VER" == "22.04" ]]; then
 			echo -e "${GREEN}Ubuntu 22.04 detected${RESET}"
 		elif [[ "$VER" == "24.04" ]]; then
 			echo -e "${GREEN}Ubuntu 24.04 detected${RESET}"
 		else
-			echo -e "${RED}Unsupported Ubuntu version${RESET}"
+			echo -e "${RED}Unsupported Ubuntu version ($VER)${RESET}"
 			echo -e "${RED}Proceed at your own risk?${RESET}"
-
 			continue_installation
 		fi
-
-	else
-		echo "${RED}Unsupported OS${RESET}"
-		echo "${RED}Proceed at your own risk?${RESET}"
-
+		;;
+	"Debian GNU/Linux")
+		echo -e "${GREEN}Debian detected (Version: $VER)${RESET}"
+		# You could optionally check if $VER -ge 11 (Bullseye), etc.
+		# For now we just proceed.
+		;;
+	"Raspbian GNU/Linux" | "Raspberry Pi OS")
+		echo -e "${GREEN}Raspberry Pi OS / Raspbian detected${RESET}"
+		;;
+	*)
+		echo -e "${RED}Unsupported distro: $OS${RESET}"
+		echo -e "${RED}Proceed at your own risk?${RESET}"
 		continue_installation
-	fi
+		;;
+	esac
 else
-	echo -e "${RED}Unsupported OS${RESET}"
+	echo -e "${RED}No /etc/os-release found, can't determine OS${RESET}"
 	echo -e "${RED}Proceed at your own risk?${RESET}"
-
 	continue_installation
 fi
 
-# Check if architecture is aarch64 or x86_64
-
+###############################################################################
+# ARCH CHECK
+###############################################################################
 ARCH=$(uname -m)
-
 if [[ "$ARCH" == "aarch64" ]]; then
-	echo -e "${GREEN}ARM64 detected${RESET}"
+	echo -e "${GREEN}ARM64 (aarch64) detected${RESET}"
 elif [[ "$ARCH" == "x86_64" ]]; then
 	echo -e "${GREEN}x86_64 detected${RESET}"
 else
-	echo -e "${RED}Unsupported architecture${RESET}"
-	echo -e "${YELLOW}Supported architectures are aarch64 and x86_64${RESET}"
+	echo -e "${RED}Unsupported architecture: $ARCH${RESET}"
+	echo -e "${YELLOW}Supported architectures: aarch64, x86_64${RESET}"
 	echo -e "${RED}Proceed at your own risk?${RESET}"
-
 	continue_installation
 fi
 
-# Install dependencies
-
-read -p "Do you want to install dependencies for this script (wget, curl, gpg, jq)? (y/n) " -n 1 -r
-
+###############################################################################
+# INSTALL DEPENDENCIES
+###############################################################################
+read -p "Install dependencies (wget, curl, gpg, jq)? (y/n) " -n 1 -r
 echo
-
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	echo -e "${GREEN}Installing dependencies${RESET}"
-	sudo apt update
-	sudo apt install wget curl gpg jq
+	sudo apt update -y
+	sudo apt install -y wget curl gpg jq
 else
-	echo -e "${RED}This installation script will not run properly without these dependencies${RESET}"
-	echo -e "${RED}Please install hyveOS manually instead${RESET}"
+	echo -e "${RED}This script may not run properly without these dependencies.${RESET}"
+	echo -e "${RED}Please install hyveOS manually instead.${RESET}"
 	exit 1
 fi
 
-# Check if docker is installed (docker --version)
-#
-
+###############################################################################
+# CHECK DOCKER
+###############################################################################
 if docker --version &>/dev/null; then
-	echo -e "${GREEN}Docker is already installed and running${RESET}"
+	echo -e "${GREEN}Docker is already installed${RESET}"
 else
-	# Install Docker
-
-	# Prompt the user on how to install docker.
-	# 1. Install Docker themselves (manual) (recommended). If the user chooses that open: https://docs.docker.com/engine/install/
-	# 2. Install Docker using the script (automatic) (not recommended). If the user chooses that, run the script below.
-	# https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script
-	# curl -sSL https://get.docker.com | sh
-	# 3. Exit the installation.
-
 	echo -e "${RED}Docker is not installed${RESET}"
-	echo -e "${YELLOW}You have three options:${RESET}"
-	echo -e "${YELLOW}1. Install Docker yourself (link with documentation will be provided)${RESET}"
-	echo -e "${YELLOW}2. Install Docker using docker convenience script. (easy + potentially unsafe)${RESET}"
-	echo -e "${YELLOW}3. Exit the installation${RESET}"
+	echo -e "${YELLOW}Options:${RESET}"
+	echo -e "1) Install Docker yourself (recommended)."
+	echo -e "2) Install Docker using convenience script (easier, less secure)."
+	echo -e "3) Exit installation."
 
 	read -p "Choose an option (1/2/3): " -n 1 -r
 	echo
 
-	if [[ "$REPLY" == "1" ]]; then
-		echo -e "${YELLOW}Please install Docker manually by visiting the following link: https://docs.docker.com/engine/install/${RESET}"
-		# Open the link in the browser but first check if xdg-open is installed
-
+	case "$REPLY" in
+	"1")
+		echo -e "${YELLOW}Please install Docker manually via:${RESET}"
+		echo -e "  https://docs.docker.com/engine/install/"
 		if [[ -x "$(command -v xdg-open)" ]]; then
 			xdg-open https://docs.docker.com/engine/install/
-		else
-			echo -e "${YELLOW}Please visit the following link to install Docker: https://docs.docker.com/engine/install/${RESET}"
 		fi
-
-		echo -e "Return to the terminal after installing Docker"
-		read -p "Press enter key to continue"
-	elif [[ "$REPLY" == "2" ]]; then
-		echo -e "${YELLOW}Installing Docker using the convenience script${RESET}"
-		curl -sSL https://get.docker.com | sh || (echo -e "${RED}Error encountered while installing Docker${RESET}" && exit 1)
-		echo "${GREEN}Docker installed successfully${RESET}"
-	elif [[ "$REPLY" == "3" ]]; then
+		echo "After installing Docker, press ENTER to continue."
+		read
+		;;
+	"2")
+		echo -e "${YELLOW}Installing Docker using convenience script${RESET}"
+		curl -sSL https://get.docker.com | sh ||
+			(echo -e "${RED}Error installing Docker${RESET}" && exit 1)
+		echo -e "${GREEN}Docker installed successfully${RESET}"
+		;;
+	*)
 		echo -e "${RED}Exiting installation${RESET}"
 		exit 1
-	else
-		echo -e "${RED}Invalid option${RESET}"
-		echo -e "${RED}Exiting installation${RESET}"
-		exit 1
-	fi
+		;;
+	esac
 fi
 
-read -p "Do you want to install mesh support? (y/n) " -n 1 -r
+###############################################################################
+# MESH SUPPORT (BATMAN-ADV)
+###############################################################################
+read -p "Do you want to install mesh support (batctl, batman-adv)? (y/n) " -n 1 -r
 echo
-
+MESH_SUPPORT=false
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-	MESH_SUPPORT=false
-	echo -e "${GREEN}Installing mesh support${RESET}"
+	echo -e "${GREEN}Installing mesh support (batctl, batman-adv)${RESET}"
 
-	# Check if batctl is installed (batctl --version)
-
-	if [[ -x "$(command -v batctl)" ]]; then
-		echo -e "${GREEN}Batctl is already installed${RESET}"
-	else
-		# Install batctl
-
+	# Install batctl if missing
+	if ! command -v batctl &>/dev/null; then
+		sudo apt update -y
 		sudo apt install -y batctl
+	else
+		echo -e "${GREEN}batctl is already installed${RESET}"
 	fi
 
-	# Check if batman-adv is installed (modinfo batman-adv)
-
-	if [[ -x "$(command -v modinfo)" ]]; then
-		if modinfo batman-adv &>/dev/null; then
-			echo -e "${GREEN}Batman-adv is already installed${RESET}"
-			MESH_SUPPORT=true
-		else
-			# Install batman-adv
-			echo -e "${YELLOW}The batman-adv kernel module is not installed. Very often it can be installed by installing the extra linux kernel packages.${RESET}"
-			read -p "Do you want to install the batman-adv kernel module? (y/n) via linux-modules-extra-$(uname -r) " -n 1 -r
-			if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-				sudo apt install linux-modules-extra-$(uname -r)
-
-				if modinfo batman-adv &>/dev/null; then
-					echo -e "${GREEN}Batman-adv installed successfully${RESET}"
-					MESH_SUPPORT=true
-
-				else
-					echo -e "${RED}Failed to install batman-adv${RESET}"
-					echo -e "${RED}Proceeding without mesh support${RESET}"
-				fi
-			fi
-		fi
-
-		# If mesh support is enabled (MESH_SUPPORT=true), activate the batman-adv kernel module
-
-		if [[ "$MESH_SUPPORT" == true ]]; then
-			# Check if batman-adv is loaded (lsmod | grep batman-adv)
-
-			if lsmod | grep batman-adv &>/dev/null; then
-				echo -e "${GREEN}Batman-adv is already loaded${RESET}"
+	# Check if batman-adv kernel module is available
+	if ! modinfo batman-adv &>/dev/null; then
+		echo -e "${YELLOW}batman-adv kernel module not found.${RESET}"
+		echo -e "${YELLOW}Often installed via 'linux-modules-extra-$(uname -r)'.${RESET}"
+		read -p "Install it now? (y/n) " -n 1 -r
+		echo
+		if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+			sudo apt update -y
+			sudo apt install -y "linux-modules-extra-$(uname -r)"
+			if modinfo batman-adv &>/dev/null; then
+				echo -e "${GREEN}batman-adv installed successfully${RESET}"
+				MESH_SUPPORT=true
 			else
-				# Load batman-adv
-
-				sudo modprobe batman-adv
-
-				# Also load batman-adv at boot
-
-				echo -e "${GREEN}Enabling batman-adv to run at boot${RESET}"
-				sudo sh -c "echo batman-adv >> /etc/modules"
+				echo -e "${RED}Failed to install batman-adv${RESET}"
+				echo -e "${RED}Proceeding without mesh support${RESET}"
 			fi
 		fi
 	else
-		echo -e "${RED}modinfo is not installed${RESET}"
-		exit 1
+		echo -e "${GREEN}Batman-adv kernel module is already present${RESET}"
+		MESH_SUPPORT=true
+	fi
+
+	# If batman-adv is available, ensure it's loaded
+	if [[ "$MESH_SUPPORT" == true ]]; then
+		if ! lsmod | grep -q batman_adv; then
+			sudo modprobe batman-adv
+			echo -e "${GREEN}Loaded batman-adv kernel module${RESET}"
+			echo -e "${GREEN}Ensuring batman-adv loads at boot${RESET}"
+			sudo sh -c "echo batman-adv >> /etc/modules"
+		else
+			echo -e "${GREEN}Batman-adv is already loaded${RESET}"
+		fi
 	fi
 else
 	echo -e "${RED}Skipping mesh support${RESET}"
 fi
 
-# Checking if hyved is installed
-
-if [[ -x "$(command -v hyved)" ]]; then
+###############################################################################
+# CHECK IF HYVED IS INSTALLED
+###############################################################################
+if command -v hyved &>/dev/null; then
 	echo -e "${GREEN}Hyved is already installed${RESET}"
 else
 	echo -e "${RED}Hyved is not installed${RESET}"
-	echo -e "${YELLOW}Installing it now ${RESET}"
-	echo "${GREEN}Adding our GPG key${RESET}"
+	echo -e "${YELLOW}Installing Hyved now${RESET}"
+	echo -e "${GREEN}Adding GPG key for p2p.industries${RESET}"
+
 	echo "deb https://apt.p2p.industries /" | sudo tee /etc/apt/sources.list.d/p2p-industries.list
 	wget -qO - https://apt.p2p.industries/key.gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/p2p-industries.gpg
-	sudo apt update
-	sudo apt install hyved
+	sudo apt update -y
+	sudo apt install -y hyved
 fi
 
-echo -e "${RED}WARNING: If you choose yes in the following step, the wifi interface over which you might be connected will change its config and you won't be able to connect to it conventionally anymore. Please make sure you are connected via an alternative interface or ok with losing access. You can still access the computer with an attached monitor and keyboard or via other devices in the network.${RESET}"
-read -p "Do you want to configure the interfaces now? (y/n) " -n 1 -r
+###############################################################################
+# OPTIONAL: CONFIGURE WIFI INTERFACE
+###############################################################################
+echo -e "${RED}WARNING:${RESET} Configuring a Wi-Fi interface can break your connection if you're using it right now."
+echo -e "Make sure you have another connection method or are OK with losing access."
 
+read -p "Do you want to configure the Wi-Fi interface now? (y/n) " -n 1 -r
 echo
-
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-	echo -e "${GREEN}Configuring interfaces${RESET}"
-	output=$(hyvectl init --json)
-	wifi_interface=$(echo $output | jq -r '.wifi_interface')
+	echo -e "${GREEN}Configuring Wi-Fi interface${RESET}"
+	# Example: 'hyvectl init --json' => {"wifi_interface":"wlan0",...}
+	OUTPUT=$(sudo ./hyvectl --json init)
+	echo $OUTPUT | jq -r .
+	wifi_interface=$(echo "$OUTPUT" | jq -r '.wifi_interface')
 
-	echo "Configuring interface $wifi_interface"
-
-	# Check if the given interface directory exists under /sys/class/net
+	echo "Detected Wi-Fi interface: $wifi_interface"
 	if [ ! -d "/sys/class/net/$wifi_interface" ]; then
-		echo "Interface $wifi_interface does not exist."
+		echo -e "${RED}Interface $wifi_interface does not exist${RESET}"
 		exit 1
 	fi
 
-	# Check if the interface is a wireless interface
-	if [ ! -d "/sys/class/net/$wifi_interface/wireless" ]; then
-		echo "Interface $wifi_interface is not a wireless interface."
+	if [ ! -d "/sys/class/net/$wifi_interface/wireless/" ]; then
+		echo -e "${RED}Interface $wifi_interface is not wireless${RESET}"
 		exit 1
 	fi
 
-	# Check if the interface mode is "managed"
-	# (which is typically required by wpa_supplicant)
 	if iw "$wifi_interface" info 2>/dev/null | grep -q "type managed"; then
-		echo "Interface $wifi_interface is wireless and in 'managed' mode. wpa_supplicant can manage it."
+		echo "Interface is in 'managed' mode Wi-Fi."
 	else
-		echo "Interface $wifi_interface is wireless but not in 'managed' mode."
-		echo "wpa_supplicant may not manage it until it is set to 'managed' mode."
+		echo "Interface is Wi-Fi but not in 'managed' mode."
+		echo "wpa_supplicant may not work until set to 'managed' mode."
+
+		###############################################################################
+		# SNIPPET: Prompt user to remove Wi-Fi interface from Netplan (if present)
+		###############################################################################
+		if [ -d /etc/netplan ] && ls /etc/netplan/*.yaml &>/dev/null; then
+			echo -e "${YELLOW}It appears Netplan is in use and may be managing your Wi-Fi interface.${RESET}"
+			echo -e "To allow wpa_supplicant (or systemd-networkd) to manage ${wifi_interface},"
+			echo -e "you should remove or comment out any configuration for ${wifi_interface} in Netplan."
+			echo
+			for npfile in /etc/netplan/*.yaml; do
+				echo -e "Reviewing Netplan file: ${GREEN}${npfile}${RESET}"
+				echo "----- Current contents -----"
+				cat "$npfile"
+				echo "----------------------------"
+				# If EDITOR is not set, use nano as the default
+				EDITOR=${EDITOR:-nano}
+				echo -e "${YELLOW}Press ENTER to open this file in ${EDITOR}. Remove references to ${wifi_interface}, then save & exit.${RESET}"
+				read # Wait for user to press ENTER
+				sudo $EDITOR "$npfile"
+			done
+
+			echo -e "${YELLOW}Applying Netplan changes now...${RESET}"
+			# Note: This might break connectivity if you're currently on that interface.
+			sudo netplan apply || true
+			echo "Netplan changes applied."
+		else
+			echo -e "${GREEN}No Netplan YAML files found, or Netplan is not in use. Nothing to remove.${RESET}"
+		fi
 	fi
 
-	cp /usr/lib/hyved/wpa_supplicant-generic.conf /etc/wpa_supplicant/wpa_supplicant-$wifi_interface.conf
+	# Copy default config for wpa_supplicant
+	sudo cp /usr/lib/hyved/wpa_supplicant-generic.conf \
+		/etc/wpa_supplicant/wpa_supplicant-$wifi_interface.conf
 
-	sudo systemctl enable --now wpa_supplicant-$wifi_interface
-	sudo systemctl enable --now hyveos-batman@$wifi_interface
+	# Enable wpa_supplicant for this interface
+	sudo systemctl enable --now wpa_supplicant@$wifi_interface
+
+	# If also using batman on Wi-Fi, enable the hyveos-batman service
+	sudo systemctl enable --now hyveos-batman@"$wifi_interface"
 fi
 
-echo -e "${GREEN}Enabling docker and the batman-neighbours-daemon to run at boot.${RESET}"
-
+###############################################################################
+# ENABLE DOCKER & BATMAN NEIGHBOURS
+###############################################################################
+echo -e "${GREEN}Enabling Docker & batman-neighbours-daemon at boot${RESET}"
 continue_installation
-
 sudo systemctl enable --now docker
 sudo systemctl enable --now batman-neighbours-daemon
 
-echo -e "${GREEN}Installation complete${RESET}"
+echo -e "${GREEN}Installation steps complete${RESET}"
+echo "To start hyved now:   sudo systemctl start hyved"
+echo "To enable hyved boot: sudo systemctl enable --now hyved"
 
-echo "To start the hyved service, run: sudo systemctl start hyved"
-echo "To start the hyved service at boot, run: sudo systemctl enable --now hyved"
+###############################################################################
+# PROMPT FOR BRIDGE SETUP (ETH + OPTIONAL WIFI)
+###############################################################################
+echo -e "${RED}WARNING:${RESET} If you create a bridge, any interface you add (Ethernet or Wi-Fi) will likely lose normal connectivity as it becomes enslaved to the bridge."
+echo -e "Make sure you have an alternative means to access the machine."
 
-### Ask the user if they want to setup this node as a bridge (between the mesh and the internet)
-
-echo -e "${RED}WARNING: If you choose yes in the following step, the wifi interface over which you might be connected will change its config and you won't be able to connect to it conventionally anymore. Please make sure you are connected via an alternative interface or ok with losing access. You can still access the computer with an attached monitor and keyboard or via other devices in the network.${RESET}"
 read -p "Do you want to setup this node as a bridge? (y/n) " -n 1 -r
-
+echo
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+	set -e # exit on error
 
-	set -e
+	###########################################################################
+	# 1. Prompt user to remove Ethernet/Wi-Fi from netplan if on Ubuntu
+	#    (Debian or Raspbian might not use netplan by default, but let's check)
+	###########################################################################
+	if [ -d /etc/netplan ] && ls /etc/netplan/*.yaml &>/dev/null; then
+		echo -e "${YELLOW}Detected netplan files (commonly on Ubuntu).${RESET}"
+		echo "You must remove or comment out the configuration for the interface(s)"
+		echo "you want systemd-networkd to manage. Otherwise, netplan will conflict."
 
-	###############################################################################
-	# 1. Check for Ubuntu + netplan, prompt user to remove interface from netplan
-	###############################################################################
-	# We assume "Debian derivatives only," so let's just check if /etc/os-release
-	# contains the word "Ubuntu". Then check if netplan is installed and in use.
+		for npfile in /etc/netplan/*.yaml; do
+			EDITOR=${EDITOR:-nano}
+			echo -e "${GREEN}Opening $npfile in $EDITOR...${RESET}"
+			echo "----- Current $npfile contents -----"
+			sudo cat "$npfile"
+			echo "------------------------------------"
+			echo "Press ENTER to edit $npfile"
+			read
+			sudo $EDITOR "$npfile"
+		done
 
-	if grep -qi "Ubuntu" /etc/os-release; then
-		# Check if netplan YAML files exist
-		if ls /etc/netplan/*.yaml &>/dev/null; then
-			echo "Detected Ubuntu system with netplan files."
-			echo "We are going to open each netplan file in an editor."
-			echo "Please remove or comment out the configuration for the interface you plan to manage with systemd-networkd."
-
-			# Loop over each YAML file in /etc/netplan
-			for npfile in /etc/netplan/*.yaml; do
-				echo "Opening $npfile in nano..."
-				# Inform user which interface(s) might be in that file
-				echo "Current netplan file contents (for reference):"
-				echo "-------------------------------------------------"
-				cat "$npfile"
-				echo "-------------------------------------------------"
-				echo "Press ENTER to open $npfile in nano, remove the interface config, then save/exit."
-				read -r
-				nano "$npfile"
-			done
-
-			echo "Netplan configuration might have been updated."
-			echo "Applying netplan changes..."
-			netplan apply || true
-			echo "Done applying netplan."
-			echo
-		fi
 	fi
 
-	###############################################################################
-	# 2. Install needed packages
-	###############################################################################
-	echo "Installing required packages..."
-	# systemd-networkd is typically pre-installed on Ubuntu, but let's ensure:
-	apt-get update
-	apt-get install -y systemd-networkd curl
+	# Optionally: disable NetworkManager if you want only systemd-networkd
+	# sudo systemctl enable systemd-networkd
+	# sudo systemctl disable NetworkManager
 
-	# If you want to enable/disable systemd-networkd over NetworkManager, you can do so:
-	# systemctl enable systemd-networkd
-	# systemctl disable NetworkManager
-
-	###############################################################################
-	# 3. Detect an active Ethernet interface with Internet
-	###############################################################################
-	# We will try to find a default route interface that is:
-	# - An Ethernet interface (has link/ether).
-	# - Actually "UP".
-	# - Successfully allows 'curl' to a known site (e.g., google.com).
-
+	###########################################################################
+	# 3. Detect an Ethernet interface with Internet
+	###########################################################################
 	echo "Detecting an active Ethernet interface with Internet connectivity..."
 
 	DEFAULT_IFACE=""
-	# Use 'ip route show default' to find the interface used for default route
+	# Grab default route
 	CANDIDATE_IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
 
 	if [ -n "$CANDIDATE_IFACE" ]; then
-		# Check if it's an Ethernet interface
 		if ip link show "$CANDIDATE_IFACE" | grep -q "link/ether"; then
-			echo "Candidate default route interface $CANDIDATE_IFACE is Ethernet. Testing connectivity..."
-			# Try to use curl on that interface
+			echo "Candidate default route interface: $CANDIDATE_IFACE"
+			echo "Testing Internet connectivity..."
 			if curl --interface "$CANDIDATE_IFACE" -s --max-time 5 https://ifconfig.me >/dev/null; then
 				DEFAULT_IFACE="$CANDIDATE_IFACE"
 			else
-				echo "Could not verify Internet connectivity on $CANDIDATE_IFACE with curl."
+				echo "No connectivity on $CANDIDATE_IFACE"
 			fi
-		else
-			echo "Default route interface $CANDIDATE_IFACE is not Ethernet."
 		fi
-	else
-		echo "No default route interface found!"
 	fi
 
-	# If no good candidate was found, attempt scanning all 'eth*' or 'en*' interfaces
+	# If no good candidate found, try scanning
 	if [ -z "$DEFAULT_IFACE" ]; then
 		for IFACE in $(ls /sys/class/net | grep -E '^eth|^en'); do
-			# Is interface up?
 			if ip link show "$IFACE" | grep -q "state UP"; then
-				# Try connectivity test
 				if curl --interface "$IFACE" -s --max-time 5 http://ifconfig.me >/dev/null; then
 					DEFAULT_IFACE="$IFACE"
 					break
@@ -410,38 +388,47 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	fi
 
 	if [ -z "$DEFAULT_IFACE" ]; then
-		echo "ERROR: No Ethernet interface with verified Internet connectivity was found."
-		echo "Please configure your network manually or ensure that an interface is up and can reach the Internet."
+		echo -e "${RED}ERROR: No Ethernet interface with Internet found.${RESET}"
+		echo "Please configure bridging manually."
 		exit 1
 	fi
 
-	echo "Using interface '$DEFAULT_IFACE' as the primary (Ethernet + Internet) interface."
+	echo "Using '$DEFAULT_IFACE' as the main Ethernet interface with Internet."
 
-	###############################################################################
-	# 4. Create systemd-networkd configuration files
-	###############################################################################
-	# We'll assume you want a bridge called br0 that:
-	# - Has DHCPv4 on br0
-	# - enslaves DEFAULT_IFACE in the bridge
-	# - Might also enslave bat0 (if you have batman-adv)
-	# Adjust or remove bat0 part if not desired.
+	###########################################################################
+	# 4. Optionally detect a Wi-Fi interface for bridging
+	###########################################################################
+	echo -e "${YELLOW}Do you also want to add a Wi-Fi interface to the bridge?${RESET}"
+	echo -e "(Bridging a Wi-Fi interface in managed mode usually doesn't work as a real L2 bridge.)"
+	read -p "Add Wi-Fi to the bridge as well? (y/n) " -n 1 -r
+	echo
 
-	# Ask the user for the bridge name
-	read -p "Enter the name of the bridge (default: br0): " BRIDGE_NAME
-	echo "Using bridge name: ${BRIDGE_NAME:-br0}"
-	export BRIDGE_NAME=${BRIDGE_NAME:-br0}
+	WIFI_BRIDGE_IFACE=""
+	if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+		read -p "Enter the Wi-Fi interface name (e.g., wlan0): " WIFI_BRIDGE_IFACE
+		echo "Wi-Fi interface to be added: $WIFI_BRIDGE_IFACE"
+		echo "If it’s in managed mode, bridging may degrade or fail."
+		echo
+	fi
 
-	mkdir -p /etc/systemd/network
+	###########################################################################
+	# 5. Create systemd-networkd configurations for bridging
+	###########################################################################
+	read -p "Enter the desired bridge name [default: br0]: " BRIDGE_NAME
+	BRIDGE_NAME=${BRIDGE_NAME:-br0}
+	echo "Using bridge name: $BRIDGE_NAME"
 
-	# 4a. The .netdev for the bridge
-	cat <<EOF >/etc/systemd/network/10-br0.netdev
+	sudo mkdir -p /etc/systemd/network
+
+	# Bridge netdev
+	cat <<EOF | sudo tee /etc/systemd/network/10-$BRIDGE_NAME.netdev
 [NetDev]
 Name=$BRIDGE_NAME
 Kind=bridge
 EOF
 
-	# 4b. The .network for the bridge itself
-	cat <<EOF >/etc/systemd/network/10-br0.network
+	# Bridge network (gets DHCP)
+	cat <<EOF | sudo tee /etc/systemd/network/10-$BRIDGE_NAME.network
 [Match]
 Name=$BRIDGE_NAME
 
@@ -449,8 +436,8 @@ Name=$BRIDGE_NAME
 DHCP=ipv4
 EOF
 
-	# 4c. The .network for the default Ethernet interface
-	cat <<EOF >/etc/systemd/network/20-$DEFAULT_IFACE.network
+	# Enslave the main Ethernet interface
+	cat <<EOF | sudo tee /etc/systemd/network/20-$DEFAULT_IFACE.network
 [Match]
 Name=$DEFAULT_IFACE
 
@@ -459,9 +446,9 @@ DHCP=no
 Bridge=$BRIDGE_NAME
 EOF
 
-	# 4d. Optionally, if you have a batman-adv interface named bat0, also remove DHCP and enslave it:
+	# If bat0 exists, enslave it (no DHCP)
 	if ip link show bat0 &>/dev/null; then
-		cat <<EOF >/etc/systemd/network/30-bat0.network
+		cat <<EOF | sudo tee /etc/systemd/network/30-bat0.network
 [Match]
 Name=bat0
 
@@ -471,14 +458,46 @@ Bridge=$BRIDGE_NAME
 EOF
 	fi
 
-	echo "Systemd-networkd configuration files created in /etc/systemd/network/."
+	# If user wants to add Wi-Fi
+	if [[ -n "$WIFI_BRIDGE_IFACE" ]]; then
+		cat <<EOF | sudo tee /etc/systemd/network/40-$WIFI_BRIDGE_IFACE.network
+[Match]
+Name=$WIFI_BRIDGE_IFACE
 
-	###############################################################################
-	# 5. Enable and restart systemd-networkd
-	###############################################################################
-	systemctl enable systemd-networkd
-	systemctl restart systemd-networkd
+[Network]
+DHCP=no
+Bridge=$BRIDGE_NAME
+EOF
+		echo -e "${YELLOW}WARNING: Bridging a Wi-Fi client interface is not a true L2 bridge in most drivers.${RESET}"
+	fi
 
-	echo "Done! Your bridge (br0) should now get an IP via DHCP, with $DEFAULT_IFACE enslaved."
-	echo "If bat0 exists, it is also enslaved with no DHCP configured on it."
+	#### Ask the user to restart after this step ####
+	echo "For the changes to take effect, you must restart. Since this might break connectivity."
+	echo -e "${YELLOW}Please ensure you have another means to access the machine.${RESET}"
+	continue_installation
+
+	###########################################################################
+	# 6. Enable and restart systemd-networkd
+	###########################################################################
+	echo "Applying netplan changes (this might break connectivity). Wait a few seconds..."
+	sudo netplan apply || true
+	sudo systemctl enable systemd-networkd
+	sudo systemctl restart systemd-networkd
+
+	echo "Obtaining IP address for the bridge via DHCP..."
+	sudo dhcpcd -n $BRIDGE_NAME
+
+	echo
+	echo -e "${GREEN}Bridge setup complete.${RESET}"
+	echo "Bridge name: $BRIDGE_NAME"
+	echo "Bridged interfaces: $DEFAULT_IFACE ${WIFI_BRIDGE_IFACE:+and $WIFI_BRIDGE_IFACE} (plus bat0 if present)."
+	echo "Check with:    ip a  (to see if $BRIDGE_NAME gets an IP via DHCP)"
+
 fi
+
+###############################################################################
+# DONE
+###############################################################################
+echo -e "${GREEN}All steps are complete!${RESET}"
+echo "Remember to: sudo systemctl enable --now hyved  (if desired)"
+echo "You can also run: ip a  (to see interface statuses)"

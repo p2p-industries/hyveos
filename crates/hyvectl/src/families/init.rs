@@ -5,7 +5,7 @@ use std::{
 
 use colored::Colorize;
 use default_net::{get_interfaces, interface::InterfaceType, Interface};
-use dialoguer::Select;
+use dialoguer::{console::Term, Select};
 use futures::future::join_all;
 use hyvectl_commands::families::init::Init;
 use hyveos_config::Config;
@@ -147,7 +147,7 @@ async fn choose_wirless_network_interface() -> Result<Option<String>, Error> {
         .with_prompt("Choose a network interface to use for the mesh network")
         .items(&options)
         .default(0)
-        .interact()?;
+        .interact_on(&Term::stderr())?;
     Ok(interfaces.get(selection).map(|iface| iface.name.clone()))
 }
 
@@ -174,7 +174,7 @@ pub async fn init(_: Init) -> HyveCtlResult<CommandOutput> {
     let wifi_interface = choose_wirless_network_interface().await?;
     let wifi_interface = match wifi_interface {
         Some(wifi_interface) => {
-            println!("Wireless interface: {}", wifi_interface);
+            eprintln!("Wireless interface: {}", wifi_interface);
             wifi_interface
         }
         None => Err(Error::NoWirelessInterface)?,
@@ -183,7 +183,7 @@ pub async fn init(_: Init) -> HyveCtlResult<CommandOutput> {
         .with_prompt("Enter the name for the batman interface")
         .default("bat0".to_string())
         .with_initial_text("bat0")
-        .interact()
+        .interact_on(&Term::stderr())
         .map_err(Error::Dialoguer)?;
 
     let config = Config {

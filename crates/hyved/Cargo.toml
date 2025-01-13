@@ -63,4 +63,5 @@ systemd-units = [
     { unit-name = "hyved", enable = false },
     { unit-name = "hyveos-batman", enable = true },
     { unit-name = "hyveos-dhcp-client", enable = true },
+    { unit-name = "hyveos-gateway", enable = true }
 ]
