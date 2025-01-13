@@ -22,7 +22,7 @@ int_handler() {
 }
 trap 'int_handler' INT
 
-echo -e "${GREEN}Welcome to the installation script!${RESET}"
+echo -e "${GREEN}Welcome to hyveOS the installation script!${RESET}"
 
 function continue_installation() {
 	# Default is yes and if the users presses enter, it will continue with the installation.
@@ -51,6 +51,11 @@ fi
 
 if [[ "$(uname)" == "Linux" ]]; then
 	echo -e "${GREEN}Linux detected${RESET}"
+else
+	echo -e "${RED}Unsupported OS${RESET}"
+	echo -e "${RED}Proceed at your own risk?${RESET}"
+
+	continue_installation
 fi
 
 # Check if distro is Ubuntu or Raspberry Pi OS (Raspbian)
@@ -83,6 +88,11 @@ if [ -f /etc/os-release ]; then
 
 		continue_installation
 	fi
+else
+	echo -e "${RED}Unsupported OS${RESET}"
+	echo -e "${RED}Proceed at your own risk?${RESET}"
+
+	continue_installation
 fi
 
 # Check if architecture is aarch64 or x86_64
@@ -112,13 +122,15 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	sudo apt update
 	sudo apt install wget curl gpg jq
 else
-	echo -e "${RED}Skipping installation of dependencies${RESET}"
+	echo -e "${RED}This installation script will not run properly without these dependencies${RESET}"
+	echo -e "${RED}Please install hyveOS manually instead${RESET}"
 	exit 1
 fi
 
 # Check if docker is installed (docker --version)
+#
 
-if [[ -x "$(command -v docker)" ]]; then
+if docker --version &>/dev/null; then
 	echo -e "${GREEN}Docker is already installed and running${RESET}"
 else
 	# Install Docker
@@ -224,7 +236,9 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 				sudo sh -c "echo batman-adv >> /etc/modules"
 			fi
 		fi
-
+	else
+		echo -e "${RED}modinfo is not installed${RESET}"
+		exit 1
 	fi
 else
 	echo -e "${RED}Skipping mesh support${RESET}"
@@ -251,12 +265,35 @@ echo
 
 if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 	echo -e "${GREEN}Configuring interfaces${RESET}"
-	output=$(hyvectl init --config)
+	output=$(hyvectl init --json)
 	wifi_interface=$(echo $output | jq -r '.wifi_interface')
 
 	echo "Configuring interface $wifi_interface"
 
-	sudo systemctl enable --now wpa_supplicant@$wifi_interface
+	# Check if the given interface directory exists under /sys/class/net
+	if [ ! -d "/sys/class/net/$wifi_interface" ]; then
+		echo "Interface $wifi_interface does not exist."
+		exit 1
+	fi
+
+	# Check if the interface is a wireless interface
+	if [ ! -d "/sys/class/net/$wifi_interface/wireless" ]; then
+		echo "Interface $wifi_interface is not a wireless interface."
+		exit 1
+	fi
+
+	# Check if the interface mode is "managed"
+	# (which is typically required by wpa_supplicant)
+	if iw "$wifi_interface" info 2>/dev/null | grep -q "type managed"; then
+		echo "Interface $wifi_interface is wireless and in 'managed' mode. wpa_supplicant can manage it."
+	else
+		echo "Interface $wifi_interface is wireless but not in 'managed' mode."
+		echo "wpa_supplicant may not manage it until it is set to 'managed' mode."
+	fi
+
+	cp /usr/lib/hyved/wpa_supplicant-generic.conf /etc/wpa_supplicant/wpa_supplicant-$wifi_interface.conf
+
+	sudo systemctl enable --now wpa_supplicant-$wifi_interface
 	sudo systemctl enable --now hyveos-batman@$wifi_interface
 fi
 

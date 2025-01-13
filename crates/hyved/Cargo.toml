@@ -52,8 +52,8 @@ assets = [
         "644",
     ],
     [
-        "systemd/assets/wpa_supplicant-wlan0.conf",
-        "/etc/wpa_supplicant/",
+        "systemd/assets/wpa_supplicant-generic.conf",
+        "/usr/lib/hyved/",
         "600",
     ],
 ]
@@ -62,4 +62,5 @@ features = ["batman", "network"]
 systemd-units = [
     { unit-name = "hyved", enable = false },
     { unit-name = "hyveos-batman", enable = true },
+    { unit-name = "hyveos-dhcp-client", enable = true },
 ]

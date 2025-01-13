@@ -36,7 +36,7 @@ impl CommandFamily for Families {
             Families::Hyve(cmd) => cmd.run(connection).await,
             Families::File(cmd) => cmd.run(connection).await,
             Families::Whoami(cmd) => cmd.run(connection).await,
-            Families::Init(cmd) => cmd.run(connection).await,
+            Families::Init(_) => unreachable!(),
         }
     }
 }
@@ -67,7 +67,7 @@ async fn main() -> miette::Result<()> {
     let cli = Cli::parse();
 
     if let Families::Init(init) = cli.command {
-        let output = init.init().await?;
+        let output = crate::families::init::init(init).await?;
         if cli.json {
             output
                 .write_json(&mut stdout(), stdout().is_terminal())

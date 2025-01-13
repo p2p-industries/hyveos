@@ -1,5 +1,4 @@
 use std::{
-    cmp::Ordering,
     net::{IpAddr, SocketAddr},
     time::Duration,
 };
@@ -14,15 +13,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 use tokio::{net::TcpSocket, time::timeout};
 
-use crate::{error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
-
-/// A helper struct to store relevant interface info.
-#[derive(Debug)]
-struct InterfaceInfo {
-    iface: Interface,
-    is_ethernet: bool,
-    is_connected: bool,
-}
+use crate::{error::HyveCtlResult, out::CommandOutput};
 
 fn if_type_to_str(ty: &InterfaceType) -> &'static str {
     match ty {
@@ -81,100 +72,6 @@ async fn is_internet_connected(iface: &Interface) -> bool {
     }
 
     false
-}
-
-async fn choose_bridge_network_interface() -> Result<Option<String>, Error> {
-    let interfaces = get_interfaces();
-
-    let future_checks = interfaces.into_iter().map(|iface| async {
-        let is_ethernet = matches!(
-            iface.if_type,
-            InterfaceType::Ethernet
-                | InterfaceType::Ethernet3Megabit
-                | InterfaceType::GigabitEthernet
-        );
-
-        let is_connected = is_internet_connected(&iface).await;
-
-        InterfaceInfo {
-            iface,
-            is_ethernet,
-            is_connected,
-        }
-    });
-
-    let mut iface_info: Vec<InterfaceInfo> = join_all(future_checks).await;
-
-    iface_info.sort_by(|a, b| match b.is_connected.cmp(&a.is_connected) {
-        Ordering::Equal => match b.is_ethernet.cmp(&a.is_ethernet) {
-            Ordering::Equal => a.iface.name.cmp(&b.iface.name),
-            other => other,
-        },
-        other => match other {
-            Ordering::Equal => match b.is_ethernet.cmp(&a.is_ethernet) {
-                Ordering::Equal => a.iface.name.cmp(&b.iface.name),
-                other => other,
-            },
-            other => other,
-        },
-    });
-
-    let longest_name = iface_info
-        .iter()
-        .map(|info| info.iface.name.len())
-        .max()
-        .unwrap_or(0);
-
-    let options: Vec<String> = iface_info
-        .iter()
-        .map(|info| {
-            let internet_connected = info.is_connected;
-            let is_ethernet = if info.is_ethernet {
-                "🌐 ethernet".green()
-            } else {
-                "no ethernet".red()
-            };
-            let is_connected = if internet_connected {
-                "🌐 internet".green()
-            } else {
-                "no internet".red()
-            };
-
-            let ipv4_addrs: Vec<String> = info
-                .iface
-                .ipv4
-                .iter()
-                .map(|info| info.addr.to_string())
-                .collect();
-            let ipv6_addrs: Vec<String> = info
-                .iface
-                .ipv6
-                .iter()
-                .map(|info| info.addr.to_string())
-                .collect();
-            let name = info.iface.name.yellow().on_black();
-            format!(
-                "{name:<longest_name$} {is_ethernet:<10} {is_connected:<10} {ipv4_addrs:?} {ipv6_addrs:?}"
-            )
-        })
-        .collect();
-
-    if options.is_empty() {
-        return Ok(None);
-    }
-
-    let selection = Select::new()
-        .with_prompt("Choose a network interface to bridge with")
-        .items(&options)
-        .default(0)
-        .interact()?;
-
-    Ok(Some(
-        iface_info
-            .get(selection)
-            .map(|info| info.iface.name.clone())
-            .unwrap(),
-    ))
 }
 
 async fn choose_wirless_network_interface() -> Result<Option<String>, Error> {
@@ -273,58 +170,32 @@ pub enum Error {
     SaveConfigFailed(anyhow::Error),
 }
 
-impl CommandFamily for Init {
-    async fn init(self) -> HyveCtlResult<CommandOutput> {
-        let wifi_interface = choose_wirless_network_interface().await?;
-        let wifi_interface = match wifi_interface {
-            Some(wifi_interface) => {
-                println!("Wireless interface: {}", wifi_interface);
-                wifi_interface
-            }
-            None => Err(Error::NoWirelessInterface)?,
-        };
-        let batman_interface = dialoguer::Input::new()
-            .with_prompt("Enter the name for the batman interface")
-            .default("bat0".to_string())
-            .with_initial_text("bat0")
-            .interact()
-            .map_err(Error::Dialoguer)?;
-
-        let mut bridge_interface = None;
-
-        let bridge_confirmation = dialoguer::Confirm::new()
-            .with_prompt("Do you want to bridge the wirless network with an ethernet network on this device?")
-            .default(false)
-            .interact().map_err(Error::Dialoguer)?;
-        if bridge_confirmation {
-            bridge_interface = choose_bridge_network_interface().await?;
+pub async fn init(_: Init) -> HyveCtlResult<CommandOutput> {
+    let wifi_interface = choose_wirless_network_interface().await?;
+    let wifi_interface = match wifi_interface {
+        Some(wifi_interface) => {
+            println!("Wireless interface: {}", wifi_interface);
+            wifi_interface
         }
-        let mut dhcp_client = false;
+        None => Err(Error::NoWirelessInterface)?,
+    };
+    let batman_interface = dialoguer::Input::new()
+        .with_prompt("Enter the name for the batman interface")
+        .default("bat0".to_string())
+        .with_initial_text("bat0")
+        .interact()
+        .map_err(Error::Dialoguer)?;
 
-        let config = Config {
-            interfaces: Some(vec![wifi_interface.clone(), batman_interface.clone()]),
-            wifi_interface: Some(wifi_interface.clone()),
-            batman_interface: Some(batman_interface.clone()),
-            bridge_interface: bridge_interface.clone(),
-            ..Default::default()
-        };
+    let config = Config {
+        interfaces: Some(vec![wifi_interface.clone(), batman_interface.clone()]),
+        wifi_interface: Some(wifi_interface.clone()),
+        batman_interface: Some(batman_interface.clone()),
+        ..Default::default()
+    };
 
-        config.save(None::<&str>).map_err(Error::SaveConfigFailed)?;
+    config.save(None::<&str>).map_err(Error::SaveConfigFailed)?;
 
-        if bridge_interface.is_none() {
-            dhcp_client = dialoguer::Confirm::new()
-                .with_prompt("Have you setup a bridge node somewhere else and want to connect to it (and enable DHCP)?")
-                .default(false)
-                .interact().map_err(Error::Dialoguer)?;
-        }
-
-        Ok(CommandOutput::result()
-            .with_field("wifi_interface", wifi_interface)
-            .with_field("batman_interface", batman_interface)
-            .with_field(
-                "bridge_interface",
-                bridge_interface.unwrap_or_else(|| "None".to_string()),
-            )
-            .with_field("dhcp_client", dhcp_client.to_string()))
-    }
+    Ok(CommandOutput::result()
+        .with_field("wifi_interface", wifi_interface)
+        .with_field("batman_interface", batman_interface))
 }

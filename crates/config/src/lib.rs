@@ -17,8 +17,6 @@ pub struct Config {
     #[serde(default)]
     pub wifi_interface: Option<String>,
     #[serde(default)]
-    pub bridge_interface: Option<String>,
-    #[serde(default)]
     pub store_directory: Option<PathBuf>,
     #[serde(default)]
     pub db_file: Option<PathBuf>,
@@ -46,19 +44,17 @@ impl Config {
                 .map(|s| toml::from_str(&s))?
                 .map_err(Into::into)
         } else {
-            let base_paths = [Path::new("/etc"), Path::new("/usr/lib")];
+            let base_path = Path::new("/etc");
 
-            for base_path in &base_paths {
-                let path = base_path.join(DAEMON_NAME).join("config.toml");
-                match std::fs::read_to_string(&path) {
-                    Ok(s) => {
-                        let config = toml::from_str(&s)?;
-                        tracing::debug!("Loaded config file from {}", path.display());
-                        return Ok(config);
-                    }
-                    Err(_) => {
-                        tracing::info!("Failed to load config file from {}", path.display());
-                    }
+            let path = base_path.join(DAEMON_NAME).join("config.toml");
+            match std::fs::read_to_string(&path) {
+                Ok(s) => {
+                    let config = toml::from_str(&s)?;
+                    tracing::debug!("Loaded config file from {}", path.display());
+                    return Ok(config);
+                }
+                Err(_) => {
+                    tracing::info!("Failed to load config file from {}", path.display());
                 }
             }
 

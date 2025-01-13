@@ -3,14 +3,8 @@ use hyveos_sdk::Connection;
 
 use crate::{error::HyveCtlResult, out::CommandOutput};
 
-pub trait CommandFamily: Sized {
-    async fn run(self, _: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
-        unimplemented!()
-    }
-
-    async fn init(self) -> HyveCtlResult<CommandOutput> {
-        unimplemented!()
-    }
+pub trait CommandFamily {
+    async fn run(self, _: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>>;
 }
 
 #[macro_export]

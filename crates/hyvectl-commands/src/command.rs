@@ -34,7 +34,7 @@ pub enum Families {
     File(file::File),
     /// Prints the local Peer-id
     Whoami(whoami::Whoami),
-    /// Initialize a new hyveOS instance
+    /// Initialize a new hyveOS instance. This should only be used during installation.
     Init(init::Init),
 }
 
