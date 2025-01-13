@@ -23,6 +23,14 @@ trap 'int_handler' INT
 ###############################################################################
 echo -e "${GREEN}Welcome to hyveOS the installation script!${RESET}"
 
+echo -e "${YELLOW}This script will make modifications to your network configuration. Tis might result in the (temporary) loss of connection.${RESET}"
+echo -e "${YELLOW}The ideal setup scenario is to run this script on a fresh install over ssh over a wired connection or with a direct console connection.${RESET}"
+echo -e "${YELLOW}If the SSH connection freezes during any part of the installation it's usually safe to reconnect and run the installer again.${RESET}"
+echo -e "${RED}Don't run this script on a production system, a system you can't physically reach or any device that contains important data.${RESET}"
+echo -e "${RED}P2P Industries Inc. is not responsible for any damage or loss caused by running this script.${RESET}"
+echo -e "${GREEN}It's recommended to have a basic understanding of Linux networking and systemd before proceeding.${RESET}"
+echo -e "${GREEN}If any bugs or unexpected behavior is encountered, please file an issue on our GitHub repository: https://p2p.industries/hyveos${RESET}"
+
 ###############################################################################
 # CONTINUE INSTALLATION FUNCTION
 ###############################################################################
@@ -275,7 +283,7 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 			for npfile in /etc/netplan/*.yaml; do
 				echo -e "Reviewing Netplan file: ${GREEN}${npfile}${RESET}"
 				echo "----- Current contents -----"
-				cat "$npfile"
+				sudo cat "$npfile"
 				echo "----------------------------"
 				# If EDITOR is not set, use nano as the default
 				EDITOR=${EDITOR:-nano}
