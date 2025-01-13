@@ -1,22 +1,27 @@
+use std::{
+    io::{stdout, IsTerminal, Write},
+    path::PathBuf,
+    time::Duration,
+};
+
+use clap::Parser;
+use futures::{stream::BoxStream, TryStreamExt as _};
+use hyvectl_commands::command::{Cli, Families};
+use hyveos_sdk::Connection;
+use indicatif::ProgressStyle;
+use miette::{Context, IntoDiagnostic};
+use util::CommandFamily;
+
+use crate::{
+    error::{HyveCtlError, HyveCtlResult},
+    out::CommandOutput,
+};
+
 mod color;
 mod error;
 mod families;
 mod out;
 mod util;
-
-use crate::error::{HyveCtlError, HyveCtlResult};
-use crate::out::CommandOutput;
-use clap::Parser;
-use futures::stream::BoxStream;
-use futures::StreamExt;
-use hyvectl_commands::command::{Cli, Families};
-use hyveos_sdk::Connection;
-use indicatif::ProgressStyle;
-use miette::{Context, IntoDiagnostic};
-use std::io::{stdout, IsTerminal, Write};
-use std::path::PathBuf;
-use std::time::Duration;
-use util::CommandFamily;
 
 impl CommandFamily for Families {
     async fn run(
@@ -83,9 +88,7 @@ async fn main() -> miette::Result<()> {
     let mut progress_bar = None;
     let mut spinner = None;
 
-    while let Some(output) = output_stream.next().await {
-        let command_output = output?;
-
+    while let Some(command_output) = output_stream.try_next().await? {
         match command_output {
             CommandOutput::Progress(p) => {
                 if is_tty {

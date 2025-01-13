@@ -1,12 +1,9 @@
-use crate::boxed_try_stream;
-use crate::error::HyveCtlResult;
-use crate::out::CommandOutput;
-use crate::util::CommandFamily;
-use futures::stream::BoxStream;
-use futures::StreamExt;
+use futures::{stream::BoxStream, TryStreamExt as _};
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
+
+use crate::{boxed_try_stream, error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
 
 impl CommandFamily for File {
     async fn run(
@@ -39,8 +36,8 @@ impl CommandFamily for File {
 
                     yield CommandOutput::message("Starting Download...");
 
-                    while let Some(event) = download_stream.next().await {
-                        match event? {
+                    while let Some(event) = download_stream.try_next().await? {
+                        match event {
                             DownloadEvent::Progress(p) => {
                                 yield CommandOutput::progress(p)
                             }

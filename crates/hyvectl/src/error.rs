@@ -1,7 +1,8 @@
+use std::string::FromUtf8Error;
+
 use hyveos_core::req_resp::ResponseError;
 use libp2p_identity::ParseError;
 use miette::Diagnostic;
-use std::string::FromUtf8Error;
 use thiserror::Error;
 use ulid::DecodeError;
 
