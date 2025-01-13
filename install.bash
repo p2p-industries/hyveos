@@ -285,7 +285,7 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 			done
 
 			echo -e "${YELLOW}Applying Netplan changes now...${RESET}"
-			# Note: This might break connectivity if you're currently on that interface.
+			continue_installation
 			sudo netplan apply || true
 			echo "Netplan changes applied."
 		else
@@ -471,7 +471,7 @@ EOF
 	fi
 
 	#### Ask the user to restart after this step ####
-	echo "For the changes to take effect, you must restart. Since this might break connectivity."
+	echo "For the changes to take effect, you must restart network services. Since this might break connectivity."
 	echo -e "${YELLOW}Please ensure you have another means to access the machine.${RESET}"
 	continue_installation
 
