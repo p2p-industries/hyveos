@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import script_pb2 as script__pb2
+from . import bridge_pb2 as bridge__pb2
 
 GRPC_GENERATED_VERSION = '1.69.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in script_pb2_grpc.py depends on'
+        + f' but the generated code in bridge_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,19 +37,19 @@ class ReqRespStub(object):
             channel: A grpc.Channel.
         """
         self.Send = channel.unary_unary(
-                '/script.ReqResp/Send',
-                request_serializer=script__pb2.SendRequest.SerializeToString,
-                response_deserializer=script__pb2.Response.FromString,
+                '/bridge.ReqResp/Send',
+                request_serializer=bridge__pb2.SendRequest.SerializeToString,
+                response_deserializer=bridge__pb2.Response.FromString,
                 _registered_method=True)
         self.Recv = channel.unary_stream(
-                '/script.ReqResp/Recv',
-                request_serializer=script__pb2.OptionalTopicQuery.SerializeToString,
-                response_deserializer=script__pb2.RecvRequest.FromString,
+                '/bridge.ReqResp/Recv',
+                request_serializer=bridge__pb2.OptionalTopicQuery.SerializeToString,
+                response_deserializer=bridge__pb2.RecvRequest.FromString,
                 _registered_method=True)
         self.Respond = channel.unary_unary(
-                '/script.ReqResp/Respond',
-                request_serializer=script__pb2.SendResponse.SerializeToString,
-                response_deserializer=script__pb2.Empty.FromString,
+                '/bridge.ReqResp/Respond',
+                request_serializer=bridge__pb2.SendResponse.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
                 _registered_method=True)
 
 
@@ -85,24 +85,24 @@ def add_ReqRespServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Send': grpc.unary_unary_rpc_method_handler(
                     servicer.Send,
-                    request_deserializer=script__pb2.SendRequest.FromString,
-                    response_serializer=script__pb2.Response.SerializeToString,
+                    request_deserializer=bridge__pb2.SendRequest.FromString,
+                    response_serializer=bridge__pb2.Response.SerializeToString,
             ),
             'Recv': grpc.unary_stream_rpc_method_handler(
                     servicer.Recv,
-                    request_deserializer=script__pb2.OptionalTopicQuery.FromString,
-                    response_serializer=script__pb2.RecvRequest.SerializeToString,
+                    request_deserializer=bridge__pb2.OptionalTopicQuery.FromString,
+                    response_serializer=bridge__pb2.RecvRequest.SerializeToString,
             ),
             'Respond': grpc.unary_unary_rpc_method_handler(
                     servicer.Respond,
-                    request_deserializer=script__pb2.SendResponse.FromString,
-                    response_serializer=script__pb2.Empty.SerializeToString,
+                    request_deserializer=bridge__pb2.SendResponse.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.ReqResp', rpc_method_handlers)
+            'bridge.ReqResp', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.ReqResp', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.ReqResp', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -125,9 +125,9 @@ class ReqResp(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.ReqResp/Send',
-            script__pb2.SendRequest.SerializeToString,
-            script__pb2.Response.FromString,
+            '/bridge.ReqResp/Send',
+            bridge__pb2.SendRequest.SerializeToString,
+            bridge__pb2.Response.FromString,
             options,
             channel_credentials,
             insecure,
@@ -152,9 +152,9 @@ class ReqResp(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.ReqResp/Recv',
-            script__pb2.OptionalTopicQuery.SerializeToString,
-            script__pb2.RecvRequest.FromString,
+            '/bridge.ReqResp/Recv',
+            bridge__pb2.OptionalTopicQuery.SerializeToString,
+            bridge__pb2.RecvRequest.FromString,
             options,
             channel_credentials,
             insecure,
@@ -179,9 +179,9 @@ class ReqResp(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.ReqResp/Respond',
-            script__pb2.SendResponse.SerializeToString,
-            script__pb2.Empty.FromString,
+            '/bridge.ReqResp/Respond',
+            bridge__pb2.SendResponse.SerializeToString,
+            bridge__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
@@ -193,7 +193,7 @@ class ReqResp(object):
             _registered_method=True)
 
 
-class DiscoveryStub(object):
+class NeighboursStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -203,18 +203,13 @@ class DiscoveryStub(object):
             channel: A grpc.Channel.
         """
         self.SubscribeEvents = channel.unary_stream(
-                '/script.Discovery/SubscribeEvents',
-                request_serializer=script__pb2.Empty.SerializeToString,
-                response_deserializer=script__pb2.NeighbourEvent.FromString,
-                _registered_method=True)
-        self.GetOwnId = channel.unary_unary(
-                '/script.Discovery/GetOwnId',
-                request_serializer=script__pb2.Empty.SerializeToString,
-                response_deserializer=script__pb2.Peer.FromString,
+                '/bridge.Neighbours/SubscribeEvents',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.NeighbourEvent.FromString,
                 _registered_method=True)
 
 
-class DiscoveryServicer(object):
+class NeighboursServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SubscribeEvents(self, request, context):
@@ -225,35 +220,23 @@ class DiscoveryServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetOwnId(self, request, context):
-        """Get the peer id of the current runtime
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
 
-
-def add_DiscoveryServicer_to_server(servicer, server):
+def add_NeighboursServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SubscribeEvents': grpc.unary_stream_rpc_method_handler(
                     servicer.SubscribeEvents,
-                    request_deserializer=script__pb2.Empty.FromString,
-                    response_serializer=script__pb2.NeighbourEvent.SerializeToString,
-            ),
-            'GetOwnId': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetOwnId,
-                    request_deserializer=script__pb2.Empty.FromString,
-                    response_serializer=script__pb2.Peer.SerializeToString,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.NeighbourEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.Discovery', rpc_method_handlers)
+            'bridge.Neighbours', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.Discovery', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.Neighbours', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class Discovery(object):
+class Neighbours(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -270,36 +253,9 @@ class Discovery(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.Discovery/SubscribeEvents',
-            script__pb2.Empty.SerializeToString,
-            script__pb2.NeighbourEvent.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetOwnId(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/script.Discovery/GetOwnId',
-            script__pb2.Empty.SerializeToString,
-            script__pb2.Peer.FromString,
+            '/bridge.Neighbours/SubscribeEvents',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.NeighbourEvent.FromString,
             options,
             channel_credentials,
             insecure,
@@ -311,7 +267,7 @@ class Discovery(object):
             _registered_method=True)
 
 
-class GossipSubStub(object):
+class PubSubStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -321,56 +277,56 @@ class GossipSubStub(object):
             channel: A grpc.Channel.
         """
         self.Subscribe = channel.unary_stream(
-                '/script.GossipSub/Subscribe',
-                request_serializer=script__pb2.Topic.SerializeToString,
-                response_deserializer=script__pb2.GossipSubRecvMessage.FromString,
+                '/bridge.PubSub/Subscribe',
+                request_serializer=bridge__pb2.Topic.SerializeToString,
+                response_deserializer=bridge__pb2.PubSubRecvMessage.FromString,
                 _registered_method=True)
         self.Publish = channel.unary_unary(
-                '/script.GossipSub/Publish',
-                request_serializer=script__pb2.GossipSubMessage.SerializeToString,
-                response_deserializer=script__pb2.GossipSubMessageID.FromString,
+                '/bridge.PubSub/Publish',
+                request_serializer=bridge__pb2.PubSubMessage.SerializeToString,
+                response_deserializer=bridge__pb2.PubSubMessageID.FromString,
                 _registered_method=True)
 
 
-class GossipSubServicer(object):
+class PubSubServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Subscribe(self, request, context):
-        """Subscribe to a gossipsub topic to receive messages published in that topic
+        """Subscribe to a pub-sub topic to receive messages published in that topic
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def Publish(self, request, context):
-        """Publish a message in a gossipsub topic
+        """Publish a message in a pub-sub topic
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_GossipSubServicer_to_server(servicer, server):
+def add_PubSubServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Subscribe': grpc.unary_stream_rpc_method_handler(
                     servicer.Subscribe,
-                    request_deserializer=script__pb2.Topic.FromString,
-                    response_serializer=script__pb2.GossipSubRecvMessage.SerializeToString,
+                    request_deserializer=bridge__pb2.Topic.FromString,
+                    response_serializer=bridge__pb2.PubSubRecvMessage.SerializeToString,
             ),
             'Publish': grpc.unary_unary_rpc_method_handler(
                     servicer.Publish,
-                    request_deserializer=script__pb2.GossipSubMessage.FromString,
-                    response_serializer=script__pb2.GossipSubMessageID.SerializeToString,
+                    request_deserializer=bridge__pb2.PubSubMessage.FromString,
+                    response_serializer=bridge__pb2.PubSubMessageID.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.GossipSub', rpc_method_handlers)
+            'bridge.PubSub', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.GossipSub', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.PubSub', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class GossipSub(object):
+class PubSub(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -387,9 +343,9 @@ class GossipSub(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.GossipSub/Subscribe',
-            script__pb2.Topic.SerializeToString,
-            script__pb2.GossipSubRecvMessage.FromString,
+            '/bridge.PubSub/Subscribe',
+            bridge__pb2.Topic.SerializeToString,
+            bridge__pb2.PubSubRecvMessage.FromString,
             options,
             channel_credentials,
             insecure,
@@ -414,9 +370,9 @@ class GossipSub(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.GossipSub/Publish',
-            script__pb2.GossipSubMessage.SerializeToString,
-            script__pb2.GossipSubMessageID.FromString,
+            '/bridge.PubSub/Publish',
+            bridge__pb2.PubSubMessage.SerializeToString,
+            bridge__pb2.PubSubMessageID.FromString,
             options,
             channel_credentials,
             insecure,
@@ -428,7 +384,7 @@ class GossipSub(object):
             _registered_method=True)
 
 
-class DHTStub(object):
+class KVStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -438,127 +394,76 @@ class DHTStub(object):
             channel: A grpc.Channel.
         """
         self.PutRecord = channel.unary_unary(
-                '/script.DHT/PutRecord',
-                request_serializer=script__pb2.DHTRecord.SerializeToString,
-                response_deserializer=script__pb2.Empty.FromString,
+                '/bridge.KV/PutRecord',
+                request_serializer=bridge__pb2.DHTRecord.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
                 _registered_method=True)
         self.GetRecord = channel.unary_unary(
-                '/script.DHT/GetRecord',
-                request_serializer=script__pb2.DHTKey.SerializeToString,
-                response_deserializer=script__pb2.OptionalData.FromString,
+                '/bridge.KV/GetRecord',
+                request_serializer=bridge__pb2.DHTKey.SerializeToString,
+                response_deserializer=bridge__pb2.OptionalData.FromString,
                 _registered_method=True)
         self.RemoveRecord = channel.unary_unary(
-                '/script.DHT/RemoveRecord',
-                request_serializer=script__pb2.DHTKey.SerializeToString,
-                response_deserializer=script__pb2.Empty.FromString,
-                _registered_method=True)
-        self.Provide = channel.unary_unary(
-                '/script.DHT/Provide',
-                request_serializer=script__pb2.DHTKey.SerializeToString,
-                response_deserializer=script__pb2.Empty.FromString,
-                _registered_method=True)
-        self.GetProviders = channel.unary_stream(
-                '/script.DHT/GetProviders',
-                request_serializer=script__pb2.DHTKey.SerializeToString,
-                response_deserializer=script__pb2.Peer.FromString,
-                _registered_method=True)
-        self.StopProviding = channel.unary_unary(
-                '/script.DHT/StopProviding',
-                request_serializer=script__pb2.DHTKey.SerializeToString,
-                response_deserializer=script__pb2.Empty.FromString,
+                '/bridge.KV/RemoveRecord',
+                request_serializer=bridge__pb2.DHTKey.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
                 _registered_method=True)
 
 
-class DHTServicer(object):
+class KVServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def PutRecord(self, request, context):
-        """Put a record in the DHT
+        """Put a record into the global key-value store
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetRecord(self, request, context):
-        """Get a record from the DHT. The value of the record will be empty if the key
-        is not found.
+        """Get a record from the global key-value store.
+        The value of the record will be empty if the key is not found.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def RemoveRecord(self, request, context):
-        """Remove a record from the DHT
-        This only has local effects and only affects the DHT once the records expire.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def Provide(self, request, context):
-        """Mark the current runtime as a provider for a key in the DHT
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetProviders(self, request, context):
-        """Get the providers of a key in the DHT
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def StopProviding(self, request, context):
-        """Stop providing a key in the DHT.
-        This only has local effects and only affects the DHT once the providers records expire.
+        """Remove a record from the global key-value store.
+        This only has local effects and only affects the key-value store once the
+        records expire.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_DHTServicer_to_server(servicer, server):
+def add_KVServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'PutRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.PutRecord,
-                    request_deserializer=script__pb2.DHTRecord.FromString,
-                    response_serializer=script__pb2.Empty.SerializeToString,
+                    request_deserializer=bridge__pb2.DHTRecord.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
             ),
             'GetRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.GetRecord,
-                    request_deserializer=script__pb2.DHTKey.FromString,
-                    response_serializer=script__pb2.OptionalData.SerializeToString,
+                    request_deserializer=bridge__pb2.DHTKey.FromString,
+                    response_serializer=bridge__pb2.OptionalData.SerializeToString,
             ),
             'RemoveRecord': grpc.unary_unary_rpc_method_handler(
                     servicer.RemoveRecord,
-                    request_deserializer=script__pb2.DHTKey.FromString,
-                    response_serializer=script__pb2.Empty.SerializeToString,
-            ),
-            'Provide': grpc.unary_unary_rpc_method_handler(
-                    servicer.Provide,
-                    request_deserializer=script__pb2.DHTKey.FromString,
-                    response_serializer=script__pb2.Empty.SerializeToString,
-            ),
-            'GetProviders': grpc.unary_stream_rpc_method_handler(
-                    servicer.GetProviders,
-                    request_deserializer=script__pb2.DHTKey.FromString,
-                    response_serializer=script__pb2.Peer.SerializeToString,
-            ),
-            'StopProviding': grpc.unary_unary_rpc_method_handler(
-                    servicer.StopProviding,
-                    request_deserializer=script__pb2.DHTKey.FromString,
-                    response_serializer=script__pb2.Empty.SerializeToString,
+                    request_deserializer=bridge__pb2.DHTKey.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.DHT', rpc_method_handlers)
+            'bridge.KV', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.DHT', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.KV', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class DHT(object):
+class KV(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -575,9 +480,9 @@ class DHT(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DHT/PutRecord',
-            script__pb2.DHTRecord.SerializeToString,
-            script__pb2.Empty.FromString,
+            '/bridge.KV/PutRecord',
+            bridge__pb2.DHTRecord.SerializeToString,
+            bridge__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
@@ -602,9 +507,9 @@ class DHT(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DHT/GetRecord',
-            script__pb2.DHTKey.SerializeToString,
-            script__pb2.OptionalData.FromString,
+            '/bridge.KV/GetRecord',
+            bridge__pb2.DHTKey.SerializeToString,
+            bridge__pb2.OptionalData.FromString,
             options,
             channel_credentials,
             insecure,
@@ -629,9 +534,9 @@ class DHT(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DHT/RemoveRecord',
-            script__pb2.DHTKey.SerializeToString,
-            script__pb2.Empty.FromString,
+            '/bridge.KV/RemoveRecord',
+            bridge__pb2.DHTKey.SerializeToString,
+            bridge__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
@@ -641,6 +546,105 @@ class DHT(object):
             timeout,
             metadata,
             _registered_method=True)
+
+
+class DiscoveryStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Provide = channel.unary_unary(
+                '/bridge.Discovery/Provide',
+                request_serializer=bridge__pb2.DHTKey.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
+                _registered_method=True)
+        self.GetProviders = channel.unary_stream(
+                '/bridge.Discovery/GetProviders',
+                request_serializer=bridge__pb2.DHTKey.SerializeToString,
+                response_deserializer=bridge__pb2.Peer.FromString,
+                _registered_method=True)
+        self.StopProviding = channel.unary_unary(
+                '/bridge.Discovery/StopProviding',
+                request_serializer=bridge__pb2.DHTKey.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
+                _registered_method=True)
+        self.GetOwnId = channel.unary_unary(
+                '/bridge.Discovery/GetOwnId',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.Peer.FromString,
+                _registered_method=True)
+
+
+class DiscoveryServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Provide(self, request, context):
+        """Mark the current runtime as a provider for a discovery key
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetProviders(self, request, context):
+        """Get the providers of a discovery key
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopProviding(self, request, context):
+        """Stop providing a discovery key.
+        This only has local effects and only affects other hyveOS nodes once the
+        providers records expire.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetOwnId(self, request, context):
+        """Get the peer id of the current runtime
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_DiscoveryServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Provide': grpc.unary_unary_rpc_method_handler(
+                    servicer.Provide,
+                    request_deserializer=bridge__pb2.DHTKey.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
+            ),
+            'GetProviders': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetProviders,
+                    request_deserializer=bridge__pb2.DHTKey.FromString,
+                    response_serializer=bridge__pb2.Peer.SerializeToString,
+            ),
+            'StopProviding': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopProviding,
+                    request_deserializer=bridge__pb2.DHTKey.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
+            ),
+            'GetOwnId': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetOwnId,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.Peer.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'bridge.Discovery', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('bridge.Discovery', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class Discovery(object):
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
     def Provide(request,
@@ -656,9 +660,9 @@ class DHT(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DHT/Provide',
-            script__pb2.DHTKey.SerializeToString,
-            script__pb2.Empty.FromString,
+            '/bridge.Discovery/Provide',
+            bridge__pb2.DHTKey.SerializeToString,
+            bridge__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
@@ -683,9 +687,9 @@ class DHT(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.DHT/GetProviders',
-            script__pb2.DHTKey.SerializeToString,
-            script__pb2.Peer.FromString,
+            '/bridge.Discovery/GetProviders',
+            bridge__pb2.DHTKey.SerializeToString,
+            bridge__pb2.Peer.FromString,
             options,
             channel_credentials,
             insecure,
@@ -710,9 +714,36 @@ class DHT(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DHT/StopProviding',
-            script__pb2.DHTKey.SerializeToString,
-            script__pb2.Empty.FromString,
+            '/bridge.Discovery/StopProviding',
+            bridge__pb2.DHTKey.SerializeToString,
+            bridge__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetOwnId(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/bridge.Discovery/GetOwnId',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.Peer.FromString,
             options,
             channel_credentials,
             insecure,
@@ -724,7 +755,7 @@ class DHT(object):
             _registered_method=True)
 
 
-class DBStub(object):
+class LocalKVStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -734,57 +765,59 @@ class DBStub(object):
             channel: A grpc.Channel.
         """
         self.Put = channel.unary_unary(
-                '/script.DB/Put',
-                request_serializer=script__pb2.DBRecord.SerializeToString,
-                response_deserializer=script__pb2.OptionalData.FromString,
+                '/bridge.LocalKV/Put',
+                request_serializer=bridge__pb2.DBRecord.SerializeToString,
+                response_deserializer=bridge__pb2.OptionalData.FromString,
                 _registered_method=True)
         self.Get = channel.unary_unary(
-                '/script.DB/Get',
-                request_serializer=script__pb2.DBKey.SerializeToString,
-                response_deserializer=script__pb2.OptionalData.FromString,
+                '/bridge.LocalKV/Get',
+                request_serializer=bridge__pb2.DBKey.SerializeToString,
+                response_deserializer=bridge__pb2.OptionalData.FromString,
                 _registered_method=True)
 
 
-class DBServicer(object):
+class LocalKVServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Put(self, request, context):
-        """Put a record into the key-value store and get the previous value if it
-        exists
+        """Put a record into the local key-value store and get the previous value if
+        it exists. This only has local effects but will be persisted across
+        restarts.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def Get(self, request, context):
-        """Get a record from the key-value store
+        """Get a record from the local key-value store.
+        This will not return records from other hyveOS nodes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_DBServicer_to_server(servicer, server):
+def add_LocalKVServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Put': grpc.unary_unary_rpc_method_handler(
                     servicer.Put,
-                    request_deserializer=script__pb2.DBRecord.FromString,
-                    response_serializer=script__pb2.OptionalData.SerializeToString,
+                    request_deserializer=bridge__pb2.DBRecord.FromString,
+                    response_serializer=bridge__pb2.OptionalData.SerializeToString,
             ),
             'Get': grpc.unary_unary_rpc_method_handler(
                     servicer.Get,
-                    request_deserializer=script__pb2.DBKey.FromString,
-                    response_serializer=script__pb2.OptionalData.SerializeToString,
+                    request_deserializer=bridge__pb2.DBKey.FromString,
+                    response_serializer=bridge__pb2.OptionalData.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.DB', rpc_method_handlers)
+            'bridge.LocalKV', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.DB', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.LocalKV', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class DB(object):
+class LocalKV(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -801,9 +834,9 @@ class DB(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DB/Put',
-            script__pb2.DBRecord.SerializeToString,
-            script__pb2.OptionalData.FromString,
+            '/bridge.LocalKV/Put',
+            bridge__pb2.DBRecord.SerializeToString,
+            bridge__pb2.OptionalData.FromString,
             options,
             channel_credentials,
             insecure,
@@ -828,9 +861,9 @@ class DB(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.DB/Get',
-            script__pb2.DBKey.SerializeToString,
-            script__pb2.OptionalData.FromString,
+            '/bridge.LocalKV/Get',
+            bridge__pb2.DBKey.SerializeToString,
+            bridge__pb2.OptionalData.FromString,
             options,
             channel_credentials,
             insecure,
@@ -852,19 +885,19 @@ class FileTransferStub(object):
             channel: A grpc.Channel.
         """
         self.PublishFile = channel.unary_unary(
-                '/script.FileTransfer/PublishFile',
-                request_serializer=script__pb2.FilePath.SerializeToString,
-                response_deserializer=script__pb2.CID.FromString,
+                '/bridge.FileTransfer/PublishFile',
+                request_serializer=bridge__pb2.FilePath.SerializeToString,
+                response_deserializer=bridge__pb2.CID.FromString,
                 _registered_method=True)
         self.GetFile = channel.unary_unary(
-                '/script.FileTransfer/GetFile',
-                request_serializer=script__pb2.CID.SerializeToString,
-                response_deserializer=script__pb2.FilePath.FromString,
+                '/bridge.FileTransfer/GetFile',
+                request_serializer=bridge__pb2.CID.SerializeToString,
+                response_deserializer=bridge__pb2.FilePath.FromString,
                 _registered_method=True)
         self.GetFileWithProgress = channel.unary_stream(
-                '/script.FileTransfer/GetFileWithProgress',
-                request_serializer=script__pb2.CID.SerializeToString,
-                response_deserializer=script__pb2.DownloadEvent.FromString,
+                '/bridge.FileTransfer/GetFileWithProgress',
+                request_serializer=bridge__pb2.CID.SerializeToString,
+                response_deserializer=bridge__pb2.DownloadEvent.FromString,
                 _registered_method=True)
 
 
@@ -898,24 +931,24 @@ def add_FileTransferServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'PublishFile': grpc.unary_unary_rpc_method_handler(
                     servicer.PublishFile,
-                    request_deserializer=script__pb2.FilePath.FromString,
-                    response_serializer=script__pb2.CID.SerializeToString,
+                    request_deserializer=bridge__pb2.FilePath.FromString,
+                    response_serializer=bridge__pb2.CID.SerializeToString,
             ),
             'GetFile': grpc.unary_unary_rpc_method_handler(
                     servicer.GetFile,
-                    request_deserializer=script__pb2.CID.FromString,
-                    response_serializer=script__pb2.FilePath.SerializeToString,
+                    request_deserializer=bridge__pb2.CID.FromString,
+                    response_serializer=bridge__pb2.FilePath.SerializeToString,
             ),
             'GetFileWithProgress': grpc.unary_stream_rpc_method_handler(
                     servicer.GetFileWithProgress,
-                    request_deserializer=script__pb2.CID.FromString,
-                    response_serializer=script__pb2.DownloadEvent.SerializeToString,
+                    request_deserializer=bridge__pb2.CID.FromString,
+                    response_serializer=bridge__pb2.DownloadEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.FileTransfer', rpc_method_handlers)
+            'bridge.FileTransfer', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.FileTransfer', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.FileTransfer', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -936,9 +969,9 @@ class FileTransfer(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.FileTransfer/PublishFile',
-            script__pb2.FilePath.SerializeToString,
-            script__pb2.CID.FromString,
+            '/bridge.FileTransfer/PublishFile',
+            bridge__pb2.FilePath.SerializeToString,
+            bridge__pb2.CID.FromString,
             options,
             channel_credentials,
             insecure,
@@ -963,9 +996,9 @@ class FileTransfer(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.FileTransfer/GetFile',
-            script__pb2.CID.SerializeToString,
-            script__pb2.FilePath.FromString,
+            '/bridge.FileTransfer/GetFile',
+            bridge__pb2.CID.SerializeToString,
+            bridge__pb2.FilePath.FromString,
             options,
             channel_credentials,
             insecure,
@@ -990,9 +1023,9 @@ class FileTransfer(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.FileTransfer/GetFileWithProgress',
-            script__pb2.CID.SerializeToString,
-            script__pb2.DownloadEvent.FromString,
+            '/bridge.FileTransfer/GetFileWithProgress',
+            bridge__pb2.CID.SerializeToString,
+            bridge__pb2.DownloadEvent.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1014,14 +1047,14 @@ class DebugStub(object):
             channel: A grpc.Channel.
         """
         self.SubscribeMeshTopology = channel.unary_stream(
-                '/script.Debug/SubscribeMeshTopology',
-                request_serializer=script__pb2.Empty.SerializeToString,
-                response_deserializer=script__pb2.MeshTopologyEvent.FromString,
+                '/bridge.Debug/SubscribeMeshTopology',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.MeshTopologyEvent.FromString,
                 _registered_method=True)
         self.SubscribeMessages = channel.unary_stream(
-                '/script.Debug/SubscribeMessages',
-                request_serializer=script__pb2.Empty.SerializeToString,
-                response_deserializer=script__pb2.MessageDebugEvent.FromString,
+                '/bridge.Debug/SubscribeMessages',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.MessageDebugEvent.FromString,
                 _registered_method=True)
 
 
@@ -1048,19 +1081,19 @@ def add_DebugServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SubscribeMeshTopology': grpc.unary_stream_rpc_method_handler(
                     servicer.SubscribeMeshTopology,
-                    request_deserializer=script__pb2.Empty.FromString,
-                    response_serializer=script__pb2.MeshTopologyEvent.SerializeToString,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.MeshTopologyEvent.SerializeToString,
             ),
             'SubscribeMessages': grpc.unary_stream_rpc_method_handler(
                     servicer.SubscribeMessages,
-                    request_deserializer=script__pb2.Empty.FromString,
-                    response_serializer=script__pb2.MessageDebugEvent.SerializeToString,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.MessageDebugEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.Debug', rpc_method_handlers)
+            'bridge.Debug', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.Debug', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.Debug', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -1081,9 +1114,9 @@ class Debug(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.Debug/SubscribeMeshTopology',
-            script__pb2.Empty.SerializeToString,
-            script__pb2.MeshTopologyEvent.FromString,
+            '/bridge.Debug/SubscribeMeshTopology',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.MeshTopologyEvent.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1108,9 +1141,9 @@ class Debug(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/script.Debug/SubscribeMessages',
-            script__pb2.Empty.SerializeToString,
-            script__pb2.MessageDebugEvent.FromString,
+            '/bridge.Debug/SubscribeMessages',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.MessageDebugEvent.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1122,7 +1155,7 @@ class Debug(object):
             _registered_method=True)
 
 
-class ScriptingStub(object):
+class AppsStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -1131,95 +1164,95 @@ class ScriptingStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.DeployScript = channel.unary_unary(
-                '/script.Scripting/DeployScript',
-                request_serializer=script__pb2.DeployScriptRequest.SerializeToString,
-                response_deserializer=script__pb2.ID.FromString,
+        self.DeployApp = channel.unary_unary(
+                '/bridge.Apps/DeployApp',
+                request_serializer=bridge__pb2.DeployAppRequest.SerializeToString,
+                response_deserializer=bridge__pb2.ID.FromString,
                 _registered_method=True)
-        self.ListRunningScripts = channel.unary_unary(
-                '/script.Scripting/ListRunningScripts',
-                request_serializer=script__pb2.ListRunningScriptsRequest.SerializeToString,
-                response_deserializer=script__pb2.RunningScripts.FromString,
+        self.ListRunningApps = channel.unary_unary(
+                '/bridge.Apps/ListRunningApps',
+                request_serializer=bridge__pb2.ListRunningAppsRequest.SerializeToString,
+                response_deserializer=bridge__pb2.RunningApps.FromString,
                 _registered_method=True)
-        self.StopScript = channel.unary_unary(
-                '/script.Scripting/StopScript',
-                request_serializer=script__pb2.StopScriptRequest.SerializeToString,
-                response_deserializer=script__pb2.Empty.FromString,
+        self.StopApp = channel.unary_unary(
+                '/bridge.Apps/StopApp',
+                request_serializer=bridge__pb2.StopAppRequest.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
                 _registered_method=True)
-        self.GetOwnId = channel.unary_unary(
-                '/script.Scripting/GetOwnId',
-                request_serializer=script__pb2.Empty.SerializeToString,
-                response_deserializer=script__pb2.ID.FromString,
+        self.GetOwnAppId = channel.unary_unary(
+                '/bridge.Apps/GetOwnAppId',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.ID.FromString,
                 _registered_method=True)
 
 
-class ScriptingServicer(object):
+class AppsServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def DeployScript(self, request, context):
-        """Deploy a script to a peer and get the id of the deployed script
+    def DeployApp(self, request, context):
+        """Deploy an app to a peer and get the id of the deployed app
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ListRunningScripts(self, request, context):
-        """List running scripts on a peer
+    def ListRunningApps(self, request, context):
+        """List running apps on a peer
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StopScript(self, request, context):
-        """Stop a running script on a peer
+    def StopApp(self, request, context):
+        """Stop a running app on a peer
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetOwnId(self, request, context):
-        """Get the id of the current script
+    def GetOwnAppId(self, request, context):
+        """Get the id of the current app
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_ScriptingServicer_to_server(servicer, server):
+def add_AppsServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'DeployScript': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeployScript,
-                    request_deserializer=script__pb2.DeployScriptRequest.FromString,
-                    response_serializer=script__pb2.ID.SerializeToString,
+            'DeployApp': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeployApp,
+                    request_deserializer=bridge__pb2.DeployAppRequest.FromString,
+                    response_serializer=bridge__pb2.ID.SerializeToString,
             ),
-            'ListRunningScripts': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListRunningScripts,
-                    request_deserializer=script__pb2.ListRunningScriptsRequest.FromString,
-                    response_serializer=script__pb2.RunningScripts.SerializeToString,
+            'ListRunningApps': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListRunningApps,
+                    request_deserializer=bridge__pb2.ListRunningAppsRequest.FromString,
+                    response_serializer=bridge__pb2.RunningApps.SerializeToString,
             ),
-            'StopScript': grpc.unary_unary_rpc_method_handler(
-                    servicer.StopScript,
-                    request_deserializer=script__pb2.StopScriptRequest.FromString,
-                    response_serializer=script__pb2.Empty.SerializeToString,
+            'StopApp': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopApp,
+                    request_deserializer=bridge__pb2.StopAppRequest.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
             ),
-            'GetOwnId': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetOwnId,
-                    request_deserializer=script__pb2.Empty.FromString,
-                    response_serializer=script__pb2.ID.SerializeToString,
+            'GetOwnAppId': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetOwnAppId,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.ID.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'script.Scripting', rpc_method_handlers)
+            'bridge.Apps', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('script.Scripting', rpc_method_handlers)
+    server.add_registered_method_handlers('bridge.Apps', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class Scripting(object):
+class Apps(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def DeployScript(request,
+    def DeployApp(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1232,9 +1265,9 @@ class Scripting(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.Scripting/DeployScript',
-            script__pb2.DeployScriptRequest.SerializeToString,
-            script__pb2.ID.FromString,
+            '/bridge.Apps/DeployApp',
+            bridge__pb2.DeployAppRequest.SerializeToString,
+            bridge__pb2.ID.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1246,7 +1279,7 @@ class Scripting(object):
             _registered_method=True)
 
     @staticmethod
-    def ListRunningScripts(request,
+    def ListRunningApps(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1259,9 +1292,9 @@ class Scripting(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.Scripting/ListRunningScripts',
-            script__pb2.ListRunningScriptsRequest.SerializeToString,
-            script__pb2.RunningScripts.FromString,
+            '/bridge.Apps/ListRunningApps',
+            bridge__pb2.ListRunningAppsRequest.SerializeToString,
+            bridge__pb2.RunningApps.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1273,7 +1306,7 @@ class Scripting(object):
             _registered_method=True)
 
     @staticmethod
-    def StopScript(request,
+    def StopApp(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1286,9 +1319,9 @@ class Scripting(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.Scripting/StopScript',
-            script__pb2.StopScriptRequest.SerializeToString,
-            script__pb2.Empty.FromString,
+            '/bridge.Apps/StopApp',
+            bridge__pb2.StopAppRequest.SerializeToString,
+            bridge__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1300,7 +1333,7 @@ class Scripting(object):
             _registered_method=True)
 
     @staticmethod
-    def GetOwnId(request,
+    def GetOwnAppId(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1313,9 +1346,9 @@ class Scripting(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/script.Scripting/GetOwnId',
-            script__pb2.Empty.SerializeToString,
-            script__pb2.ID.FromString,
+            '/bridge.Apps/GetOwnAppId',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.ID.FromString,
             options,
             channel_credentials,
             insecure,

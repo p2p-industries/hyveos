@@ -117,13 +117,13 @@ class NeighbourEvent(_message.Message):
     lost: Peer
     def __init__(self, init: _Optional[_Union[Peers, _Mapping]] = ..., discovered: _Optional[_Union[Peer, _Mapping]] = ..., lost: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
 
-class GossipSubMessageID(_message.Message):
+class PubSubMessageID(_message.Message):
     __slots__ = ("id",)
     ID_FIELD_NUMBER: _ClassVar[int]
     id: bytes
     def __init__(self, id: _Optional[bytes] = ...) -> None: ...
 
-class GossipSubMessage(_message.Message):
+class PubSubMessage(_message.Message):
     __slots__ = ("data", "topic")
     DATA_FIELD_NUMBER: _ClassVar[int]
     TOPIC_FIELD_NUMBER: _ClassVar[int]
@@ -131,7 +131,7 @@ class GossipSubMessage(_message.Message):
     topic: Topic
     def __init__(self, data: _Optional[_Union[Data, _Mapping]] = ..., topic: _Optional[_Union[Topic, _Mapping]] = ...) -> None: ...
 
-class GossipSubRecvMessage(_message.Message):
+class PubSubRecvMessage(_message.Message):
     __slots__ = ("propagation_source", "source", "msg", "msg_id")
     PROPAGATION_SOURCE_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
@@ -139,9 +139,9 @@ class GossipSubRecvMessage(_message.Message):
     MSG_ID_FIELD_NUMBER: _ClassVar[int]
     propagation_source: Peer
     source: Peer
-    msg: GossipSubMessage
-    msg_id: GossipSubMessageID
-    def __init__(self, propagation_source: _Optional[_Union[Peer, _Mapping]] = ..., source: _Optional[_Union[Peer, _Mapping]] = ..., msg: _Optional[_Union[GossipSubMessage, _Mapping]] = ..., msg_id: _Optional[_Union[GossipSubMessageID, _Mapping]] = ...) -> None: ...
+    msg: PubSubMessage
+    msg_id: PubSubMessageID
+    def __init__(self, propagation_source: _Optional[_Union[Peer, _Mapping]] = ..., source: _Optional[_Union[Peer, _Mapping]] = ..., msg: _Optional[_Union[PubSubMessage, _Mapping]] = ..., msg_id: _Optional[_Union[PubSubMessageID, _Mapping]] = ...) -> None: ...
 
 class DHTKey(_message.Message):
     __slots__ = ("topic", "key")
@@ -222,16 +222,16 @@ class ResponseDebugEvent(_message.Message):
     def __init__(self, req_id: _Optional[_Union[ID, _Mapping]] = ..., response: _Optional[_Union[Response, _Mapping]] = ...) -> None: ...
 
 class MessageDebugEvent(_message.Message):
-    __slots__ = ("sender", "req", "res", "gos")
+    __slots__ = ("sender", "req", "res", "pub_sub")
     SENDER_FIELD_NUMBER: _ClassVar[int]
     REQ_FIELD_NUMBER: _ClassVar[int]
     RES_FIELD_NUMBER: _ClassVar[int]
-    GOS_FIELD_NUMBER: _ClassVar[int]
+    PUB_SUB_FIELD_NUMBER: _ClassVar[int]
     sender: Peer
     req: RequestDebugEvent
     res: ResponseDebugEvent
-    gos: GossipSubMessage
-    def __init__(self, sender: _Optional[_Union[Peer, _Mapping]] = ..., req: _Optional[_Union[RequestDebugEvent, _Mapping]] = ..., res: _Optional[_Union[ResponseDebugEvent, _Mapping]] = ..., gos: _Optional[_Union[GossipSubMessage, _Mapping]] = ...) -> None: ...
+    pub_sub: PubSubMessage
+    def __init__(self, sender: _Optional[_Union[Peer, _Mapping]] = ..., req: _Optional[_Union[RequestDebugEvent, _Mapping]] = ..., res: _Optional[_Union[ResponseDebugEvent, _Mapping]] = ..., pub_sub: _Optional[_Union[PubSubMessage, _Mapping]] = ...) -> None: ...
 
 class DockerImage(_message.Message):
     __slots__ = ("name",)
@@ -239,7 +239,7 @@ class DockerImage(_message.Message):
     name: str
     def __init__(self, name: _Optional[str] = ...) -> None: ...
 
-class DockerScript(_message.Message):
+class DockerApp(_message.Message):
     __slots__ = ("image", "ports")
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     PORTS_FIELD_NUMBER: _ClassVar[int]
@@ -247,25 +247,25 @@ class DockerScript(_message.Message):
     ports: _containers.RepeatedScalarFieldContainer[int]
     def __init__(self, image: _Optional[_Union[DockerImage, _Mapping]] = ..., ports: _Optional[_Iterable[int]] = ...) -> None: ...
 
-class DeployScriptRequest(_message.Message):
-    __slots__ = ("script", "local", "peer", "persistent")
-    SCRIPT_FIELD_NUMBER: _ClassVar[int]
+class DeployAppRequest(_message.Message):
+    __slots__ = ("app", "local", "peer", "persistent")
+    APP_FIELD_NUMBER: _ClassVar[int]
     LOCAL_FIELD_NUMBER: _ClassVar[int]
     PEER_FIELD_NUMBER: _ClassVar[int]
     PERSISTENT_FIELD_NUMBER: _ClassVar[int]
-    script: DockerScript
+    app: DockerApp
     local: bool
     peer: Peer
     persistent: bool
-    def __init__(self, script: _Optional[_Union[DockerScript, _Mapping]] = ..., local: bool = ..., peer: _Optional[_Union[Peer, _Mapping]] = ..., persistent: bool = ...) -> None: ...
+    def __init__(self, app: _Optional[_Union[DockerApp, _Mapping]] = ..., local: bool = ..., peer: _Optional[_Union[Peer, _Mapping]] = ..., persistent: bool = ...) -> None: ...
 
-class ListRunningScriptsRequest(_message.Message):
+class ListRunningAppsRequest(_message.Message):
     __slots__ = ("peer",)
     PEER_FIELD_NUMBER: _ClassVar[int]
     peer: Peer
     def __init__(self, peer: _Optional[_Union[Peer, _Mapping]] = ...) -> None: ...
 
-class RunningScript(_message.Message):
+class RunningApp(_message.Message):
     __slots__ = ("id", "image", "name")
     ID_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
@@ -275,13 +275,13 @@ class RunningScript(_message.Message):
     name: str
     def __init__(self, id: _Optional[_Union[ID, _Mapping]] = ..., image: _Optional[_Union[DockerImage, _Mapping]] = ..., name: _Optional[str] = ...) -> None: ...
 
-class RunningScripts(_message.Message):
-    __slots__ = ("scripts",)
-    SCRIPTS_FIELD_NUMBER: _ClassVar[int]
-    scripts: _containers.RepeatedCompositeFieldContainer[RunningScript]
-    def __init__(self, scripts: _Optional[_Iterable[_Union[RunningScript, _Mapping]]] = ...) -> None: ...
+class RunningApps(_message.Message):
+    __slots__ = ("apps",)
+    APPS_FIELD_NUMBER: _ClassVar[int]
+    apps: _containers.RepeatedCompositeFieldContainer[RunningApp]
+    def __init__(self, apps: _Optional[_Iterable[_Union[RunningApp, _Mapping]]] = ...) -> None: ...
 
-class StopScriptRequest(_message.Message):
+class StopAppRequest(_message.Message):
     __slots__ = ("id", "peer")
     ID_FIELD_NUMBER: _ClassVar[int]
     PEER_FIELD_NUMBER: _ClassVar[int]
