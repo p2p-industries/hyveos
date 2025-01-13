@@ -202,19 +202,31 @@ class NeighboursStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.SubscribeEvents = channel.unary_stream(
-                '/bridge.Neighbours/SubscribeEvents',
+        self.Subscribe = channel.unary_stream(
+                '/bridge.Neighbours/Subscribe',
                 request_serializer=bridge__pb2.Empty.SerializeToString,
                 response_deserializer=bridge__pb2.NeighbourEvent.FromString,
+                _registered_method=True)
+        self.Get = channel.unary_unary(
+                '/bridge.Neighbours/Get',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.Peers.FromString,
                 _registered_method=True)
 
 
 class NeighboursServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def SubscribeEvents(self, request, context):
+    def Subscribe(self, request, context):
         """Subscribe to neighbour discovery events to get notified when new neighbour
         peers are discovered or lost
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Get(self, request, context):
+        """Get the neighbours of the current runtime
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -223,10 +235,15 @@ class NeighboursServicer(object):
 
 def add_NeighboursServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'SubscribeEvents': grpc.unary_stream_rpc_method_handler(
-                    servicer.SubscribeEvents,
+            'Subscribe': grpc.unary_stream_rpc_method_handler(
+                    servicer.Subscribe,
                     request_deserializer=bridge__pb2.Empty.FromString,
                     response_serializer=bridge__pb2.NeighbourEvent.SerializeToString,
+            ),
+            'Get': grpc.unary_unary_rpc_method_handler(
+                    servicer.Get,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.Peers.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -240,7 +257,7 @@ class Neighbours(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def SubscribeEvents(request,
+    def Subscribe(request,
             target,
             options=(),
             channel_credentials=None,
@@ -253,9 +270,36 @@ class Neighbours(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/bridge.Neighbours/SubscribeEvents',
+            '/bridge.Neighbours/Subscribe',
             bridge__pb2.Empty.SerializeToString,
             bridge__pb2.NeighbourEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Get(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/bridge.Neighbours/Get',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.Peers.FromString,
             options,
             channel_credentials,
             insecure,
@@ -766,12 +810,12 @@ class LocalKVStub(object):
         """
         self.Put = channel.unary_unary(
                 '/bridge.LocalKV/Put',
-                request_serializer=bridge__pb2.DBRecord.SerializeToString,
+                request_serializer=bridge__pb2.LocalKVRecord.SerializeToString,
                 response_deserializer=bridge__pb2.OptionalData.FromString,
                 _registered_method=True)
         self.Get = channel.unary_unary(
                 '/bridge.LocalKV/Get',
-                request_serializer=bridge__pb2.DBKey.SerializeToString,
+                request_serializer=bridge__pb2.LocalKVKey.SerializeToString,
                 response_deserializer=bridge__pb2.OptionalData.FromString,
                 _registered_method=True)
 
@@ -801,12 +845,12 @@ def add_LocalKVServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Put': grpc.unary_unary_rpc_method_handler(
                     servicer.Put,
-                    request_deserializer=bridge__pb2.DBRecord.FromString,
+                    request_deserializer=bridge__pb2.LocalKVRecord.FromString,
                     response_serializer=bridge__pb2.OptionalData.SerializeToString,
             ),
             'Get': grpc.unary_unary_rpc_method_handler(
                     servicer.Get,
-                    request_deserializer=bridge__pb2.DBKey.FromString,
+                    request_deserializer=bridge__pb2.LocalKVKey.FromString,
                     response_serializer=bridge__pb2.OptionalData.SerializeToString,
             ),
     }
@@ -835,7 +879,7 @@ class LocalKV(object):
             request,
             target,
             '/bridge.LocalKV/Put',
-            bridge__pb2.DBRecord.SerializeToString,
+            bridge__pb2.LocalKVRecord.SerializeToString,
             bridge__pb2.OptionalData.FromString,
             options,
             channel_credentials,
@@ -862,7 +906,7 @@ class LocalKV(object):
             request,
             target,
             '/bridge.LocalKV/Get',
-            bridge__pb2.DBKey.SerializeToString,
+            bridge__pb2.LocalKVKey.SerializeToString,
             bridge__pb2.OptionalData.FromString,
             options,
             channel_credentials,
@@ -884,18 +928,18 @@ class FileTransferStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.PublishFile = channel.unary_unary(
-                '/bridge.FileTransfer/PublishFile',
+        self.Publish = channel.unary_unary(
+                '/bridge.FileTransfer/Publish',
                 request_serializer=bridge__pb2.FilePath.SerializeToString,
                 response_deserializer=bridge__pb2.CID.FromString,
                 _registered_method=True)
-        self.GetFile = channel.unary_unary(
-                '/bridge.FileTransfer/GetFile',
+        self.Get = channel.unary_unary(
+                '/bridge.FileTransfer/Get',
                 request_serializer=bridge__pb2.CID.SerializeToString,
                 response_deserializer=bridge__pb2.FilePath.FromString,
                 _registered_method=True)
-        self.GetFileWithProgress = channel.unary_stream(
-                '/bridge.FileTransfer/GetFileWithProgress',
+        self.GetWithProgress = channel.unary_stream(
+                '/bridge.FileTransfer/GetWithProgress',
                 request_serializer=bridge__pb2.CID.SerializeToString,
                 response_deserializer=bridge__pb2.DownloadEvent.FromString,
                 _registered_method=True)
@@ -904,21 +948,21 @@ class FileTransferStub(object):
 class FileTransferServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def PublishFile(self, request, context):
+    def Publish(self, request, context):
         """Publish a file in the runtime and get the cid of the file
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetFile(self, request, context):
+    def Get(self, request, context):
         """Request a file with a cid from the runtime
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetFileWithProgress(self, request, context):
+    def GetWithProgress(self, request, context):
         """Request a file with a cid from the runtime and get notified about the
         download progress
         """
@@ -929,18 +973,18 @@ class FileTransferServicer(object):
 
 def add_FileTransferServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'PublishFile': grpc.unary_unary_rpc_method_handler(
-                    servicer.PublishFile,
+            'Publish': grpc.unary_unary_rpc_method_handler(
+                    servicer.Publish,
                     request_deserializer=bridge__pb2.FilePath.FromString,
                     response_serializer=bridge__pb2.CID.SerializeToString,
             ),
-            'GetFile': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetFile,
+            'Get': grpc.unary_unary_rpc_method_handler(
+                    servicer.Get,
                     request_deserializer=bridge__pb2.CID.FromString,
                     response_serializer=bridge__pb2.FilePath.SerializeToString,
             ),
-            'GetFileWithProgress': grpc.unary_stream_rpc_method_handler(
-                    servicer.GetFileWithProgress,
+            'GetWithProgress': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetWithProgress,
                     request_deserializer=bridge__pb2.CID.FromString,
                     response_serializer=bridge__pb2.DownloadEvent.SerializeToString,
             ),
@@ -956,7 +1000,7 @@ class FileTransfer(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def PublishFile(request,
+    def Publish(request,
             target,
             options=(),
             channel_credentials=None,
@@ -969,7 +1013,7 @@ class FileTransfer(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/bridge.FileTransfer/PublishFile',
+            '/bridge.FileTransfer/Publish',
             bridge__pb2.FilePath.SerializeToString,
             bridge__pb2.CID.FromString,
             options,
@@ -983,7 +1027,7 @@ class FileTransfer(object):
             _registered_method=True)
 
     @staticmethod
-    def GetFile(request,
+    def Get(request,
             target,
             options=(),
             channel_credentials=None,
@@ -996,7 +1040,7 @@ class FileTransfer(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/bridge.FileTransfer/GetFile',
+            '/bridge.FileTransfer/Get',
             bridge__pb2.CID.SerializeToString,
             bridge__pb2.FilePath.FromString,
             options,
@@ -1010,7 +1054,7 @@ class FileTransfer(object):
             _registered_method=True)
 
     @staticmethod
-    def GetFileWithProgress(request,
+    def GetWithProgress(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1023,7 +1067,7 @@ class FileTransfer(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/bridge.FileTransfer/GetFileWithProgress',
+            '/bridge.FileTransfer/GetWithProgress',
             bridge__pb2.CID.SerializeToString,
             bridge__pb2.DownloadEvent.FromString,
             options,
@@ -1164,18 +1208,18 @@ class AppsStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.DeployApp = channel.unary_unary(
-                '/bridge.Apps/DeployApp',
+        self.Deploy = channel.unary_unary(
+                '/bridge.Apps/Deploy',
                 request_serializer=bridge__pb2.DeployAppRequest.SerializeToString,
                 response_deserializer=bridge__pb2.ID.FromString,
                 _registered_method=True)
-        self.ListRunningApps = channel.unary_unary(
-                '/bridge.Apps/ListRunningApps',
+        self.ListRunning = channel.unary_unary(
+                '/bridge.Apps/ListRunning',
                 request_serializer=bridge__pb2.ListRunningAppsRequest.SerializeToString,
                 response_deserializer=bridge__pb2.RunningApps.FromString,
                 _registered_method=True)
-        self.StopApp = channel.unary_unary(
-                '/bridge.Apps/StopApp',
+        self.Stop = channel.unary_unary(
+                '/bridge.Apps/Stop',
                 request_serializer=bridge__pb2.StopAppRequest.SerializeToString,
                 response_deserializer=bridge__pb2.Empty.FromString,
                 _registered_method=True)
@@ -1189,21 +1233,21 @@ class AppsStub(object):
 class AppsServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def DeployApp(self, request, context):
+    def Deploy(self, request, context):
         """Deploy an app to a peer and get the id of the deployed app
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ListRunningApps(self, request, context):
+    def ListRunning(self, request, context):
         """List running apps on a peer
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StopApp(self, request, context):
+    def Stop(self, request, context):
         """Stop a running app on a peer
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -1220,18 +1264,18 @@ class AppsServicer(object):
 
 def add_AppsServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'DeployApp': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeployApp,
+            'Deploy': grpc.unary_unary_rpc_method_handler(
+                    servicer.Deploy,
                     request_deserializer=bridge__pb2.DeployAppRequest.FromString,
                     response_serializer=bridge__pb2.ID.SerializeToString,
             ),
-            'ListRunningApps': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListRunningApps,
+            'ListRunning': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListRunning,
                     request_deserializer=bridge__pb2.ListRunningAppsRequest.FromString,
                     response_serializer=bridge__pb2.RunningApps.SerializeToString,
             ),
-            'StopApp': grpc.unary_unary_rpc_method_handler(
-                    servicer.StopApp,
+            'Stop': grpc.unary_unary_rpc_method_handler(
+                    servicer.Stop,
                     request_deserializer=bridge__pb2.StopAppRequest.FromString,
                     response_serializer=bridge__pb2.Empty.SerializeToString,
             ),
@@ -1252,7 +1296,7 @@ class Apps(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def DeployApp(request,
+    def Deploy(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1265,7 +1309,7 @@ class Apps(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/bridge.Apps/DeployApp',
+            '/bridge.Apps/Deploy',
             bridge__pb2.DeployAppRequest.SerializeToString,
             bridge__pb2.ID.FromString,
             options,
@@ -1279,7 +1323,7 @@ class Apps(object):
             _registered_method=True)
 
     @staticmethod
-    def ListRunningApps(request,
+    def ListRunning(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1292,7 +1336,7 @@ class Apps(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/bridge.Apps/ListRunningApps',
+            '/bridge.Apps/ListRunning',
             bridge__pb2.ListRunningAppsRequest.SerializeToString,
             bridge__pb2.RunningApps.FromString,
             options,
@@ -1306,7 +1350,7 @@ class Apps(object):
             _registered_method=True)
 
     @staticmethod
-    def StopApp(request,
+    def Stop(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1319,7 +1363,7 @@ class Apps(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/bridge.Apps/StopApp',
+            '/bridge.Apps/Stop',
             bridge__pb2.StopAppRequest.SerializeToString,
             bridge__pb2.Empty.FromString,
             options,

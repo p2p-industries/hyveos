@@ -12,7 +12,7 @@ import type { Message as Message$1 } from "@bufbuild/protobuf";
  * Describes the file bridge.proto.
  */
 export const file_bridge: GenFile = /*@__PURE__*/
-  fileDesc("CgxicmlkZ2UucHJvdG8SBmJyaWRnZSIHCgVFbXB0eSIUCgREYXRhEgwKBGRhdGEYASACKAwiKgoMT3B0aW9uYWxEYXRhEhoKBGRhdGEYASABKAsyDC5icmlkZ2UuRGF0YSISCgJJRBIMCgR1bGlkGAEgAigJIhcKBFBlZXISDwoHcGVlcl9pZBgBIAIoCSIWCgVUb3BpYxINCgV0b3BpYxgBIAIoCSItCg1PcHRpb25hbFRvcGljEhwKBXRvcGljGAEgASgLMg0uYnJpZGdlLlRvcGljIkYKClRvcGljUXVlcnkSHgoFdG9waWMYASABKAsyDS5icmlkZ2UuVG9waWNIABIPCgVyZWdleBgCIAEoCUgAQgcKBXF1ZXJ5IjcKEk9wdGlvbmFsVG9waWNRdWVyeRIhCgVxdWVyeRgBIAEoCzISLmJyaWRnZS5Ub3BpY1F1ZXJ5IksKB01lc3NhZ2USGgoEZGF0YRgBIAIoCzIMLmJyaWRnZS5EYXRhEiQKBXRvcGljGAIgAigLMhUuYnJpZGdlLk9wdGlvbmFsVG9waWMiRwoLU2VuZFJlcXVlc3QSGgoEcGVlchgBIAIoCzIMLmJyaWRnZS5QZWVyEhwKA21zZxgCIAIoCzIPLmJyaWRnZS5NZXNzYWdlIlQKC1JlY3ZSZXF1ZXN0EhoKBHBlZXIYASACKAsyDC5icmlkZ2UuUGVlchIcCgNtc2cYAiACKAsyDy5icmlkZ2UuTWVzc2FnZRILCgNzZXEYAyACKAQiRQoIUmVzcG9uc2USHAoEZGF0YRgBIAEoCzIMLmJyaWRnZS5EYXRhSAASDwoFZXJyb3IYAiABKAlIAEIKCghyZXNwb25zZSI/CgxTZW5kUmVzcG9uc2USCwoDc2VxGAEgAigEEiIKCHJlc3BvbnNlGAIgAigLMhAuYnJpZGdlLlJlc3BvbnNlIiQKBVBlZXJzEhsKBXBlZXJzGAEgAygLMgwuYnJpZGdlLlBlZXIiegoOTmVpZ2hib3VyRXZlbnQSHQoEaW5pdBgBIAEoCzINLmJyaWRnZS5QZWVyc0gAEiIKCmRpc2NvdmVyZWQYAiABKAsyDC5icmlkZ2UuUGVlckgAEhwKBGxvc3QYAyABKAsyDC5icmlkZ2UuUGVlckgAQgcKBWV2ZW50Ih0KD1B1YlN1Yk1lc3NhZ2VJRBIKCgJpZBgBIAIoDCJJCg1QdWJTdWJNZXNzYWdlEhoKBGRhdGEYASACKAsyDC5icmlkZ2UuRGF0YRIcCgV0b3BpYxgCIAIoCzINLmJyaWRnZS5Ub3BpYyKoAQoRUHViU3ViUmVjdk1lc3NhZ2USKAoScHJvcGFnYXRpb25fc291cmNlGAEgAigLMgwuYnJpZGdlLlBlZXISHAoGc291cmNlGAIgASgLMgwuYnJpZGdlLlBlZXISIgoDbXNnGAMgAigLMhUuYnJpZGdlLlB1YlN1Yk1lc3NhZ2USJwoGbXNnX2lkGAQgAigLMhcuYnJpZGdlLlB1YlN1Yk1lc3NhZ2VJRCIzCgZESFRLZXkSHAoFdG9waWMYASACKAsyDS5icmlkZ2UuVG9waWMSCwoDa2V5GAIgAigMIkUKCURIVFJlY29yZBIbCgNrZXkYASACKAsyDi5icmlkZ2UuREhUS2V5EhsKBXZhbHVlGAIgAigLMgwuYnJpZGdlLkRhdGEiNAoIREJSZWNvcmQSCwoDa2V5GAEgAigJEhsKBXZhbHVlGAIgAigLMgwuYnJpZGdlLkRhdGEiFAoFREJLZXkSCwoDa2V5GAEgAigJIhgKCEZpbGVQYXRoEgwKBHBhdGgYASACKAkiKwoDQ0lEEgwKBGhhc2gYASACKAwSFgoCaWQYAiACKAsyCi5icmlkZ2UuSUQiTwoNRG93bmxvYWRFdmVudBISCghwcm9ncmVzcxgBIAEoBEgAEiEKBXJlYWR5GAIgASgLMhAuYnJpZGdlLkZpbGVQYXRoSABCBwoFZXZlbnQiVgoRTWVzaFRvcG9sb2d5RXZlbnQSGgoEcGVlchgBIAIoCzIMLmJyaWRnZS5QZWVyEiUKBWV2ZW50GAIgAigLMhYuYnJpZGdlLk5laWdoYm91ckV2ZW50ImkKEVJlcXVlc3REZWJ1Z0V2ZW50EhYKAmlkGAEgAigLMgouYnJpZGdlLklEEh4KCHJlY2VpdmVyGAIgAigLMgwuYnJpZGdlLlBlZXISHAoDbXNnGAMgAigLMg8uYnJpZGdlLk1lc3NhZ2UiVAoSUmVzcG9uc2VEZWJ1Z0V2ZW50EhoKBnJlcV9pZBgBIAIoCzIKLmJyaWRnZS5JRBIiCghyZXNwb25zZRgCIAIoCzIQLmJyaWRnZS5SZXNwb25zZSK5AQoRTWVzc2FnZURlYnVnRXZlbnQSHAoGc2VuZGVyGAEgAigLMgwuYnJpZGdlLlBlZXISKAoDcmVxGAIgASgLMhkuYnJpZGdlLlJlcXVlc3REZWJ1Z0V2ZW50SAASKQoDcmVzGAMgASgLMhouYnJpZGdlLlJlc3BvbnNlRGVidWdFdmVudEgAEigKB3B1Yl9zdWIYBCABKAsyFS5icmlkZ2UuUHViU3ViTWVzc2FnZUgAQgcKBWV2ZW50IhsKC0RvY2tlckltYWdlEgwKBG5hbWUYASACKAkiPgoJRG9ja2VyQXBwEiIKBWltYWdlGAEgAigLMhMuYnJpZGdlLkRvY2tlckltYWdlEg0KBXBvcnRzGAIgAygNInEKEERlcGxveUFwcFJlcXVlc3QSHgoDYXBwGAEgAigLMhEuYnJpZGdlLkRvY2tlckFwcBINCgVsb2NhbBgCIAIoCBIaCgRwZWVyGAMgASgLMgwuYnJpZGdlLlBlZXISEgoKcGVyc2lzdGVudBgEIAIoCCI0ChZMaXN0UnVubmluZ0FwcHNSZXF1ZXN0EhoKBHBlZXIYASABKAsyDC5icmlkZ2UuUGVlciJWCgpSdW5uaW5nQXBwEhYKAmlkGAEgAigLMgouYnJpZGdlLklEEiIKBWltYWdlGAIgAigLMhMuYnJpZGdlLkRvY2tlckltYWdlEgwKBG5hbWUYAyABKAkiLwoLUnVubmluZ0FwcHMSIAoEYXBwcxgBIAMoCzISLmJyaWRnZS5SdW5uaW5nQXBwIkQKDlN0b3BBcHBSZXF1ZXN0EhYKAmlkGAEgAigLMgouYnJpZGdlLklEEhoKBHBlZXIYAiABKAsyDC5icmlkZ2UuUGVlcjKpAQoHUmVxUmVzcBIvCgRTZW5kEhMuYnJpZGdlLlNlbmRSZXF1ZXN0GhAuYnJpZGdlLlJlc3BvbnNlIgASOwoEUmVjdhIaLmJyaWRnZS5PcHRpb25hbFRvcGljUXVlcnkaEy5icmlkZ2UuUmVjdlJlcXVlc3QiADABEjAKB1Jlc3BvbmQSFC5icmlkZ2UuU2VuZFJlc3BvbnNlGg0uYnJpZGdlLkVtcHR5IgAySgoKTmVpZ2hib3VycxI8Cg9TdWJzY3JpYmVFdmVudHMSDS5icmlkZ2UuRW1wdHkaFi5icmlkZ2UuTmVpZ2hib3VyRXZlbnQiADABMoABCgZQdWJTdWISOQoJU3Vic2NyaWJlEg0uYnJpZGdlLlRvcGljGhkuYnJpZGdlLlB1YlN1YlJlY3ZNZXNzYWdlIgAwARI7CgdQdWJsaXNoEhUuYnJpZGdlLlB1YlN1Yk1lc3NhZ2UaFy5icmlkZ2UuUHViU3ViTWVzc2FnZUlEIgAymwEKAktWEi8KCVB1dFJlY29yZBIRLmJyaWRnZS5ESFRSZWNvcmQaDS5icmlkZ2UuRW1wdHkiABIzCglHZXRSZWNvcmQSDi5icmlkZ2UuREhUS2V5GhQuYnJpZGdlLk9wdGlvbmFsRGF0YSIAEi8KDFJlbW92ZVJlY29yZBIOLmJyaWRnZS5ESFRLZXkaDS5icmlkZ2UuRW1wdHkiADLGAQoJRGlzY292ZXJ5EioKB1Byb3ZpZGUSDi5icmlkZ2UuREhUS2V5Gg0uYnJpZGdlLkVtcHR5IgASMAoMR2V0UHJvdmlkZXJzEg4uYnJpZGdlLkRIVEtleRoMLmJyaWRnZS5QZWVyIgAwARIwCg1TdG9wUHJvdmlkaW5nEg4uYnJpZGdlLkRIVEtleRoNLmJyaWRnZS5FbXB0eSIAEikKCEdldE93bklkEg0uYnJpZGdlLkVtcHR5GgwuYnJpZGdlLlBlZXIiADJoCgdMb2NhbEtWEi8KA1B1dBIQLmJyaWRnZS5EQlJlY29yZBoULmJyaWRnZS5PcHRpb25hbERhdGEiABIsCgNHZXQSDS5icmlkZ2UuREJLZXkaFC5icmlkZ2UuT3B0aW9uYWxEYXRhIgAyqQEKDEZpbGVUcmFuc2ZlchIuCgtQdWJsaXNoRmlsZRIQLmJyaWRnZS5GaWxlUGF0aBoLLmJyaWRnZS5DSUQiABIqCgdHZXRGaWxlEgsuYnJpZGdlLkNJRBoQLmJyaWRnZS5GaWxlUGF0aCIAEj0KE0dldEZpbGVXaXRoUHJvZ3Jlc3MSCy5icmlkZ2UuQ0lEGhUuYnJpZGdlLkRvd25sb2FkRXZlbnQiADABMpEBCgVEZWJ1ZxJFChVTdWJzY3JpYmVNZXNoVG9wb2xvZ3kSDS5icmlkZ2UuRW1wdHkaGS5icmlkZ2UuTWVzaFRvcG9sb2d5RXZlbnQiADABEkEKEVN1YnNjcmliZU1lc3NhZ2VzEg0uYnJpZGdlLkVtcHR5GhkuYnJpZGdlLk1lc3NhZ2VEZWJ1Z0V2ZW50IgAwATLlAQoEQXBwcxIzCglEZXBsb3lBcHASGC5icmlkZ2UuRGVwbG95QXBwUmVxdWVzdBoKLmJyaWRnZS5JRCIAEkgKD0xpc3RSdW5uaW5nQXBwcxIeLmJyaWRnZS5MaXN0UnVubmluZ0FwcHNSZXF1ZXN0GhMuYnJpZGdlLlJ1bm5pbmdBcHBzIgASMgoHU3RvcEFwcBIWLmJyaWRnZS5TdG9wQXBwUmVxdWVzdBoNLmJyaWRnZS5FbXB0eSIAEioKC0dldE93bkFwcElkEg0uYnJpZGdlLkVtcHR5GgouYnJpZGdlLklEIgA");
+  fileDesc("CgxicmlkZ2UucHJvdG8SBmJyaWRnZSIHCgVFbXB0eSIUCgREYXRhEgwKBGRhdGEYASACKAwiKgoMT3B0aW9uYWxEYXRhEhoKBGRhdGEYASABKAsyDC5icmlkZ2UuRGF0YSISCgJJRBIMCgR1bGlkGAEgAigJIhcKBFBlZXISDwoHcGVlcl9pZBgBIAIoCSIWCgVUb3BpYxINCgV0b3BpYxgBIAIoCSItCg1PcHRpb25hbFRvcGljEhwKBXRvcGljGAEgASgLMg0uYnJpZGdlLlRvcGljIkYKClRvcGljUXVlcnkSHgoFdG9waWMYASABKAsyDS5icmlkZ2UuVG9waWNIABIPCgVyZWdleBgCIAEoCUgAQgcKBXF1ZXJ5IjcKEk9wdGlvbmFsVG9waWNRdWVyeRIhCgVxdWVyeRgBIAEoCzISLmJyaWRnZS5Ub3BpY1F1ZXJ5IksKB01lc3NhZ2USGgoEZGF0YRgBIAIoCzIMLmJyaWRnZS5EYXRhEiQKBXRvcGljGAIgAigLMhUuYnJpZGdlLk9wdGlvbmFsVG9waWMiRwoLU2VuZFJlcXVlc3QSGgoEcGVlchgBIAIoCzIMLmJyaWRnZS5QZWVyEhwKA21zZxgCIAIoCzIPLmJyaWRnZS5NZXNzYWdlIlQKC1JlY3ZSZXF1ZXN0EhoKBHBlZXIYASACKAsyDC5icmlkZ2UuUGVlchIcCgNtc2cYAiACKAsyDy5icmlkZ2UuTWVzc2FnZRILCgNzZXEYAyACKAQiRQoIUmVzcG9uc2USHAoEZGF0YRgBIAEoCzIMLmJyaWRnZS5EYXRhSAASDwoFZXJyb3IYAiABKAlIAEIKCghyZXNwb25zZSI/CgxTZW5kUmVzcG9uc2USCwoDc2VxGAEgAigEEiIKCHJlc3BvbnNlGAIgAigLMhAuYnJpZGdlLlJlc3BvbnNlIiQKBVBlZXJzEhsKBXBlZXJzGAEgAygLMgwuYnJpZGdlLlBlZXIiegoOTmVpZ2hib3VyRXZlbnQSHQoEaW5pdBgBIAEoCzINLmJyaWRnZS5QZWVyc0gAEiIKCmRpc2NvdmVyZWQYAiABKAsyDC5icmlkZ2UuUGVlckgAEhwKBGxvc3QYAyABKAsyDC5icmlkZ2UuUGVlckgAQgcKBWV2ZW50Ih0KD1B1YlN1Yk1lc3NhZ2VJRBIKCgJpZBgBIAIoDCJJCg1QdWJTdWJNZXNzYWdlEhoKBGRhdGEYASACKAsyDC5icmlkZ2UuRGF0YRIcCgV0b3BpYxgCIAIoCzINLmJyaWRnZS5Ub3BpYyKoAQoRUHViU3ViUmVjdk1lc3NhZ2USKAoScHJvcGFnYXRpb25fc291cmNlGAEgAigLMgwuYnJpZGdlLlBlZXISHAoGc291cmNlGAIgASgLMgwuYnJpZGdlLlBlZXISIgoDbXNnGAMgAigLMhUuYnJpZGdlLlB1YlN1Yk1lc3NhZ2USJwoGbXNnX2lkGAQgAigLMhcuYnJpZGdlLlB1YlN1Yk1lc3NhZ2VJRCIzCgZESFRLZXkSHAoFdG9waWMYASACKAsyDS5icmlkZ2UuVG9waWMSCwoDa2V5GAIgAigMIkUKCURIVFJlY29yZBIbCgNrZXkYASACKAsyDi5icmlkZ2UuREhUS2V5EhsKBXZhbHVlGAIgAigLMgwuYnJpZGdlLkRhdGEiOQoNTG9jYWxLVlJlY29yZBILCgNrZXkYASACKAkSGwoFdmFsdWUYAiACKAsyDC5icmlkZ2UuRGF0YSIZCgpMb2NhbEtWS2V5EgsKA2tleRgBIAIoCSIYCghGaWxlUGF0aBIMCgRwYXRoGAEgAigJIisKA0NJRBIMCgRoYXNoGAEgAigMEhYKAmlkGAIgAigLMgouYnJpZGdlLklEIk8KDURvd25sb2FkRXZlbnQSEgoIcHJvZ3Jlc3MYASABKARIABIhCgVyZWFkeRgCIAEoCzIQLmJyaWRnZS5GaWxlUGF0aEgAQgcKBWV2ZW50IlYKEU1lc2hUb3BvbG9neUV2ZW50EhoKBHBlZXIYASACKAsyDC5icmlkZ2UuUGVlchIlCgVldmVudBgCIAIoCzIWLmJyaWRnZS5OZWlnaGJvdXJFdmVudCJpChFSZXF1ZXN0RGVidWdFdmVudBIWCgJpZBgBIAIoCzIKLmJyaWRnZS5JRBIeCghyZWNlaXZlchgCIAIoCzIMLmJyaWRnZS5QZWVyEhwKA21zZxgDIAIoCzIPLmJyaWRnZS5NZXNzYWdlIlQKElJlc3BvbnNlRGVidWdFdmVudBIaCgZyZXFfaWQYASACKAsyCi5icmlkZ2UuSUQSIgoIcmVzcG9uc2UYAiACKAsyEC5icmlkZ2UuUmVzcG9uc2UiuQEKEU1lc3NhZ2VEZWJ1Z0V2ZW50EhwKBnNlbmRlchgBIAIoCzIMLmJyaWRnZS5QZWVyEigKA3JlcRgCIAEoCzIZLmJyaWRnZS5SZXF1ZXN0RGVidWdFdmVudEgAEikKA3JlcxgDIAEoCzIaLmJyaWRnZS5SZXNwb25zZURlYnVnRXZlbnRIABIoCgdwdWJfc3ViGAQgASgLMhUuYnJpZGdlLlB1YlN1Yk1lc3NhZ2VIAEIHCgVldmVudCIbCgtEb2NrZXJJbWFnZRIMCgRuYW1lGAEgAigJIj4KCURvY2tlckFwcBIiCgVpbWFnZRgBIAIoCzITLmJyaWRnZS5Eb2NrZXJJbWFnZRINCgVwb3J0cxgCIAMoDSJxChBEZXBsb3lBcHBSZXF1ZXN0Eh4KA2FwcBgBIAIoCzIRLmJyaWRnZS5Eb2NrZXJBcHASDQoFbG9jYWwYAiACKAgSGgoEcGVlchgDIAEoCzIMLmJyaWRnZS5QZWVyEhIKCnBlcnNpc3RlbnQYBCACKAgiNAoWTGlzdFJ1bm5pbmdBcHBzUmVxdWVzdBIaCgRwZWVyGAEgASgLMgwuYnJpZGdlLlBlZXIiVgoKUnVubmluZ0FwcBIWCgJpZBgBIAIoCzIKLmJyaWRnZS5JRBIiCgVpbWFnZRgCIAIoCzITLmJyaWRnZS5Eb2NrZXJJbWFnZRIMCgRuYW1lGAMgASgJIi8KC1J1bm5pbmdBcHBzEiAKBGFwcHMYASADKAsyEi5icmlkZ2UuUnVubmluZ0FwcCJECg5TdG9wQXBwUmVxdWVzdBIWCgJpZBgBIAIoCzIKLmJyaWRnZS5JRBIaCgRwZWVyGAIgASgLMgwuYnJpZGdlLlBlZXIyqQEKB1JlcVJlc3ASLwoEU2VuZBITLmJyaWRnZS5TZW5kUmVxdWVzdBoQLmJyaWRnZS5SZXNwb25zZSIAEjsKBFJlY3YSGi5icmlkZ2UuT3B0aW9uYWxUb3BpY1F1ZXJ5GhMuYnJpZGdlLlJlY3ZSZXF1ZXN0IgAwARIwCgdSZXNwb25kEhQuYnJpZGdlLlNlbmRSZXNwb25zZRoNLmJyaWRnZS5FbXB0eSIAMmsKCk5laWdoYm91cnMSNgoJU3Vic2NyaWJlEg0uYnJpZGdlLkVtcHR5GhYuYnJpZGdlLk5laWdoYm91ckV2ZW50IgAwARIlCgNHZXQSDS5icmlkZ2UuRW1wdHkaDS5icmlkZ2UuUGVlcnMiADKAAQoGUHViU3ViEjkKCVN1YnNjcmliZRINLmJyaWRnZS5Ub3BpYxoZLmJyaWRnZS5QdWJTdWJSZWN2TWVzc2FnZSIAMAESOwoHUHVibGlzaBIVLmJyaWRnZS5QdWJTdWJNZXNzYWdlGhcuYnJpZGdlLlB1YlN1Yk1lc3NhZ2VJRCIAMpsBCgJLVhIvCglQdXRSZWNvcmQSES5icmlkZ2UuREhUUmVjb3JkGg0uYnJpZGdlLkVtcHR5IgASMwoJR2V0UmVjb3JkEg4uYnJpZGdlLkRIVEtleRoULmJyaWRnZS5PcHRpb25hbERhdGEiABIvCgxSZW1vdmVSZWNvcmQSDi5icmlkZ2UuREhUS2V5Gg0uYnJpZGdlLkVtcHR5IgAyxgEKCURpc2NvdmVyeRIqCgdQcm92aWRlEg4uYnJpZGdlLkRIVEtleRoNLmJyaWRnZS5FbXB0eSIAEjAKDEdldFByb3ZpZGVycxIOLmJyaWRnZS5ESFRLZXkaDC5icmlkZ2UuUGVlciIAMAESMAoNU3RvcFByb3ZpZGluZxIOLmJyaWRnZS5ESFRLZXkaDS5icmlkZ2UuRW1wdHkiABIpCghHZXRPd25JZBINLmJyaWRnZS5FbXB0eRoMLmJyaWRnZS5QZWVyIgAycgoHTG9jYWxLVhI0CgNQdXQSFS5icmlkZ2UuTG9jYWxLVlJlY29yZBoULmJyaWRnZS5PcHRpb25hbERhdGEiABIxCgNHZXQSEi5icmlkZ2UuTG9jYWxLVktleRoULmJyaWRnZS5PcHRpb25hbERhdGEiADKdAQoMRmlsZVRyYW5zZmVyEioKB1B1Ymxpc2gSEC5icmlkZ2UuRmlsZVBhdGgaCy5icmlkZ2UuQ0lEIgASJgoDR2V0EgsuYnJpZGdlLkNJRBoQLmJyaWRnZS5GaWxlUGF0aCIAEjkKD0dldFdpdGhQcm9ncmVzcxILLmJyaWRnZS5DSUQaFS5icmlkZ2UuRG93bmxvYWRFdmVudCIAMAEykQEKBURlYnVnEkUKFVN1YnNjcmliZU1lc2hUb3BvbG9neRINLmJyaWRnZS5FbXB0eRoZLmJyaWRnZS5NZXNoVG9wb2xvZ3lFdmVudCIAMAESQQoRU3Vic2NyaWJlTWVzc2FnZXMSDS5icmlkZ2UuRW1wdHkaGS5icmlkZ2UuTWVzc2FnZURlYnVnRXZlbnQiADABMtsBCgRBcHBzEjAKBkRlcGxveRIYLmJyaWRnZS5EZXBsb3lBcHBSZXF1ZXN0GgouYnJpZGdlLklEIgASRAoLTGlzdFJ1bm5pbmcSHi5icmlkZ2UuTGlzdFJ1bm5pbmdBcHBzUmVxdWVzdBoTLmJyaWRnZS5SdW5uaW5nQXBwcyIAEi8KBFN0b3ASFi5icmlkZ2UuU3RvcEFwcFJlcXVlc3QaDS5icmlkZ2UuRW1wdHkiABIqCgtHZXRPd25BcHBJZBINLmJyaWRnZS5FbXB0eRoKLmJyaWRnZS5JRCIA");
 
 /**
  * @generated from message bridge.Empty
@@ -505,11 +505,11 @@ export const DHTRecordSchema: GenMessage<DHTRecord> = /*@__PURE__*/
   messageDesc(file_bridge, 20);
 
 /**
- * A key-value pair for putting in the database
+ * A key-value pair for putting into the local key-value store
  *
- * @generated from message bridge.DBRecord
+ * @generated from message bridge.LocalKVRecord
  */
-export type DBRecord = Message$1<"bridge.DBRecord"> & {
+export type LocalKVRecord = Message$1<"bridge.LocalKVRecord"> & {
   /**
    * @generated from field: required string key = 1;
    */
@@ -522,18 +522,18 @@ export type DBRecord = Message$1<"bridge.DBRecord"> & {
 };
 
 /**
- * Describes the message bridge.DBRecord.
- * Use `create(DBRecordSchema)` to create a new message.
+ * Describes the message bridge.LocalKVRecord.
+ * Use `create(LocalKVRecordSchema)` to create a new message.
  */
-export const DBRecordSchema: GenMessage<DBRecord> = /*@__PURE__*/
+export const LocalKVRecordSchema: GenMessage<LocalKVRecord> = /*@__PURE__*/
   messageDesc(file_bridge, 21);
 
 /**
- * A key for getting a value from the database
+ * A key for getting a value from the local key-value store
  *
- * @generated from message bridge.DBKey
+ * @generated from message bridge.LocalKVKey
  */
-export type DBKey = Message$1<"bridge.DBKey"> & {
+export type LocalKVKey = Message$1<"bridge.LocalKVKey"> & {
   /**
    * @generated from field: required string key = 1;
    */
@@ -541,10 +541,10 @@ export type DBKey = Message$1<"bridge.DBKey"> & {
 };
 
 /**
- * Describes the message bridge.DBKey.
- * Use `create(DBKeySchema)` to create a new message.
+ * Describes the message bridge.LocalKVKey.
+ * Use `create(LocalKVKeySchema)` to create a new message.
  */
-export const DBKeySchema: GenMessage<DBKey> = /*@__PURE__*/
+export const LocalKVKeySchema: GenMessage<LocalKVKey> = /*@__PURE__*/
   messageDesc(file_bridge, 22);
 
 /**
@@ -962,12 +962,22 @@ export const Neighbours: GenService<{
    * Subscribe to neighbour discovery events to get notified when new neighbour
    * peers are discovered or lost
    *
-   * @generated from rpc bridge.Neighbours.SubscribeEvents
+   * @generated from rpc bridge.Neighbours.Subscribe
    */
-  subscribeEvents: {
+  subscribe: {
     methodKind: "server_streaming";
     input: typeof EmptySchema;
     output: typeof NeighbourEventSchema;
+  },
+  /**
+   * Get the neighbours of the current runtime
+   *
+   * @generated from rpc bridge.Neighbours.Get
+   */
+  get: {
+    methodKind: "unary";
+    input: typeof EmptySchema;
+    output: typeof PeersSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_bridge, 1);
@@ -1101,7 +1111,7 @@ export const LocalKV: GenService<{
    */
   put: {
     methodKind: "unary";
-    input: typeof DBRecordSchema;
+    input: typeof LocalKVRecordSchema;
     output: typeof OptionalDataSchema;
   },
   /**
@@ -1112,7 +1122,7 @@ export const LocalKV: GenService<{
    */
   get: {
     methodKind: "unary";
-    input: typeof DBKeySchema;
+    input: typeof LocalKVKeySchema;
     output: typeof OptionalDataSchema;
   },
 }> = /*@__PURE__*/
@@ -1125,9 +1135,9 @@ export const FileTransfer: GenService<{
   /**
    * Publish a file in the runtime and get the cid of the file
    *
-   * @generated from rpc bridge.FileTransfer.PublishFile
+   * @generated from rpc bridge.FileTransfer.Publish
    */
-  publishFile: {
+  publish: {
     methodKind: "unary";
     input: typeof FilePathSchema;
     output: typeof CIDSchema;
@@ -1135,9 +1145,9 @@ export const FileTransfer: GenService<{
   /**
    * Request a file with a cid from the runtime
    *
-   * @generated from rpc bridge.FileTransfer.GetFile
+   * @generated from rpc bridge.FileTransfer.Get
    */
-  getFile: {
+  get: {
     methodKind: "unary";
     input: typeof CIDSchema;
     output: typeof FilePathSchema;
@@ -1146,9 +1156,9 @@ export const FileTransfer: GenService<{
    * Request a file with a cid from the runtime and get notified about the
    * download progress
    *
-   * @generated from rpc bridge.FileTransfer.GetFileWithProgress
+   * @generated from rpc bridge.FileTransfer.GetWithProgress
    */
-  getFileWithProgress: {
+  getWithProgress: {
     methodKind: "server_streaming";
     input: typeof CIDSchema;
     output: typeof DownloadEventSchema;
@@ -1191,9 +1201,9 @@ export const Apps: GenService<{
   /**
    * Deploy an app to a peer and get the id of the deployed app
    *
-   * @generated from rpc bridge.Apps.DeployApp
+   * @generated from rpc bridge.Apps.Deploy
    */
-  deployApp: {
+  deploy: {
     methodKind: "unary";
     input: typeof DeployAppRequestSchema;
     output: typeof IDSchema;
@@ -1201,9 +1211,9 @@ export const Apps: GenService<{
   /**
    * List running apps on a peer
    *
-   * @generated from rpc bridge.Apps.ListRunningApps
+   * @generated from rpc bridge.Apps.ListRunning
    */
-  listRunningApps: {
+  listRunning: {
     methodKind: "unary";
     input: typeof ListRunningAppsRequestSchema;
     output: typeof RunningAppsSchema;
@@ -1211,9 +1221,9 @@ export const Apps: GenService<{
   /**
    * Stop a running app on a peer
    *
-   * @generated from rpc bridge.Apps.StopApp
+   * @generated from rpc bridge.Apps.Stop
    */
-  stopApp: {
+  stop: {
     methodKind: "unary";
     input: typeof StopAppRequestSchema;
     output: typeof EmptySchema;

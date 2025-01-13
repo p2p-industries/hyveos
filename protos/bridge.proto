@@ -129,14 +129,14 @@ message DHTRecord {
   required Data value = 2;
 }
 
-// A key-value pair for putting in the database
-message DBRecord {
+// A key-value pair for putting into the local key-value store
+message LocalKVRecord {
   required string key = 1;
   required Data value = 2;
 }
 
-// A key for getting a value from the database
-message DBKey {
+// A key for getting a value from the local key-value store
+message LocalKVKey {
   required string key = 1;
 }
 
@@ -253,6 +253,9 @@ service Neighbours {
   // Subscribe to neighbour discovery events to get notified when new neighbour
   // peers are discovered or lost
   rpc Subscribe(Empty) returns (stream NeighbourEvent) {}
+
+  // Get the neighbours of the current runtime
+  rpc Get(Empty) returns (Peers) {}
 }
 
 service PubSub {
@@ -297,11 +300,11 @@ service LocalKV {
   // Put a record into the local key-value store and get the previous value if
   // it exists. This only has local effects but will be persisted across
   // restarts.
-  rpc Put(DBRecord) returns (OptionalData) {}
+  rpc Put(LocalKVRecord) returns (OptionalData) {}
 
   // Get a record from the local key-value store.
   // This will not return records from other hyveOS nodes.
-  rpc Get(DBKey) returns (OptionalData) {}
+  rpc Get(LocalKVKey) returns (OptionalData) {}
 }
 
 service FileTransfer {

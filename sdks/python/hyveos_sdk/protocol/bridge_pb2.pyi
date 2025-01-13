@@ -159,7 +159,7 @@ class DHTRecord(_message.Message):
     value: Data
     def __init__(self, key: _Optional[_Union[DHTKey, _Mapping]] = ..., value: _Optional[_Union[Data, _Mapping]] = ...) -> None: ...
 
-class DBRecord(_message.Message):
+class LocalKVRecord(_message.Message):
     __slots__ = ("key", "value")
     KEY_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -167,7 +167,7 @@ class DBRecord(_message.Message):
     value: Data
     def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[Data, _Mapping]] = ...) -> None: ...
 
-class DBKey(_message.Message):
+class LocalKVKey(_message.Message):
     __slots__ = ("key",)
     KEY_FIELD_NUMBER: _ClassVar[int]
     key: str
