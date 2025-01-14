@@ -49,6 +49,11 @@ pub enum HyveCtlError {
     #[error("Response error")]
     #[diagnostic(code(hyvectl::response_error))]
     Response(#[from] ResponseError),
+
+    /// Init error
+    #[error("Init error")]
+    #[diagnostic(code(hyvectl::init_error))]
+    Init(#[from] crate::families::init::Error),
 }
 
 pub type HyveCtlResult<T> = Result<T, HyveCtlError>;

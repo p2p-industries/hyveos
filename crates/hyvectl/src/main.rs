@@ -36,6 +36,7 @@ impl CommandFamily for Families {
             Families::Hyve(cmd) => cmd.run(connection).await,
             Families::File(cmd) => cmd.run(connection).await,
             Families::Whoami(cmd) => cmd.run(connection).await,
+            Families::Init(_) => unreachable!(),
         }
     }
 }
@@ -61,9 +62,23 @@ fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
     Err(miette::miette!("No possible path to hyveOS Bridge sock"))
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> miette::Result<()> {
     let cli = Cli::parse();
+
+    if let Families::Init(init) = cli.command {
+        let output = crate::families::init::init(init).await?;
+        if cli.json {
+            output
+                .write_json(&mut stdout(), stdout().is_terminal())
+                .map_err(HyveCtlError::from)?;
+        } else {
+            output
+                .write(&mut stdout(), None, stdout().is_terminal())
+                .map_err(HyveCtlError::from)?;
+        }
+        return Ok(());
+    }
 
     let socket_path = find_hyved_endpoint("bridge.sock")?;
     let shared_dir_path = find_hyved_endpoint("files")?;

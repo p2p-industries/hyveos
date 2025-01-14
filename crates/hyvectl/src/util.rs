@@ -4,8 +4,7 @@ use hyveos_sdk::Connection;
 use crate::{error::HyveCtlResult, out::CommandOutput};
 
 pub trait CommandFamily {
-    async fn run(self, connection: &Connection)
-        -> BoxStream<'static, HyveCtlResult<CommandOutput>>;
+    async fn run(self, _: &Connection) -> BoxStream<'static, HyveCtlResult<CommandOutput>>;
 }
 
 #[macro_export]

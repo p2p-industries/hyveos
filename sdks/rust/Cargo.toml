@@ -1,9 +1,13 @@
 [package]
 name = "hyveos-sdk"
+description = "SDK for the hyveOS system"
 version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 license = "MIT"
+homepage = "docs.p2p.industries"
+repository = "https://github.com/p2p-industries/hyveos/tree/main/sdks/rust"
+readme = "README.md"
 
 [dependencies]
 derive-where = "1.2.7"
@@ -15,7 +19,7 @@ hyveos-core = { workspace = true }
 hyveos-ifaddr = { workspace = true, optional = true }
 pin-project = { workspace = true }
 prost = { workspace = true }
-reqwest = { version = "0.12.12", default-features = false, features = [
+reqwest = { workspace = true, default-features = false, features = [
     "charset",
     "http2",
     "json",

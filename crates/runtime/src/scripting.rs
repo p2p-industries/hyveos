@@ -17,7 +17,8 @@ use futures::{
 };
 #[cfg(feature = "batman")]
 use hyveos_bridge::DebugCommandSender;
-use hyveos_bridge::{Error as BridgeError, ScriptingBridge, CONTAINER_SHARED_DIR};
+use hyveos_bridge::{Error as BridgeError, ScriptingBridge, Telemetry, CONTAINER_SHARED_DIR};
+use hyveos_config::ScriptManagementConfig;
 use hyveos_core::{
     file_transfer::Cid, scripting::RunningScript, BRIDGE_SHARED_DIR_ENV_VAR, BRIDGE_SOCKET_ENV_VAR,
 };
@@ -38,15 +39,6 @@ use crate::{
 };
 
 const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
-#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum ScriptManagementConfig {
-    Allow,
-    #[default]
-    Deny,
-}
 
 enum SelfCommand {
     DeployImage {
@@ -76,6 +68,7 @@ pub struct ScriptingManagerBuilder {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     script_management: ScriptManagementConfig,
+    telemetry: Telemetry,
 }
 
 impl ScriptingManagerBuilder {
@@ -86,6 +79,7 @@ impl ScriptingManagerBuilder {
         base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         script_management: ScriptManagementConfig,
+        telemetry: Telemetry,
     ) -> Self {
         Self {
             command_broker,
@@ -95,6 +89,7 @@ impl ScriptingManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             script_management,
+            telemetry,
         }
     }
 
@@ -107,6 +102,7 @@ impl ScriptingManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             script_management,
+            telemetry,
         } = self;
         let (self_command_sender, self_command_receiver) = mpsc::channel(1);
 
@@ -131,6 +127,7 @@ impl ScriptingManagerBuilder {
                 debug_command_sender,
                 scripting_client,
                 container_handles: FutureMap::new(),
+                telemetry,
             }
         };
 
@@ -149,6 +146,7 @@ pub struct ScriptingManager {
     debug_command_sender: DebugCommandSender,
     scripting_client: Option<ScriptingClient>,
     container_handles: FutureMap<Ulid, ContainerHandle>,
+    telemetry: Telemetry,
 }
 
 impl ScriptingManager {
@@ -161,6 +159,7 @@ impl ScriptingManager {
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
             scripting_client: self.scripting_client.clone(),
+            telemetry: self.telemetry.clone(),
         }
     }
 
@@ -481,6 +480,7 @@ struct ExecutionManager<'a> {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     scripting_client: Option<ScriptingClient>,
+    telemetry: Telemetry,
 }
 
 impl ExecutionManager<'_> {
@@ -526,6 +526,7 @@ impl ExecutionManager<'_> {
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
                 scripting_client,
+                self.telemetry.image(image.image.clone()),
             )
             .await?;
 
@@ -538,6 +539,7 @@ impl ExecutionManager<'_> {
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
                 ForbiddenScriptingClient,
+                self.telemetry.image(image.image.clone()),
             )
             .await?;
 

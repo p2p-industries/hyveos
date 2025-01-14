@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: ["main"]
+    tags:
+      - "v*.*.*-*-rust"
   pull_request:
     branches: ["main"]
 
@@ -41,7 +43,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: [changes, gather_crates]
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
       matrix:
@@ -115,7 +119,9 @@ jobs:
     name: Run clippy
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -144,7 +150,9 @@ jobs:
   rustfmt:
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -162,7 +170,9 @@ jobs:
     name: Ensure that `Cargo.lock` is up-to-date
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -173,7 +183,9 @@ jobs:
     name: Gather crates
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: >
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     outputs:
       members: ${{ steps.cargo-metadata.outputs.members }}
     steps:
@@ -188,7 +200,9 @@ jobs:
     name: Enforce dependency licenses and advisories
     runs-on: ubuntu-24.04
     needs: [changes, ensure-lockfile-uptodate]
-    if: ${{ needs.changes.outputs.rust == 'true' }}
+    if: > 
+      needs.changes.outputs.rust == 'true'
+      || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -210,3 +224,34 @@ jobs:
         if: ${{ contains(needs.*.result, 'failure') }}
         run: exit 1
       - run: echo "Complete"
+
+  publish:
+    name: Publish Crate to crates.io
+    runs-on: ubuntu-24.04
+    needs: test-completed
+    if: >
+      needs.test-completed.result ==  'success'
+      && startsWith(github.ref, 'refs/tags/v')
+      && endsWith(github.ref_name, '-rust')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
+        with:
+          toolchain: stable
+
+      - name: Parse crate name from tag
+        id: parse_crate
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          TAG_STRIPPED="${TAG_NAME#v}"
+          TAG_STRIPPED="${TAG_STRIPPED%-rust}"
+          
+          CRATE_NAME="${TAG_STRIPPED#*-}"
+          
+          echo "crate_name=${CRATE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to crates.io
+        run: cargo publish -p ${{ steps.parse_crate.outputs.crate_name }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
