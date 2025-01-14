@@ -25,6 +25,13 @@ export function createJsonResult<
   ])
 }
 
+export function toBytes(str: Uint8Array | string): Uint8Array {
+  if (typeof str === 'string') {
+    return new TextEncoder().encode(str)
+  }
+  return str
+}
+
 export class BaseService<Service extends DescService> {
   protected client: Client<Service>
 

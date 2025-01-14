@@ -1,11 +1,11 @@
 import type { Transport } from 'npm:@connectrpc/connect'
 import { AbortOnDispose, BaseService } from './core.ts'
-import type { Event as NeighbourEvent } from './discovery.ts'
+import type { Event as NeighbourEvent } from './neighbours.ts'
 import {
   Debug as Service,
   type MeshTopologyEvent as MeshTopEvent,
   type MessageDebugEvent as MessageDbgEvent,
-} from './gen/script_pb.ts'
+} from './gen/bridge_pb.ts'
 
 export interface MeshTopologyEvent {
   peer: string
@@ -60,10 +60,6 @@ export type InnerDebugEvent = {
   topic?: string
   data: Uint8Array
 } | {
-  case: 'gos'
-  data: Uint8Array
-  topic: string
-} | {
   case: 'res'
   id: string
   response: {
@@ -73,6 +69,10 @@ export type InnerDebugEvent = {
     success: false
     error: string
   }
+} | {
+  case: 'pubSub'
+  data: Uint8Array
+  topic: string
 }
 
 export interface MessageDebugEvent {
@@ -112,17 +112,6 @@ export class MessageSubscription extends AbortOnDispose {
           }
           break
         }
-        case 'gos': {
-          const data = value.data?.data
-          if (!data) continue
-          const topic = value.topic?.topic
-          if (!topic) continue
-          yield {
-            sender: senderPeer,
-            event: { case: 'gos', data, topic },
-          }
-          break
-        }
         case 'res': {
           const ulid = value.reqId?.ulid
           if (!ulid) continue
@@ -155,15 +144,27 @@ export class MessageSubscription extends AbortOnDispose {
           }
           break
         }
+        case 'pubSub': {
+          const data = value.data?.data
+          if (!data) continue
+          const topic = value.topic?.topic
+          if (!topic) continue
+          yield {
+            sender: senderPeer,
+            event: { case: 'pubSub', data, topic },
+          }
+          break
+        }
       }
     }
   }
 }
 
 /**
- * A service for debugging.
+ * A handle to the debug service.
  *
- * Gives access to the messages sent and received by other peers and gives access to the mesh topology.
+ * Exposes methods to interact with the debug service,
+ * such as subscribing to mesh topology events and message debug events.
  */
 export class Debug extends BaseService<typeof Service> {
   /** @ignore */
@@ -172,16 +173,22 @@ export class Debug extends BaseService<typeof Service> {
   }
 
   /**
-   * Subscribe to the mesh topology to receive events about the mesh topology.
+   * Subscribes to mesh topology events.
+   *
+   * For each peer in the mesh, it is guaranteed that an `init` event will be emitted
+   * when it enters the mesh, followed only by `discovered` and `lost` events,
+   * until the peer leaves the mesh.
    *
    * @returns A subscription object that can be used to iterate over mesh topology events.
-   * @example Subscribe to the mesh topology
+   *     The object will emit an event whenever the mesh topology changes.
+   * @example
+   * Subscribe to the mesh topology
    * ```ts
    * const subscription = client.debug.subscribeMeshTopology()
    * for await (const event of subscription) {
-   *  console.log('Mesh topology event:', event)
-   *  }
-   *  ```
+   *   console.log('Mesh topology event:', event)
+   * }
+   * ```
    */
   public subscribeMeshTopology(): MeshTopologySubscription {
     const abortController = new AbortController()
@@ -191,6 +198,13 @@ export class Debug extends BaseService<typeof Service> {
     return new MeshTopologySubscription(stream, abortController)
   }
 
+  /**
+   * Subscribes to message debug events.
+   *
+   * @returns A subscription object that can be used to iterate over message debug events.
+   *     The object will emit an event whenever a request, response, or gossipsub message
+   *     is sent by a peer in the mesh.
+   */
   public subscribeMessages(): MessageSubscription {
     const abortController = new AbortController()
     const stream = this.client.subscribeMessages({}, {

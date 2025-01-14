@@ -1,6 +1,6 @@
 import type { Transport } from 'npm:@connectrpc/connect'
 import { BaseService, createJsonResult } from './core.ts'
-import { FileTransfer as Service } from './gen/script_pb.ts'
+import { FileTransfer as Service } from './gen/bridge_pb.ts'
 import {
   array,
   integer,
@@ -28,11 +28,17 @@ const uploadResponse = createJsonResult(object({
  */
 export interface Cid {
   /** @ignore */
-  id?: string
+  id: string
   /** @ignore */
   hash: Uint8Array
 }
 
+/**
+ * A handle to the file transfer service.
+ *
+ * Exposes methods to interact with the file transfer service,
+ * like for publishing and getting files.
+ */
 export class FileTransfer extends BaseService<typeof Service> {
   /** @ignore */
   private isUnix: boolean
@@ -82,7 +88,7 @@ export class FileTransfer extends BaseService<typeof Service> {
     blob: Blob | ReadableStream<Uint8Array> | Uint8Array,
     fileName: string,
   ): Promise<Cid> {
-    const uploadUrl = `${this.url}/file-transfer/upload/${fileName}`
+    const uploadUrl = `${this.url}/file-transfer/publish/${fileName}`
 
     const response = await fetch(uploadUrl, {
       method: 'POST',
@@ -95,12 +101,13 @@ export class FileTransfer extends BaseService<typeof Service> {
   }
 
   /**
-   * Publish a file to the network.
+   * Publishes a file in the mesh network and returns its content ID.
    *
-   * @param file The file to publish. If using unix sockets, this should be a file path. If using HTTP, this should be a file blob.
+   * @param file The file to publish. If using unix sockets, this should be a file path.
+   *     If using HTTP, this should be a file blob.
    * @param fileName The name of the file. Required when uploading a file blob.
    *
-   * @returns The id and hash of the file.
+   * @returns The content id of the file.
    */
   public async publishFile(
     file: string | Uint8Array | Blob | ReadableStream<Uint8Array>,
@@ -117,9 +124,10 @@ export class FileTransfer extends BaseService<typeof Service> {
       )
     }
     if (typeof file === 'string') {
-      const { hash, id } = await this.client.publishFile({
+      const { hash, id } = await this.client.publish({
         path: file,
       })
+      if (!id?.ulid) throw new Error('Invalid content ID')
       return {
         hash,
         id: id?.ulid,
@@ -133,7 +141,10 @@ export class FileTransfer extends BaseService<typeof Service> {
   }
 
   /**
-   * Get a file from the network.
+   * Retrieves a file from the mesh network and returns its path.
+   *
+   * When the local runtime doesn't own a copy of this file yet,
+   * it downloads it from one of its peers.
    *
    * This method is **only** available when using unix sockets.
    *
@@ -146,7 +157,7 @@ export class FileTransfer extends BaseService<typeof Service> {
     if (!this.isUnix) {
       throw new Error('This method is only available when using unix sockets')
     }
-    const { path } = await this.client.getFile({
+    const { path } = await this.client.get({
       id: {
         ulid: id,
       },
@@ -156,7 +167,10 @@ export class FileTransfer extends BaseService<typeof Service> {
   }
 
   /**
-   * Get a file from the network.
+   * Retrieves a file from the mesh network and returns it as a readable stream.
+   *
+   * When the local runtime doesn't own a copy of this file yet,
+   * it downloads it from one of its peers.
    *
    * This method is **only** available when **not** using unix sockets.
    *
@@ -171,7 +185,7 @@ export class FileTransfer extends BaseService<typeof Service> {
         'This method is only available when not using unix sockets',
       )
     }
-    const url = new URL(`${this.url}/file-transfer/get-file`)
+    const url = new URL(`${this.url}/file-transfer/get`)
     if (id) {
       url.searchParams.set('id', id)
     }

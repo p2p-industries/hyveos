@@ -1,10 +1,10 @@
 import type { Client, Transport } from 'npm:@connectrpc/connect'
+import { AbortOnDispose, BaseService, toBytes } from './core.ts'
 import {
   type RecvRequest,
   ReqResp as Service,
   type TopicQuery,
-} from './gen/script_pb.ts'
-import { AbortOnDispose, BaseService } from './core.ts'
+} from './gen/bridge_pb.ts'
 
 export interface IncomingRequest {
   data: Uint8Array
@@ -13,7 +13,7 @@ export interface IncomingRequest {
 }
 
 /**
- * Handle to an incoming request that allows responding to it.
+ * A handle that lets you respond to an inbound request.
  *
  * @example
  * ```ts
@@ -72,11 +72,10 @@ export class IncomingRequestHandle implements IncomingRequest {
   }
 
   /**
-   * Respond to the request with an error message because the processing failed.
+   * Responds to this request with an error response.
    *
    * @param error The error message.
    * @throws If the request has already been responded to or the grpc call fails.
-   * @returns A promise that resolves when the response has been sent.
    */
   public async error(error: Error | string) {
     const message = error instanceof Error ? error.message : error
@@ -96,11 +95,10 @@ export class IncomingRequestHandle implements IncomingRequest {
   }
 
   /**
-   * Respond to the request with data.
+   * Responds to this request with a successful response.
    *
    * @param data The data to send in the response.
    * @throws If the request has already been responded to or the grpc call fails.
-   * @returns A promise that resolves when the response has been sent.
    */
   public async respond(data: Uint8Array) {
     try {
@@ -126,7 +124,9 @@ export type HandlerIncomingRequest = Pick<
   'data' | 'topic' | 'peerId'
 >
 
-/** A subscription to incoming requests.
+/**
+ * A subscription to incoming requests.
+ *
  * @implements {AsyncIterable<IncomingRequestHandle>}
  */
 export class ReqResSubscription extends AbortOnDispose
@@ -170,36 +170,43 @@ export class ReqResSubscription extends AbortOnDispose
 }
 
 /**
- * A service for request response communication.
+ * A handle to the request-response service.
+ *
+ * Exposes methods to interact with the request-response service,
+ * like for sending and receiving requests, and for sending responses.
  */
-export class ReqRes extends BaseService<typeof Service> {
+export class ReqResp extends BaseService<typeof Service> {
   /** @ignore */
-  public static __create(transport: Transport): ReqRes {
-    return new ReqRes(Service, transport)
+  public static __create(transport: Transport): ReqResp {
+    return new ReqResp(Service, transport)
   }
 
   /**
-   * Send a request to a peer and wait for a response.
+   * Sends a request with an optional topic to a peer and returns the response.
    *
    * @param peerId The peer to send the request to.
    * @param data The data to send in the request.
+   * @param topic The optional topic to send the request on.
+   *     The peer must be subscribed to the topic to receive the request.
+   *     If not provided, the peer must be subscribed to requests without a topic to receive the request.
    * @returns The response data.
    * @throws If the response is an error.
    */
-  public async request(
+  public async sendRequest(
     peerId: string,
     data: Uint8Array | string,
+    topic?: string,
   ): Promise<Uint8Array> {
-    if (typeof data === 'string') {
-      data = new TextEncoder().encode(data)
-    }
     const { response } = await this.client.send({
       peer: {
         peerId,
       },
       msg: {
         data: {
-          data,
+          data: toBytes(data),
+        },
+        topic: {
+          topic: topic !== undefined ? { topic } : undefined,
         },
       },
     })
@@ -220,10 +227,10 @@ export class ReqRes extends BaseService<typeof Service> {
           case: 'topic',
           value: {
             topic: filter,
-            $typeName: 'script.Topic',
+            $typeName: 'bridge.Topic',
           },
         },
-        $typeName: 'script.TopicQuery',
+        $typeName: 'bridge.TopicQuery',
       }
     } else {
       return {
@@ -231,15 +238,16 @@ export class ReqRes extends BaseService<typeof Service> {
           case: 'regex',
           value: filter.source,
         },
-        $typeName: 'script.TopicQuery',
+        $typeName: 'bridge.TopicQuery',
       }
     }
   }
 
   /**
-   * Subscribe to incoming requests.
+   * Subscribes to a topic and returns a stream of incoming request handles.
    *
    * @param filter The filter to apply to incoming requests. Can be a string or a RegExp.
+   *     If not provided, only requests without a topic are received.
    * @returns A subscription to incoming requests.
    *
    * @example
@@ -250,11 +258,11 @@ export class ReqRes extends BaseService<typeof Service> {
    * }
    * ```
    */
-  public recv(filter: string | RegExp): ReqResSubscription {
+  public recv(filter?: string | RegExp): ReqResSubscription {
     const abortController = new AbortController()
     const stream = this.client.recv(
       {
-        query: ReqRes.filterToQuery(filter),
+        query: filter !== undefined ? ReqResp.filterToQuery(filter) : undefined,
       },
       {
         signal: abortController.signal,
@@ -264,7 +272,7 @@ export class ReqRes extends BaseService<typeof Service> {
   }
 
   /**
-   * Handle incoming requests.
+   * Subscribes to a topic and handles incoming requests with a callback.
    *
    * This is a convenience method over `ReqRes.recv` that allows you to handle incoming requests with a single function.
    *
@@ -279,8 +287,8 @@ export class ReqRes extends BaseService<typeof Service> {
    * ```
    */
   public async handle(
-    filter: string | RegExp,
     handler: (req: HandlerIncomingRequest) => Promise<Uint8Array>,
+    filter?: string | RegExp,
   ) {
     using stream = this.recv(filter)
     for await (const req of stream) {

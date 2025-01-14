@@ -1,59 +1,42 @@
 import type { Transport } from 'npm:@connectrpc/connect'
-import { AbortOnDispose, BaseService } from './core.ts'
-import { Discovery as Service, type NeighbourEvent } from './gen/script_pb.ts'
+import { AbortOnDispose, BaseService, toBytes } from './core.ts'
+import { Discovery as Service, type Peer } from './gen/bridge_pb.ts'
 
-export interface InitEvent {
-  case: 'init'
-  peers: string[]
-}
+/**
+ * A stream of providers for a discovery key.
+ *
+ * @example
+ * To get the providers for a discovery key, iterate over the stream:
+ * ```ts
+ * const stream = client.discovery.getProviders('my-topic', key)
+ * for await (const peerId of stream) {
+ *   console.log(peerId)
+ * }
+ * ```
+ */
+export class ProvidersStream extends AbortOnDispose
+  implements AsyncIterable<string>, Disposable {
+  private stream: AsyncIterable<Peer>
 
-export interface DiscoveredEvent {
-  case: 'discovered'
-  peer: string
-}
-
-export interface LostEvent {
-  case: 'lost'
-  peer: string
-}
-
-export type Event =
-  | InitEvent
-  | DiscoveredEvent
-  | LostEvent
-
-export class DiscoverySubscription extends AbortOnDispose
-  implements AsyncIterable<Event>, Disposable {
-  stream: AsyncIterable<NeighbourEvent>
-
-  constructor(
-    stream: AsyncIterable<NeighbourEvent>,
-    abotController: AbortController,
-  ) {
-    super(abotController)
+  constructor(stream: AsyncIterable<Peer>, abortController: AbortController) {
+    super(abortController)
     this.stream = stream
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<Event> {
-    for await (const { event } of this.stream) {
-      switch (event.case) {
-        case 'init': {
-          const peers = event.value.peers.map((peer) => peer.peerId)
-          yield { case: 'init', peers }
-          break
-        }
-        case 'discovered':
-          yield { case: 'discovered', peer: event.value.peerId }
-          break
-        case 'lost':
-          yield { case: 'lost', peer: event.value.peerId }
-          break
-      }
+  async *[Symbol.asyncIterator](): AsyncIterator<string> {
+    for await (const { peerId } of this.stream) {
+      yield peerId
     }
   }
 }
 
-/** A client for the Discovery service. */
+/**
+ * A handle to the discovery service.
+ *
+ * Exposes methods to interact with the discovery service,
+ * like for marking the local runtime as a provider for a discovery key
+ * or getting the providers for a discovery key.
+ */
 export class Discovery extends BaseService<typeof Service> {
   /** @ignore */
   public static __create(transport: Transport): Discovery {
@@ -61,28 +44,63 @@ export class Discovery extends BaseService<typeof Service> {
   }
 
   /**
-   * Get the own peer ID.
+   * Marks the local runtime as a provider for a discovery key.
    *
-   * @returns A promise that resolves to the own peer ID.
+   * @param topic The topic to provide the key in.
+   * @param key The discovery key to provide.
    */
-  public async getOwnId(): Promise<string> {
-    const { peerId } = await this.client.getOwnId({})
-    return peerId
+  public async provide(topic: string, key: Uint8Array | string) {
+    await this.client.provide({
+      topic: {
+        topic,
+      },
+      key: toBytes(key),
+    })
   }
 
   /**
-   * Subscribe to the discovery service to receive neighbour events.
+   * Gets the providers for a discovery key.
    *
-   * @returns A subscription object that can be used to iterate over events.
+   * @param topic The topic to get the providers from.
+   * @param key The key to get the providers for.
+   * @returns A stream of providers for the key in the topic.
    */
-  public subscribe(): DiscoverySubscription {
+  public getProviders(
+    topic: string,
+    key: Uint8Array | string,
+  ): ProvidersStream {
     const abortController = new AbortController()
-    const stream = this.client.subscribeEvents(
-      {},
+    const stream = this.client.getProviders(
+      {
+        topic: {
+          topic,
+        },
+        key: toBytes(key),
+      },
       {
         signal: abortController.signal,
       },
     )
-    return new DiscoverySubscription(stream, abortController)
+    return new ProvidersStream(stream, abortController)
+  }
+
+  /**
+   * Stops providing a discovery key.
+   *
+   * Only affects the local node and only affects the network once the record expires.
+   *
+   * @param topic The topic to stop providing the key in.
+   * @param key The discovery key to stop providing.
+   */
+  public async stopProviding(
+    topic: string,
+    key: Uint8Array | string,
+  ) {
+    await this.client.stopProviding({
+      topic: {
+        topic,
+      },
+      key: toBytes(key),
+    })
   }
 }
