@@ -1,9 +1,10 @@
 name: Automated release
 
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+    
   pull_request:
     branches:
       - main
@@ -16,7 +17,6 @@ jobs:
   extract-debian-packages:
     name: Extract debian packages
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     outputs:
       crates: ${{ steps.cargo-metadata.outputs.crates }}
     steps:
@@ -34,7 +34,6 @@ jobs:
   build-debian:
     name: Build debian package ${{ matrix.crate.deb_name }} for ${{ matrix.target.arch }}
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
       - extract-debian-packages
     env:
@@ -89,7 +88,6 @@ jobs:
   create-release:
     name: Create a release
     runs-on: ubuntu-24.04
-    if: github.event_name == 'release'
     needs:
       - build-debian
     env:
@@ -97,6 +95,7 @@ jobs:
     permissions:
       contents: write
       attestations: read
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Install APT packages
         uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
