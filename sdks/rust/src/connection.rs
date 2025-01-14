@@ -589,8 +589,8 @@ impl Connection {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()
@@ -636,8 +636,8 @@ impl Connection {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()
@@ -689,8 +689,8 @@ impl Connection {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()

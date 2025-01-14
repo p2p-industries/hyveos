@@ -4,10 +4,13 @@ use hyveos_core::grpc::{self, neighbours_server::Neighbours};
 #[cfg(feature = "batman")]
 use hyveos_core::neighbours::NeighbourEvent;
 use hyveos_p2p_stack::Client;
-use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
+#[cfg(feature = "batman")]
+use tonic::Response as TonicResponse;
+use tonic::{Request as TonicRequest, Status};
 
 use crate::{ServerStream, Telemetry, TonicResult};
 
+#[cfg_attr(not(feature = "batman"), allow(dead_code))]
 pub struct NeighboursServer {
     client: Client,
     telemetry: Telemetry,

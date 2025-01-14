@@ -52,8 +52,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// dht_service.provide("topic", "key").await.unwrap();
+    /// let mut discovery_service = connection.discovery();
+    /// discovery_service.provide("topic", "key").await.unwrap();
     /// # }
     /// ```
     #[tracing::instrument(skip_all, fields(topic))]
@@ -94,8 +94,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let mut providers = dht_service.get_providers("topic", "key").await.unwrap();
+    /// let mut discovery_service = connection.discovery();
+    /// let mut providers = discovery_service.get_providers("topic", "key").await.unwrap();
     ///
     /// while let Some(provider) = providers.try_next().await.unwrap() {
     ///     println!("Found provider: {provider}");
