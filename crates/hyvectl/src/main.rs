@@ -30,10 +30,11 @@ impl CommandFamily for Families {
     ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
         match self {
             Families::KV(cmd) => cmd.run(connection).await,
+            Families::Discovery(cmd) => cmd.run(connection).await,
             Families::PubSub(cmd) => cmd.run(connection).await,
-            Families::Inspect(cmd) => cmd.run(connection).await,
+            Families::Debug(cmd) => cmd.run(connection).await,
             Families::ReqRes(cmd) => cmd.run(connection).await,
-            Families::Hyve(cmd) => cmd.run(connection).await,
+            Families::Apps(cmd) => cmd.run(connection).await,
             Families::File(cmd) => cmd.run(connection).await,
             Families::Whoami(cmd) => cmd.run(connection).await,
             Families::Init(_) => unreachable!(),

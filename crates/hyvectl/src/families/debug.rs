@@ -1,8 +1,8 @@
 use futures::{stream::BoxStream, TryStreamExt as _};
-use hyvectl_commands::families::inspect::Inspect;
+use hyvectl_commands::families::debug::Debug;
 use hyveos_core::{
     debug::{MessageDebugEvent, MessageDebugEventType},
-    discovery::NeighbourEvent,
+    neighbours::NeighbourEvent,
 };
 use hyveos_sdk::Connection;
 
@@ -34,7 +34,7 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
                 .with_field("data", String::from_utf8(res.response.try_into()?)?)
                 .with_tty_template("🗨️ {{ id: {id}, data: {data} }}")
                 .with_non_tty_template("{service},{id},{data}"),
-            MessageDebugEventType::GossipSub(msg) => out
+            MessageDebugEventType::PubSub(msg) => out
                 .with_field("service", "pub-sub".to_string())
                 .with_field("topic", msg.topic.to_string())
                 .with_field("data", String::from_utf8(msg.data)?)
@@ -44,19 +44,19 @@ impl TryFrom<MessageDebugEvent> for CommandOutput {
     }
 }
 
-impl CommandFamily for Inspect {
+impl CommandFamily for Debug {
     async fn run(
         self,
         connection: &Connection,
     ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
-        let mut debug = connection.debug();
+        let mut debug_service = connection.debug();
 
         match self {
-            Inspect::Mesh { .. } => {
+            Debug::Mesh { .. } => {
                 boxed_try_stream! {
                     yield CommandOutput::spinner("Waiting for Topology Events...", &["◐", "◒", "◑", "◓"]);
 
-                    let mut stream = debug.subscribe_mesh_topology().await?;
+                    let mut stream = debug_service.subscribe_mesh_topology().await?;
 
                     while let Some(event) = stream.try_next().await? {
                         let out = CommandOutput::result()
@@ -88,9 +88,9 @@ impl CommandFamily for Inspect {
                     }
                 }
             }
-            Inspect::Services => {
+            Debug::Services => {
                 boxed_try_stream! {
-                    let mut stream = debug.subscribe_messages().await?;
+                    let mut stream = debug_service.subscribe_messages().await?;
 
                     yield CommandOutput::spinner("Waiting for Service Events...", &["◐", "◑", "◒", "◓"]);
 

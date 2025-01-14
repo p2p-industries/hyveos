@@ -1,6 +1,6 @@
 use clap::{Command, CommandFactory, Parser, Subcommand};
 
-use crate::families::{file, hyve, init, inspect, kv, pubsub, reqres, whoami};
+use crate::families::{apps, debug, discovery, file, init, kv, pub_sub, reqres, whoami};
 
 #[derive(Parser)]
 #[command(name = "hyvectl", about = "Hyvectl")]
@@ -17,18 +17,21 @@ pub enum Families {
     /// Key-Value Store
     #[command(subcommand)]
     KV(kv::Kv),
+    /// Discovery Service
+    #[command(subcommand)]
+    Discovery(discovery::Discovery),
     /// Publisher-Subscriber Service
     #[command(subcommand)]
-    PubSub(pubsub::PubSub),
-    /// Network Inspection Service
+    PubSub(pub_sub::PubSub),
+    /// Network Debugging Service
     #[command(subcommand)]
-    Inspect(inspect::Inspect),
+    Debug(debug::Debug),
     /// Request-Response Service
     #[command(subcommand)]
     ReqRes(reqres::ReqRes),
     /// Distributed Application Service
     #[command(subcommand)]
-    Hyve(hyve::Hyve),
+    Apps(apps::Apps),
     /// File Transfer Service
     #[command(subcommand)]
     File(file::File),

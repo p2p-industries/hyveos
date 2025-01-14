@@ -1,6 +1,6 @@
 use futures::{stream::BoxStream, TryStreamExt as _};
-use hyvectl_commands::families::pubsub::PubSub;
-use hyveos_core::gossipsub::ReceivedMessage;
+use hyvectl_commands::families::pub_sub::PubSub;
+use hyveos_core::pub_sub::ReceivedMessage;
 use hyveos_sdk::Connection;
 
 use crate::{
@@ -37,12 +37,12 @@ impl CommandFamily for PubSub {
         self,
         connection: &Connection,
     ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
-        let mut pubsub = connection.gossipsub();
+        let mut pub_sub_service = connection.pub_sub();
 
         match self {
             PubSub::Publish { topic, message } => {
                 boxed_try_stream! {
-                    pubsub.publish(&topic, message.clone()).await?;
+                    pub_sub_service.publish(&topic, message.clone()).await?;
 
                     yield CommandOutput::result()
                         .with_field("topic", topic)
@@ -55,7 +55,7 @@ impl CommandFamily for PubSub {
                 boxed_try_stream! {
                     yield CommandOutput::spinner("Waiting for Messages...", &["◐", "◒", "◑", "◓"]);
 
-                    let mut message_stream = pubsub.subscribe(&topic).await?;
+                    let mut message_stream = pub_sub_service.subscribe(&topic).await?;
 
                     while let Some(event) = message_stream.try_next().await? {
                         yield event.try_into()?

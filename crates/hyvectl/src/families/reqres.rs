@@ -10,7 +10,7 @@ impl CommandFamily for ReqRes {
         self,
         connection: &Connection,
     ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
-        let mut reqres = connection.req_resp();
+        let mut req_res_service = connection.req_resp();
 
         match self {
             ReqRes::Receive { topic } => {
@@ -19,7 +19,7 @@ impl CommandFamily for ReqRes {
 
                     let query = topic.map(Into::into).map(TopicQuery::String);
 
-                    let mut stream = reqres.recv(query).await?;
+                    let mut stream = req_res_service.recv(query).await?;
 
                     while let Some(request) = stream.try_next().await? {
                         yield CommandOutput::result()
@@ -42,7 +42,7 @@ impl CommandFamily for ReqRes {
 
                     yield CommandOutput::spinner("Waiting for Response", &["◐", "◒", "◑", "◓"]);
 
-                    let response = reqres.send_request(peer_id, message, topic).await?;
+                    let response = req_res_service.send_request(peer_id, message, topic).await?;
 
                     let mut output = CommandOutput::result();
 
@@ -66,7 +66,7 @@ impl CommandFamily for ReqRes {
                 response: message,
             } => {
                 boxed_try_stream! {
-                    reqres.respond(id, Response::Data(message.clone().into())).await?;
+                    req_res_service.respond(id, Response::Data(message.clone().into())).await?;
 
                     yield CommandOutput::result()
                         .with_field("id", id.to_string())

@@ -19,7 +19,7 @@ impl CommandFamily for File {
 
                     yield CommandOutput::spinner("Publishing File...", &["◐", "◒", "◑", "◓"]);
 
-                    let cid = file_transfer_service.publish_file(input_path)
+                    let cid = file_transfer_service.publish(input_path)
                     .await?;
 
                     yield CommandOutput::result()
@@ -31,7 +31,7 @@ impl CommandFamily for File {
             File::Get { cid, out } => {
                 boxed_try_stream! {
                     let mut download_stream = file_transfer_service
-                        .get_file_with_progress(cid.parse::<Cid>()?)
+                        .get_with_progress(cid.parse::<Cid>()?)
                         .await?;
 
                     yield CommandOutput::message("Starting Download...");

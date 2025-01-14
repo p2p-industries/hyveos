@@ -1,7 +1,7 @@
 use clap::Subcommand;
 
 #[derive(Subcommand)]
-pub enum Hyve {
+pub enum Apps {
     /// Starts an application on a given node
     Start {
         /// Image to deploy

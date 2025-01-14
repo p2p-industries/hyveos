@@ -1,4 +1,4 @@
-use futures::{stream::BoxStream, TryStreamExt as _};
+use futures::stream::BoxStream;
 use hyvectl_commands::families::kv::Kv;
 use hyveos_sdk::Connection;
 
@@ -9,7 +9,7 @@ impl CommandFamily for Kv {
         self,
         connection: &Connection,
     ) -> BoxStream<'static, HyveCtlResult<CommandOutput>> {
-        let mut dht = connection.dht();
+        let mut kv_service = connection.kv();
 
         match self {
             Kv::Get { key, topic } => {
@@ -21,7 +21,7 @@ impl CommandFamily for Kv {
 
                     let topic = topic.unwrap_or_default();
 
-                    let result = dht.get_record(&topic, key.clone()).await?;
+                    let result = kv_service.get_record(&topic, key.clone()).await?;
 
                     match result {
                         Some(res) => yield CommandOutput::result()
@@ -47,7 +47,7 @@ impl CommandFamily for Kv {
 
                     let topic = topic.unwrap_or_default();
 
-                    dht.put_record(&topic, key.clone(), value.clone()).await?;
+                    kv_service.put_record(&topic, key.clone(), value.clone()).await?;
 
                     yield CommandOutput::result()
                         .with_field("topic", topic)
@@ -55,60 +55,6 @@ impl CommandFamily for Kv {
                         .with_field("value", value.clone())
                         .with_tty_template(template)
                         .with_non_tty_template("{value},{key},{topic}");
-                }
-            }
-            Kv::Provide { key, topic } => {
-                boxed_try_stream! {
-                    let template = match topic {
-                        Some(_) => {"🔑 Now providing { {key} } in topic { {topic} }"},
-                        None => {"🔑 Now providing { {key} }"}
-                    };
-
-                    let topic = topic.unwrap_or_default();
-
-                    dht.provide(&topic, key.clone()).await?;
-
-                    yield CommandOutput::result()
-                        .with_field("topic", topic)
-                        .with_field("key", key)
-                        .with_tty_template(template)
-                        .with_non_tty_template("{key},{topic}")
-                }
-            }
-            Kv::GetProviders { key, topic } => {
-                boxed_try_stream! {
-                    let topic = topic.clone().unwrap_or_default();
-
-                    yield CommandOutput::spinner("Fetching Providers...", &["◐", "◑", "◒", "◓"]);
-
-                    let mut providers_stream = dht.get_providers(topic.clone(), key.clone()).await?;
-
-                    while let Some(provider) = providers_stream.try_next().await? {
-                        yield CommandOutput::result()
-                            .with_field("topic", topic.clone())
-                            .with_field("key", key.clone())
-                            .with_field("provider", provider.to_string())
-                            .with_tty_template("🤖 { {provider} }")
-                            .with_non_tty_template("{provider}");
-                    }
-                }
-            }
-            Kv::StopProvide { key, topic } => {
-                boxed_try_stream! {
-                    let template = match topic {
-                        Some(_) => {"🔑 Stopped providing { {key} } in topic { {topic} }"},
-                        None => {"🔑 Stopped providing { {key} }"}
-                    };
-
-                    let topic = topic.unwrap_or_default();
-
-                    dht.stop_providing(&topic, key.clone()).await?;
-
-                    yield CommandOutput::result()
-                        .with_field("topic", topic)
-                        .with_field("key", key)
-                        .with_tty_template(template)
-                        .with_non_tty_template("{key},{topic}")
                 }
             }
         }

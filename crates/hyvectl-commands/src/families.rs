@@ -1,8 +1,9 @@
+pub mod apps;
+pub mod debug;
+pub mod discovery;
 pub mod file;
-pub mod hyve;
 pub mod init;
-pub mod inspect;
 pub mod kv;
-pub mod pubsub;
+pub mod pub_sub;
 pub mod reqres;
 pub mod whoami;
