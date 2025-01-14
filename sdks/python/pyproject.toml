@@ -5,7 +5,7 @@ license = { text = "MIT" }
 
 [tool.poetry]
 name = "hyveos-sdk"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = [
     "Lukas Altun <laltun@student.ethz.ch>",
