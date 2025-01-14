@@ -21,7 +21,7 @@ class PubSubService:
     def __init__(self, conn: Channel):
         self.stub = PubSubStub(conn)
 
-    async def subscribe(self, topic: str) -> ManagedStream[PubSubRecvMessage]:
+    def subscribe(self, topic: str) -> ManagedStream[PubSubRecvMessage]:
         """
         Subscribes to a topic and returns a stream of messages published to that topic.
 

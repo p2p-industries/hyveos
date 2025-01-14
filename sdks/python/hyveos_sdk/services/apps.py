@@ -44,9 +44,9 @@ class AppsService:
         Parameters
         ----------
         image : str
-            The name of the docker image to deploy
+            A docker image name, can contain a tag, e.g. `my-docker-image:latest`
         local : bool
-            Whether the image is available locally
+            Whether the image is available locally, without needing to pull it from a registry
         ports : Iterable[int], optional
             Ports to expose on the container (default: [])
         peer_id : str, optional
