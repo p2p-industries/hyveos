@@ -11,6 +11,7 @@ After=wpa_supplicant@%i.service
 Type=oneshot
 RemainAfterExit=yes
 
+ExecStartPre=/usr/bin/sleep 10
 ExecStart=/usr/sbin/batctl if add %i
 ExecStart=/usr/sbin/ifconfig bat0 mtu 1468
 ExecStart=/usr/sbin/ifconfig bat0 up
