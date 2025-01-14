@@ -17,7 +17,7 @@ While the provided abstractions are universally useful, hyveOS is ideally suited
 
 ### Live Video to first Responders
 
-Today many search and rescue operators already use drones to save lifes. With hyveOS's [File Transfer](https://docs.p2p.industries/sdk/file_transfer/) the video feed can be
+Today many search and rescue operators already use drones to save lives. With hyveOS's [File Transfer](https://docs.p2p.industries/sdk/file_transfer/) the video feed can be
 broadcastet to countless on-the-ground operators even while the cellular network is down.
 
 ### Warehouse
