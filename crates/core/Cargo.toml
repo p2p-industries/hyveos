@@ -5,7 +5,7 @@ description = "Core library for hyveOS sharing types and utilities between the S
 edition = "2021"
 rust-version = { workspace = true }
 license = "MIT"
-homepage = "docs.p2p.industries"
+homepage = { workspace = true }
 repository = "https://github.com/p2p-industries/hyveos/tree/main/crates/core"
 readme = "README.md"
 
