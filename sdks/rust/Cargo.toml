@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = { workspace = true }
 license = "MIT"
-homepage = "docs.p2p.industries"
+homepage = { workspace = true }
 repository = "https://github.com/p2p-industries/hyveos/tree/main/sdks/rust"
 readme = "README.md"
 
