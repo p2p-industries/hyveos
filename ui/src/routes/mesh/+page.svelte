@@ -18,12 +18,12 @@
 
       const stream = client.debug.subscribeMessages();
       for await (const { event, sender } of stream) {
-        if (event.case === 'gos') {
+        if (event.case === 'pubSub') {
           const decoder = new TextDecoder('utf8');
           messages.push({
             sender,
             data: {
-              type: 'gossipsub',
+              type: 'pubSub',
               topic: event.topic,
               message: btoa(decoder.decode(event.data))
             }
@@ -34,7 +34,7 @@
           messages.push({
             sender,
             data: {
-              type: 'req_resp',
+              type: 'reqResp',
               id,
               topic,
               data,
@@ -44,10 +44,10 @@
         } else if (event.case === 'res') {
           const { id, response } = event;
           const messageIdx = messages.findIndex(({ data }) => {
-            return data.type === 'req_resp' && data.id === id;
+            return data.type === 'reqResp' && data.id === id;
           });
           if (messageIdx !== -1) {
-            if (messages[messageIdx].data.type === 'req_resp') {
+            if (messages[messageIdx].data.type === 'reqResp') {
               messages[messageIdx].data.response = response;
             }
           }
@@ -70,13 +70,13 @@
           <li class="rounded bg-gray-600 mb-2 p-2">
             <p class="text-xs font-mono">
               From <span class="text-rose-500">{peerIdToLabel(message.sender)}</span>
-              {#if message.data.type === 'req_resp'}
+              {#if message.data.type === 'reqResp'}
                 to <span class="text-rose-500">{peerIdToLabel(message.data.receiver)}</span>:
               {:else}
                 on topic <span class="text-blue-500">'{message.data.topic}'</span>:
               {/if}
             </p>
-            {#if message.data.type === 'req_resp'}
+            {#if message.data.type === 'reqResp'}
               {@const data = message.data.data}
               <div class="flex flex-row w-full">
                 <p class="w-6">&rarr;</p>
