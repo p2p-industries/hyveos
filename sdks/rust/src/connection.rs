@@ -298,7 +298,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
     }
 }
 
-/// A connection to the HyveOS runtime.
+/// A connection to the hyveOS runtime.
 ///
 /// This struct provides access to the various services provided by HyveOS.
 ///

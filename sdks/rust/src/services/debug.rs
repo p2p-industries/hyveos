@@ -12,8 +12,8 @@ use crate::{connection::Connection, error::Result};
 
 /// A handle to the debug service.
 ///
-/// Exposes methods to interact with the debug service. Currently, the debug service only provides
-/// a stream of mesh topology events, which are emitted whenever the mesh topology changes.
+/// Exposes methods to interact with the debug service,
+/// such as subscribing to mesh topology events and message debug events.
 ///
 /// # Example
 ///
