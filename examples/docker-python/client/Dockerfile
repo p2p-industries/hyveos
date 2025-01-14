@@ -13,3 +13,8 @@ COPY ./script.py /app/client/script.py
 ENV PYTHONUNBUFFERED=1
 
 CMD ["poetry", "run", "python", "script.py"]
+
+LABEL org.opencontainers.image.title="hyveOS Python example image (client)"
+LABEL org.opencontainers.image.url="https://docs.p2p.industries"
+LABEL org.opencontainers.image.documentation="https://docs.p2p.industries"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"

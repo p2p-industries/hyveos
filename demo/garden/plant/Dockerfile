@@ -21,3 +21,9 @@ ENV PYTHONUNBUFFERED=1
 LABEL industries.p2p.script.name=plant
 
 CMD ["poetry", "run", "python", "-m", "plant.main"]
+
+LABEL org.opencontainers.image.title="hyveOS Plant"
+LABEL org.opencontainers.image.description="Image to water a plant in the hyveOS plant watering demo"
+LABEL org.opencontainers.image.url="https://docs.p2p.industries"
+LABEL org.opencontainers.image.documentation="https://docs.p2p.industries"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"

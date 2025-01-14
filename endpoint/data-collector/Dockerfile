@@ -83,3 +83,9 @@ ENV PORT=8080
 EXPOSE 8080
 
 CMD ["/app/data-collector"]
+
+LABEL org.opencontainers.image.title="hyveOS data collector"
+LABEL org.opencontainers.image.description="Image to collect data from the network and expose it to prometheus"
+LABEL org.opencontainers.image.url="https://docs.p2p.industries"
+LABEL org.opencontainers.image.documentation="https://docs.p2p.industries"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"
