@@ -1,11 +1,11 @@
-import type { DescService } from 'npm:@bufbuild/protobuf'
+import type { DescService } from 'npm:@bufbuild/protobuf@2.2.3'
 import {
   type Client,
   createClient,
   type Transport,
-} from 'npm:@connectrpc/connect'
-import { literal, object, string, union } from 'npm:valibot'
-import type { BaseIssue, BaseSchema } from 'npm:valibot'
+} from 'npm:@connectrpc/connect@2.0.1'
+import { literal, object, string, union } from 'npm:valibot@1.0.0-beta.11'
+import type { BaseIssue, BaseSchema } from 'npm:valibot@1.0.0-beta.11'
 
 export function createJsonResult<
   TInput,

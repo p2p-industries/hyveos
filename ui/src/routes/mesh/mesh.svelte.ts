@@ -1,7 +1,7 @@
 import type { Node } from '$lib/types';
 import type { Link } from '$lib/types';
-import type { Client } from 'hyveos-sdk';
-import type { Connection } from 'hyveos-web';
+import type { Client } from '@hyveos/sdk';
+import type { Connection } from '@hyveos/web';
 
 export const nodes = $state<Node[]>([]);
 export const links = $state<Link[]>([]);

@@ -38,9 +38,9 @@ jobs:
       fail-fast: true
       matrix:
         package:
-          - hyveos-sdk
-          - hyveos-web
-          - hyveos-server
+          - sdk
+          - web
+          - server
     env:
       DENO_DIR: /tmp/${{ matrix.package }}-cache
     steps:
@@ -59,7 +59,9 @@ jobs:
 
       - name: Build package
         working-directory: sdks/typescript/${{ matrix.package }}
-        run: deno run -A scripts/build_npm.ts 1.0.0
+        run: |
+          sed -i 's/jsr/npm/g' mod.ts
+          deno run -A scripts/build_npm.ts 0.1.0
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
@@ -74,9 +76,9 @@ jobs:
       fail-fast: true
       matrix:
         package:
-          - hyveos-sdk
-          - hyveos-web
-          - hyveos-server
+          - sdk
+          - web
+          - server
     env:
       DENO_DIR: /tmp/${{ matrix.package }}-cache
     steps:
@@ -120,14 +122,14 @@ jobs:
       - name: Download hyveos-sdk
         uses: actions/download-artifact@v4
         with:
-          name: hyveos-sdk
-          path: sdks/typescript/hyveos-sdk/npm
+          name: sdk
+          path: sdks/typescript/sdk/npm
       
       - name: Download hyveos-web
         uses: actions/download-artifact@v4
         with:
-          name: hyveos-web
-          path: sdks/typescript/hyveos-web/npm
+          name: web
+          path: sdks/typescript/web/npm
 
       - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
         with:

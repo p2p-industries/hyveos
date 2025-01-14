@@ -17,15 +17,15 @@ importers:
       '@fortawesome/svelte-fontawesome':
         specifier: ^0.2.3
         version: 0.2.3(@fortawesome/fontawesome-svg-core@6.7.2)(svelte@5.16.5)
+      '@hyveos/sdk':
+        specifier: 0.1.0
+        version: 0.1.0(typescript@5.7.2)
+      '@hyveos/web':
+        specifier: 0.1.0
+        version: 0.1.0(@bufbuild/protobuf@2.2.3)(typescript@5.7.2)
       d3:
         specifier: ^7.9.0
         version: 7.9.0
-      hyveos-sdk:
-        specifier: file:../sdks/typescript/hyveos-sdk/npm
-        version: file:../sdks/typescript/hyveos-sdk/npm(typescript@5.7.2)
-      hyveos-web:
-        specifier: file:../sdks/typescript/hyveos-web/npm
-        version: file:../sdks/typescript/hyveos-web/npm(typescript@5.7.2)
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -116,14 +116,14 @@ packages:
   '@bufbuild/protobuf@2.2.3':
     resolution: {integrity: sha512-tFQoXHJdkEOSwj5tRIZSPNUuXK3RaR7T1nUrPgbYX1pUbvqqaaZAsfo+NXBPsz5rZMSKVFrgK1WL8Q/MSLvprg==}
 
-  '@connectrpc/connect-web@2.0.0':
-    resolution: {integrity: sha512-oeCxqHXLXlWJdmcvp9L3scgAuK+FjNSn+twyhUxc8yvDbTumnt5Io+LnBzSYxAdUdYqTw5yHfTSCJ4hj0QID0g==}
+  '@connectrpc/connect-web@2.0.1':
+    resolution: {integrity: sha512-FmUR9TyuHu/3efr9cYZcqqAccgsswLSm3PQBXGuya5h57AjQWROW6ejL6Fg0d+A9EwsxRmJktefmFszXUMlU9Q==}
     peerDependencies:
       '@bufbuild/protobuf': ^2.2.0
-      '@connectrpc/connect': 2.0.0
+      '@connectrpc/connect': 2.0.1
 
-  '@connectrpc/connect@2.0.0':
-    resolution: {integrity: sha512-Usm8jgaaULANJU8vVnhWssSA6nrZ4DJEAbkNtXSoZay2YD5fDyMukCxu8NEhCvFzfHvrhxhcjttvgpyhOM7xAQ==}
+  '@connectrpc/connect@2.0.1':
+    resolution: {integrity: sha512-o+MauvcOnfN4vjpS8ngoX+ubhcCDvnexlLwtk/VnkCLjoRMUz2PKqi87Si58ViWq0vzmGYPRf2LNwhJk5kcCXA==}
     peerDependencies:
       '@bufbuild/protobuf': ^2.2.0
 
@@ -351,6 +351,12 @@ packages:
   '@humanwhocodes/retry@0.4.1':
     resolution: {integrity: sha512-c7hNEllBlenFTHBky65mhq8WD2kbN9Q6gk0bTk8lSBvc554jpXSkST1iePudpt7+A/AQvuHs9EMqjHDXMY1lrA==}
     engines: {node: '>=18.18'}
+
+  '@hyveos/sdk@0.1.0':
+    resolution: {integrity: sha512-FiWfytzOIX7DmQpCBdb/tt5+yfyuad6/f+gLe+wre3nCVLL+eaZKSWDe4mJOoiJQmeJYk3WJdt//y9GuOMGcQA==}
+
+  '@hyveos/web@0.1.0':
+    resolution: {integrity: sha512-AMZ0kyfuC5nwIqNf8LwjfO6draGS1i2HoCusjAN6/X1TRcKTKlQ3ynDQbWMBqrhF9r0tLP7xFLqqZ4sz8w3g1Q==}
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -1324,12 +1330,6 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hyveos-sdk@file:../sdks/typescript/hyveos-sdk/npm:
-    resolution: {directory: ../sdks/typescript/hyveos-sdk/npm, type: directory}
-
-  hyveos-web@file:../sdks/typescript/hyveos-web/npm:
-    resolution: {directory: ../sdks/typescript/hyveos-web/npm, type: directory}
-
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -1953,12 +1953,12 @@ snapshots:
 
   '@bufbuild/protobuf@2.2.3': {}
 
-  '@connectrpc/connect-web@2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))':
+  '@connectrpc/connect-web@2.0.1(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.1(@bufbuild/protobuf@2.2.3))':
     dependencies:
       '@bufbuild/protobuf': 2.2.3
-      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.2.3)
+      '@connectrpc/connect': 2.0.1(@bufbuild/protobuf@2.2.3)
 
-  '@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3)':
+  '@connectrpc/connect@2.0.1(@bufbuild/protobuf@2.2.3)':
     dependencies:
       '@bufbuild/protobuf': 2.2.3
 
@@ -2110,6 +2110,23 @@ snapshots:
   '@humanwhocodes/retry@0.3.1': {}
 
   '@humanwhocodes/retry@0.4.1': {}
+
+  '@hyveos/sdk@0.1.0(typescript@5.7.2)':
+    dependencies:
+      '@bufbuild/protobuf': 2.2.3
+      '@connectrpc/connect': 2.0.1(@bufbuild/protobuf@2.2.3)
+      valibot: 1.0.0-beta.11(typescript@5.7.2)
+    transitivePeerDependencies:
+      - typescript
+
+  '@hyveos/web@0.1.0(@bufbuild/protobuf@2.2.3)(typescript@5.7.2)':
+    dependencies:
+      '@connectrpc/connect': 2.0.1(@bufbuild/protobuf@2.2.3)
+      '@connectrpc/connect-web': 2.0.1(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.1(@bufbuild/protobuf@2.2.3))
+      '@hyveos/sdk': 0.1.0(typescript@5.7.2)
+    transitivePeerDependencies:
+      - '@bufbuild/protobuf'
+      - typescript
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
@@ -3138,23 +3155,6 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
-
-  hyveos-sdk@file:../sdks/typescript/hyveos-sdk/npm(typescript@5.7.2):
-    dependencies:
-      '@bufbuild/protobuf': 2.2.3
-      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.2.3)
-      valibot: 1.0.0-beta.11(typescript@5.7.2)
-    transitivePeerDependencies:
-      - typescript
-
-  hyveos-web@file:../sdks/typescript/hyveos-web/npm(typescript@5.7.2):
-    dependencies:
-      '@bufbuild/protobuf': 2.2.3
-      '@connectrpc/connect': 2.0.0(@bufbuild/protobuf@2.2.3)
-      '@connectrpc/connect-web': 2.0.0(@bufbuild/protobuf@2.2.3)(@connectrpc/connect@2.0.0(@bufbuild/protobuf@2.2.3))
-      valibot: 1.0.0-beta.11(typescript@5.7.2)
-    transitivePeerDependencies:
-      - typescript
 
   iconv-lite@0.6.3:
     dependencies:

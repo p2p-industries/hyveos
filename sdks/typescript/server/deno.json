@@ -1,0 +1,6 @@
+{
+  "name": "@hyveos/server",
+  "version": "0.1.0",
+  "description": "Transport provider for the hyveOS sdk for use on the server",
+  "exports": "./mod.ts"
+}
