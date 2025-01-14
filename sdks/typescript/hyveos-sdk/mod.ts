@@ -16,7 +16,8 @@
  */
 export default {}
 
-import type { Transport } from 'npm:@connectrpc/connect'
+import { createClient, type Transport } from 'npm:@connectrpc/connect'
+import { Discovery as DiscoveryService } from './gen/bridge_pb.ts'
 import { Apps } from './apps.ts'
 export { Apps } from './apps.ts'
 import { Debug } from './debug.ts'
@@ -145,5 +146,14 @@ export class Client<T extends ITransport> {
    */
   public get reqResp(): ReqResp {
     return ReqResp.__create(this.transport.transport())
+  }
+
+  /**
+   * @returns The peer ID of the local runtime.
+   */
+  public async getId(): Promise<string> {
+    const client = createClient(DiscoveryService, this.transport.transport())
+    const { peerId } = await client.getOwnId({})
+    return peerId
   }
 }
