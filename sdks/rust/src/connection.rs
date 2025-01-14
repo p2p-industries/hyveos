@@ -1,24 +1,28 @@
 use std::{env, path::PathBuf, sync::Arc};
 
 use hyper_util::rt::TokioIo;
-use hyveos_core::BRIDGE_SOCKET_ENV_VAR;
+use hyveos_core::{
+    grpc::{discovery_client::DiscoveryClient, Empty},
+    BRIDGE_SOCKET_ENV_VAR,
+};
+use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 
+#[cfg(feature = "app-management")]
+use crate::services::AppsService;
 #[cfg(feature = "cbor")]
 use crate::services::CborReqRespService;
 #[cfg(feature = "json")]
 use crate::services::JsonReqRespService;
-#[cfg(feature = "scripting")]
-use crate::services::ScriptingService;
 use crate::{
     error::{Error, Result},
     services::{
         DbService, DebugService, DhtService, DiscoveryService, FileTransferService,
-        GossipSubService, ReqRespService,
+        GossipSubService, NeighboursService, ReqRespService,
     },
 };
 
@@ -38,12 +42,12 @@ pub trait ConnectionType: internal::ConnectionType {}
 
 impl<T: internal::ConnectionType> ConnectionType for T {}
 
-/// A connection to the HyveOS runtime through the scripting bridge.
+/// A connection to the hyveOS runtime through the hyveOS application bridge.
 ///
 /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
 /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
 ///
-/// This is the standard connection type when used in a HyveOS script.
+/// This is the standard connection type when used in a hyveOS app.
 #[derive(Debug, Clone)]
 pub struct BridgeConnection {
     _private: (),
@@ -185,7 +189,7 @@ impl Default for ConnectionBuilder<BridgeConnection> {
 impl ConnectionBuilder<BridgeConnection> {
     /// Creates a new builder for configuring a connection to the HyveOS runtime.
     ///
-    /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+    /// By default, the connection to the HyveOS runtime will be made through the application bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
     /// If another connection type is desired, use the [`Self::custom`] or [`Self::uri`] methods.
@@ -213,8 +217,7 @@ impl ConnectionBuilder<BridgeConnection> {
     ///     .connect()
     ///     .await
     ///     .unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    /// let peer_id = connection.get_id().await.unwrap();
     ///
     /// println!("My peer id: {peer_id}");
     /// # }
@@ -253,8 +256,7 @@ impl ConnectionBuilder<BridgeConnection> {
     ///     .connect()
     ///     .await
     ///     .unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    /// let peer_id = connection.get_id().await.unwrap();
     ///
     /// println!("My peer id: {peer_id}");
     /// # }
@@ -286,8 +288,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
     ///     .connect()
     ///     .await
     ///     .unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    /// let peer_id = connection.get_id().await.unwrap();
     ///
     /// println!("My peer id: {peer_id}");
     /// # }
@@ -301,7 +302,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
 ///
 /// This struct provides access to the various services provided by HyveOS.
 ///
-/// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+/// By default, the connection to the HyveOS runtime will be made through the application bridge,
 /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
 /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
 /// If another connection type is desired, use the [`Self::builder`] function to get a
@@ -316,8 +317,7 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut discovery_service = connection.discovery();
-/// let peer_id = discovery_service.get_own_id().await.unwrap();
+/// let peer_id = connection.get_id().await.unwrap();
 ///
 /// println!("My peer id: {peer_id}");
 /// # }
@@ -330,7 +330,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    /// Establishes a connection to the HyveOS runtime through the scripting bridge.
+    /// Establishes a connection to the HyveOS runtime through the application bridge.
     ///
     /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
@@ -350,8 +350,7 @@ impl Connection {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    /// let peer_id = connection.get_id().await.unwrap();
     ///
     /// println!("My peer id: {peer_id}");
     /// # }
@@ -362,7 +361,7 @@ impl Connection {
 
     /// Creates a new builder for configuring a connection to the HyveOS runtime.
     ///
-    /// By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+    /// By default, the connection to the HyveOS runtime will be made through the application bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
     /// If another connection type is desired, use the [`ConnectionBuilder::custom`] or
@@ -380,8 +379,7 @@ impl Connection {
     ///     .connect()
     ///     .await
     ///     .unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
+    /// let peer_id = connection.get_id().await.unwrap();
     ///
     /// println!("My peer id: {peer_id}");
     /// # }
@@ -391,26 +389,31 @@ impl Connection {
         ConnectionBuilder::new()
     }
 
-    /// Returns a handle to the database service.
+    /// Returns a handle to the application management service.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::Connection;
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
-    /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
+    /// let mut apps_service = connection.apps();
     ///
-    /// let value = db_service.get("key").await.unwrap().unwrap();
-    /// assert_eq!(value, b"value");
+    /// let config = AppConfig::new("my-docker-image:latest")
+    ///     .local()
+    ///     .expose_port(8080);
+    /// let app_id = apps_service.deploy(config).await.unwrap();
+    ///
+    /// println!("Deployed app with id {app_id}");
     /// # }
     /// ```
+    #[doc(hidden)]
+    #[cfg(feature = "app-management")]
     #[must_use]
-    pub fn db(&self) -> DbService {
-        DbService::new(self)
+    pub fn apps(&self) -> AppsService {
+        AppsService::new(self)
     }
 
     /// Returns a handle to the debug service.
@@ -437,31 +440,6 @@ impl Connection {
         DebugService::new(self)
     }
 
-    /// Returns a handle to the DHT service.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use hyveos_sdk::Connection;
-    ///
-    /// # #[tokio::main]
-    /// # async fn main() {
-    /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let value = dht_service.get_record("topic", "key").await.unwrap();
-    ///
-    /// if let Some(value) = value.and_then(|value| String::from_utf8(value).ok()) {
-    ///     println!("Record has value: {value}");
-    /// } else {
-    ///    println!("Record not found");
-    /// }
-    /// # }
-    /// ```
-    #[must_use]
-    pub fn dht(&self) -> DhtService {
-        DhtService::new(self)
-    }
-
     /// Returns a handle to the discovery service.
     ///
     /// # Example
@@ -473,9 +451,7 @@ impl Connection {
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
     /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
-    ///
-    /// println!("My peer id: {peer_id}");
+    /// discovery_service.provide("topic", "key").await.unwrap();
     /// # }
     /// ```
     #[must_use]
@@ -500,7 +476,7 @@ impl Connection {
     ///
     /// let connection = Connection::new().await.unwrap();
     /// let mut file_transfer_service = connection.file_transfer();
-    /// let cid = file_transfer_service.publish_file(&file_path).await.unwrap();
+    /// let cid = file_transfer_service.publish(&file_path).await.unwrap();
     ///
     /// println!("Content ID: {cid:?}");
     /// # }
@@ -510,7 +486,7 @@ impl Connection {
         FileTransferService::new(self)
     }
 
-    /// Returns a handle to the gossipsub service.
+    /// Returns a handle to the distributed key-value store service.
     ///
     /// # Example
     ///
@@ -520,14 +496,85 @@ impl Connection {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
-    /// let id = gossipsub_service.publish("topic", "Hello, world!").await.unwrap();
+    /// let mut kv_service = connection.kv();
+    /// let value = kv_service.get_record("topic", "key").await.unwrap();
+    ///
+    /// if let Some(value) = value.and_then(|value| String::from_utf8(value).ok()) {
+    ///     println!("Record has value: {value}");
+    /// } else {
+    ///    println!("Record not found");
+    /// }
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn kv(&self) -> DhtService {
+        DhtService::new(self)
+    }
+
+    /// Returns a handle to the local key-value store service.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let mut local_kv_service = connection.local_kv();
+    /// assert!(local_kv_service.put("key", b"value").await.unwrap().is_none());
+    ///
+    /// let value = local_kv_service.get("key").await.unwrap().unwrap();
+    /// assert_eq!(value, b"value");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn local_kv(&self) -> DbService {
+        DbService::new(self)
+    }
+
+    /// Returns a handle to the neighbours service.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let mut neighbours_service = connection.neighbours();
+    /// let neighbour_ids = neighbours_service.get().await.unwrap();
+    ///
+    /// println!("Neighbours:");
+    /// for neighbour_id in neighbour_ids {
+    ///    println!("- {neighbour_id}");
+    /// }
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn neighbours(&self) -> NeighboursService {
+        NeighboursService::new(self)
+    }
+
+    /// Returns a handle to the pub-sub service.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let mut pub_sub_service = connection.pub_sub();
+    /// let id = pub_sub_service.publish("topic", "Hello, world!").await.unwrap();
     ///
     /// println!("Published message with id: {id}");
     /// # }
     /// ```
     #[must_use]
-    pub fn gossipsub(&self) -> GossipSubService {
+    pub fn pub_sub(&self) -> GossipSubService {
         GossipSubService::new(self)
     }
 
@@ -620,7 +667,7 @@ impl Connection {
         JsonReqRespService::new(self)
     }
 
-    /// Returns a handle to the request-response service with JSON-encoded requests and responses.
+    /// Returns a handle to the request-response service with CBOR-encoded requests and responses.
     ///
     /// # Example
     ///
@@ -673,30 +720,32 @@ impl Connection {
         CborReqRespService::new(self)
     }
 
-    /// Returns a handle to the scripting service.
+    /// Returns the peer ID of the local runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the RPC call fails.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::Connection;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let peer_id = connection.get_id().await.unwrap();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
-    ///     .local()
-    ///     .expose_port(8080);
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
-    ///
-    /// println!("Deployed script with id on self: {script_id}");
+    /// println!("My peer id: {peer_id}");
     /// # }
     /// ```
-    #[doc(hidden)]
-    #[cfg(feature = "scripting")]
-    #[must_use]
-    pub fn scripting(&self) -> ScriptingService {
-        ScriptingService::new(self)
+    #[tracing::instrument(skip(self))]
+    pub async fn get_id(&self) -> Result<PeerId> {
+        DiscoveryClient::new(self.channel.clone())
+            .get_own_id(Empty {})
+            .await?
+            .into_inner()
+            .try_into()
+            .map_err(Into::into)
     }
 }

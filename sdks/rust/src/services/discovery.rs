@@ -1,7 +1,7 @@
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
 use hyveos_core::{
-    discovery::NeighbourEvent,
-    grpc::{discovery_client::DiscoveryClient, Empty},
+    dht::Key,
+    grpc::{discovery_client::DiscoveryClient, DhtKey},
 };
 use libp2p_identity::PeerId;
 use tonic::transport::Channel;
@@ -10,8 +10,9 @@ use crate::{connection::Connection, error::Result};
 
 /// A handle to the discovery service.
 ///
-/// Exposes methods to interact with the discovery service, such as subscribing to neighbour events
-/// and getting the own peer ID.
+/// Exposes methods to interact with the discovery service,
+/// like for marking the local runtime as a provider for a discovery key
+/// or getting the providers for a discovery key.
 ///
 /// # Example
 ///
@@ -22,9 +23,7 @@ use crate::{connection::Connection, error::Result};
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
 /// let mut discovery_service = connection.discovery();
-/// let peer_id = discovery_service.get_own_id().await.unwrap();
-///
-/// println!("My peer id: {peer_id}");
+/// discovery_service.provide("topic", "key").await.unwrap();
 /// # }
 /// ```
 #[derive(Debug, Clone)]
@@ -39,52 +38,7 @@ impl Service {
         Self { client }
     }
 
-    /// Subscribes to neighbour events.
-    ///
-    /// Returns a stream of neighbour events. The stream will emit an event whenever the local
-    /// runtime detects a change in the set of neighbours. The stream is guaranteed to emit an
-    /// [`NeighbourEvent::Init`] directly after subscribing and only [`NeighbourEvent::Discovered`]
-    /// and [`NeighbourEvent::Lost`] events afterwards.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
-    /// while processing the events, as well as data conversion errors.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use futures::TryStreamExt as _;
-    /// use hyveos_sdk::Connection;
-    ///
-    /// # #[tokio::main]
-    /// # async fn main() {
-    /// let connection = Connection::new().await.unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let mut events = discovery_service.subscribe_events().await.unwrap();
-    ///
-    /// while let Some(event) = events.try_next().await.unwrap() {
-    ///     println!("{event:?}");
-    /// }
-    /// # }
-    /// ```
-    #[tracing::instrument(skip(self))]
-    pub async fn subscribe_events(&mut self) -> Result<impl Stream<Item = Result<NeighbourEvent>>> {
-        tracing::debug!("Received subscribe_events request");
-
-        self.client
-            .subscribe_events(Empty {})
-            .await
-            .map(|response| {
-                response
-                    .into_inner()
-                    .map_ok(TryInto::try_into)
-                    .map(|res| res?.map_err(Into::into))
-            })
-            .map_err(Into::into)
-    }
-
-    /// Returns the peer ID of the local runtime.
+    /// Marks the local runtime as a provider for a discovery key.
     ///
     /// # Errors
     ///
@@ -98,21 +52,101 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut discovery_service = connection.discovery();
-    /// let peer_id = discovery_service.get_own_id().await.unwrap();
-    ///
-    /// println!("My peer id: {peer_id}");
+    /// let mut dht_service = connection.dht();
+    /// dht_service.provide("topic", "key").await.unwrap();
     /// # }
     /// ```
-    #[tracing::instrument(skip(self))]
-    pub async fn get_own_id(&mut self) -> Result<PeerId> {
-        tracing::debug!("Received get_own_id request");
+    #[tracing::instrument(skip_all, fields(topic))]
+    pub async fn provide(
+        &mut self,
+        topic: impl Into<String>,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<()> {
+        let topic = topic.into();
+
+        tracing::Span::current().record("topic", &topic);
+
+        let key = Key {
+            topic,
+            key: key.into(),
+        };
 
         self.client
-            .get_own_id(Empty {})
-            .await?
-            .into_inner()
-            .try_into()
+            .provide(DhtKey::from(key))
+            .await
+            .map(|_| ())
             .map_err(Into::into)
+    }
+
+    /// Gets the providers for a discovery key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the RPC call fails. The stream emits errors that occur in the runtime
+    /// while processing the providers, as well as data conversion errors.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use futures::TryStreamExt as _;
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::new().await.unwrap();
+    /// let mut dht_service = connection.dht();
+    /// let mut providers = dht_service.get_providers("topic", "key").await.unwrap();
+    ///
+    /// while let Some(provider) = providers.try_next().await.unwrap() {
+    ///     println!("Found provider: {provider}");
+    /// }
+    /// # }
+    /// ```
+    #[tracing::instrument(skip_all, fields(topic))]
+    pub async fn get_providers(
+        &mut self,
+        topic: impl Into<String>,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<impl Stream<Item = Result<PeerId>>> {
+        let topic = topic.into();
+
+        tracing::Span::current().record("topic", &topic);
+
+        let key = Key {
+            topic,
+            key: key.into(),
+        };
+
+        self.client
+            .get_providers(DhtKey::from(key))
+            .await
+            .map(|response| {
+                response
+                    .into_inner()
+                    .map_ok(TryInto::try_into)
+                    .map(|res| res?.map_err(Into::into))
+            })
+            .map_err(Into::into)
+    }
+
+    /// Stops providing a discovery key.
+    ///
+    /// Only affects the local node and only affects the network once the record expires.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the RPC call fails.
+    pub async fn stop_providing(
+        &mut self,
+        topic: impl Into<String>,
+        key: impl Into<Vec<u8>>,
+    ) -> Result<()> {
+        self.client
+            .stop_providing(DhtKey::from(Key {
+                topic: topic.into(),
+                key: key.into(),
+            }))
+            .await?;
+        Ok(())
     }
 }

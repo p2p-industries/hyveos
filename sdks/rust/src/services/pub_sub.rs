@@ -1,10 +1,10 @@
 #[cfg(feature = "serde")]
 use futures::future;
 use futures::{Stream, StreamExt as _, TryStreamExt as _};
-pub use hyveos_core::gossipsub::Message;
+pub use hyveos_core::pub_sub::Message;
 use hyveos_core::{
-    gossipsub::{MessageId, ReceivedMessage},
-    grpc::{gossip_sub_client::GossipSubClient, GossipSubMessage, Topic},
+    grpc::{pub_sub_client::PubSubClient, PubSubMessage, Topic},
+    pub_sub::{MessageId, ReceivedMessage},
 };
 #[cfg(feature = "serde")]
 use libp2p_identity::PeerId;
@@ -14,9 +14,9 @@ use tonic::transport::Channel;
 
 use crate::{connection::Connection, error::Result};
 
-/// A typed message received from the gossipsub service.
+/// A typed message received from the pub-sub service.
 ///
-/// This struct contains the typed data of a message received from the gossipsub service, along
+/// This struct contains the typed data of a message received from the pub-sub service, along
 /// with metadata like the source of the message and the topic it was published to.
 #[cfg(feature = "serde")]
 #[derive(Debug, Clone)]
@@ -28,9 +28,9 @@ pub struct TypedMessage<T> {
     pub data: T,
 }
 
-/// A handle to the gossipsub service.
+/// A handle to the pub-sub service.
 ///
-/// Exposes methods to interact with the gossipsub service, like for subscribing to topics and
+/// Exposes methods to interact with the pub-sub service, like for subscribing to topics and
 /// publishing messages.
 ///
 /// # Example
@@ -41,20 +41,20 @@ pub struct TypedMessage<T> {
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut gossipsub_service = connection.gossipsub();
-/// let id = gossipsub_service.publish("topic", "Hello, world!").await.unwrap();
+/// let mut pub_sub_service = connection.pub_sub();
+/// let id = pub_sub_service.publish("topic", "Hello, world!").await.unwrap();
 ///
 /// println!("Published message with id: {id}");
 /// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct Service {
-    client: GossipSubClient<Channel>,
+    client: PubSubClient<Channel>,
 }
 
 impl Service {
     pub(crate) fn new(connection: &Connection) -> Self {
-        let client = GossipSubClient::new(connection.channel.clone());
+        let client = PubSubClient::new(connection.channel.clone());
 
         Self { client }
     }
@@ -75,8 +75,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
-    /// let mut messages = gossipsub_service.subscribe("topic").await.unwrap();
+    /// let mut pub_sub_service = connection.pub_sub();
+    /// let mut messages = pub_sub_service.subscribe("topic").await.unwrap();
     ///
     /// while let Some(message) = messages.try_next().await.unwrap() {
     ///     let string = String::from_utf8(message.message.data).unwrap();
@@ -136,8 +136,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
-    /// let mut messages = gossipsub_service.subscribe_json("topic").await.unwrap();
+    /// let mut pub_sub_service = connection.pub_sub();
+    /// let mut messages = pub_sub_service.subscribe_json("topic").await.unwrap();
     ///
     /// while let Some(message) = messages.try_next().await.unwrap() {
     ///     let data: Example = message.data;
@@ -203,8 +203,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
-    /// let mut messages = gossipsub_service.subscribe_cbor("topic").await.unwrap();
+    /// let mut pub_sub_service = connection.pub_sub();
+    /// let mut messages = pub_sub_service.subscribe_cbor("topic").await.unwrap();
     ///
     /// while let Some(message) = messages.try_next().await.unwrap() {
     ///     let data: Example = message.data;
@@ -261,8 +261,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
-    /// let id = gossipsub_service.publish("topic", "Hello, world!").await.unwrap();
+    /// let mut pub_sub_service = connection.pub_sub();
+    /// let id = pub_sub_service.publish("topic", "Hello, world!").await.unwrap();
     ///
     /// println!("Published message with id: {id}");
     /// # }
@@ -283,7 +283,7 @@ impl Service {
         };
 
         self.client
-            .publish(GossipSubMessage::from(message))
+            .publish(PubSubMessage::from(message))
             .await
             .map(|response| response.into_inner().into())
             .map_err(Into::into)
@@ -309,9 +309,9 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
+    /// let mut pub_sub_service = connection.pub_sub();
     /// let data = Example { message: "Hello, world!".to_string() };
-    /// let id = gossipsub_service.publish_json("topic", &data).await.unwrap();
+    /// let id = pub_sub_service.publish_json("topic", &data).await.unwrap();
     ///
     /// println!("Published message with id: {id}");
     /// # }
@@ -347,9 +347,9 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut gossipsub_service = connection.gossipsub();
+    /// let mut pub_sub_service = connection.pub_sub();
     /// let data = Example { message: "Hello, world!".to_string() };
-    /// let id = gossipsub_service.publish_cbor("topic", &data).await.unwrap();
+    /// let id = pub_sub_service.publish_cbor("topic", &data).await.unwrap();
     ///
     /// println!("Published message with id: {id}");
     /// # }

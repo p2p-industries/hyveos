@@ -1,14 +1,16 @@
-use hyveos_core::grpc::{db_client::DbClient, DbKey, DbRecord};
+use hyveos_core::grpc::{local_kv_client::LocalKvClient, LocalKvKey, LocalKvRecord};
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
 use tonic::transport::Channel;
 
 use crate::{connection::Connection, error::Result};
 
-/// A handle to the database service.
+/// A handle to the local key-value store service.
 ///
-/// Exposes methods to interact with the database service, like putting and getting key-value
-/// records.
+/// Exposes methods to interact with the key-value store service,
+/// like putting and getting key-value records.
+/// The key-value store is local to the runtime and is not shared with other runtimes.
+/// However, it is persisted across restarts of the runtime.
 ///
 /// # Example
 ///
@@ -18,21 +20,21 @@ use crate::{connection::Connection, error::Result};
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut db_service = connection.db();
-/// assert!(db_service.put("key", b"value").await.unwrap().is_none());
+/// let mut local_kv_service = connection.local_kv();
+/// assert!(local_kv_service.put("key", b"value").await.unwrap().is_none());
 ///
-/// let value = db_service.get("key").await.unwrap().unwrap();
+/// let value = local_kv_service.get("key").await.unwrap().unwrap();
 /// assert_eq!(value, b"value");
 /// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct Service {
-    client: DbClient<Channel>,
+    client: LocalKvClient<Channel>,
 }
 
 impl Service {
     pub(crate) fn new(connection: &Connection) -> Self {
-        let client = DbClient::new(connection.channel.clone());
+        let client = LocalKvClient::new(connection.channel.clone());
 
         Self { client }
     }
@@ -40,6 +42,8 @@ impl Service {
     /// Puts a record into the key-value store.
     ///
     /// Returns the previous value if it exists, otherwise `None`.
+    /// This only has local effects and does not affect other runtimes.
+    /// However, the record is persisted across restarts of the runtime.
     ///
     /// # Errors
     ///
@@ -53,10 +57,10 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
-    /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
+    /// let mut local_kv_service = connection.local_kv();
+    /// assert!(local_kv_service.put("key", b"value").await.unwrap().is_none());
     ///
-    /// let value = db_service.get("key").await.unwrap().unwrap();
+    /// let value = local_kv_service.get("key").await.unwrap().unwrap();
     /// assert_eq!(value, b"value");
     /// # }
     /// ```
@@ -70,7 +74,7 @@ impl Service {
 
         tracing::Span::current().record("key", &key);
 
-        let request = DbRecord {
+        let request = LocalKvRecord {
             key,
             value: value.into().into(),
         };
@@ -83,6 +87,8 @@ impl Service {
     /// Puts a record with a JSON-encoded value into the key-value store.
     ///
     /// Returns the previous value if it exists, otherwise `None`.
+    /// This only has local effects and does not affect other runtimes.
+    /// However, the record is persisted across restarts of the runtime.
     ///
     /// # Errors
     ///
@@ -102,11 +108,11 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
+    /// let mut local_kv_service = connection.local_kv();
     /// let value = Example { value: "Hello, world!".to_string() };
-    /// assert!(db_service.put_json("key", &value).await.unwrap().is_none());
+    /// assert!(local_kv_service.put_json("key", &value).await.unwrap().is_none());
     ///
-    /// let value: Example = db_service.get_json("key").await.unwrap().unwrap();
+    /// let value: Example = local_kv_service.get_json("key").await.unwrap().unwrap();
     /// assert_eq!(value.value, "Hello, world!");
     /// # }
     /// ```
@@ -128,6 +134,8 @@ impl Service {
     /// Puts a record with a CBOR-encoded value into the key-value store.
     ///
     /// Returns the previous value if it exists, otherwise `None`.
+    /// This only has local effects and does not affect other runtimes.
+    /// However, the record is persisted across restarts of the runtime.
     ///
     /// # Errors
     ///
@@ -147,11 +155,11 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
+    /// let mut local_kv_service = connection.local_kv();
     /// let value = Example { value: "Hello, world!".to_string() };
-    /// assert!(db_service.put_cbor("key", &value).await.unwrap().is_none());
+    /// assert!(local_kv_service.put_cbor("key", &value).await.unwrap().is_none());
     ///
-    /// let value: Example = db_service.get_cbor("key").await.unwrap().unwrap();
+    /// let value: Example = local_kv_service.get_cbor("key").await.unwrap().unwrap();
     /// assert_eq!(value.value, "Hello, world!");
     /// # }
     /// ```
@@ -173,6 +181,7 @@ impl Service {
     /// Gets a record from the key-value store if it exists.
     ///
     /// Returns the value if it exists, otherwise `None`.
+    /// This will not return values from other runtimes.
     ///
     /// # Errors
     ///
@@ -186,10 +195,10 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
-    /// assert!(db_service.put("key", b"value").await.unwrap().is_none());
+    /// let mut local_kv_service = connection.local_kv();
+    /// assert!(local_kv_service.put("key", b"value").await.unwrap().is_none());
     ///
-    /// let value = db_service.get("key").await.unwrap().unwrap();
+    /// let value = local_kv_service.get("key").await.unwrap().unwrap();
     /// assert_eq!(value, b"value");
     /// # }
     /// ```
@@ -199,7 +208,7 @@ impl Service {
 
         tracing::Span::current().record("key", &key);
 
-        let response = self.client.get(DbKey { key }).await?;
+        let response = self.client.get(LocalKvKey { key }).await?;
 
         Ok(response.into_inner().into())
     }
@@ -207,6 +216,7 @@ impl Service {
     /// Gets a record with a JSON-encoded value from the key-value store.
     ///
     /// Returns the value if it exists, otherwise `None`.
+    /// This will not return values from other runtimes.
     ///
     /// # Errors
     ///
@@ -226,11 +236,11 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
+    /// let mut local_kv_service = connection.local_kv();
     /// let value = Example { value: "Hello, world!".to_string() };
-    /// assert!(db_service.put_json("key", &value).await.unwrap().is_none());
+    /// assert!(local_kv_service.put_json("key", &value).await.unwrap().is_none());
     ///
-    /// let value: Example = db_service.get_json("key").await.unwrap().unwrap();
+    /// let value: Example = local_kv_service.get_json("key").await.unwrap().unwrap();
     /// assert_eq!(value.value, "Hello, world!");
     /// # }
     /// ```
@@ -249,6 +259,7 @@ impl Service {
     /// Gets a record with a CBOR-encoded value from the key-value store.
     ///
     /// Returns the value if it exists, otherwise `None`.
+    /// This will not return values from other runtimes.
     ///
     /// # Errors
     ///
@@ -268,11 +279,11 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut db_service = connection.db();
+    /// let mut local_kv_service = connection.local_kv();
     /// let value = Example { value: "Hello, world!".to_string() };
-    /// assert!(db_service.put_cbor("key", &value).await.unwrap().is_none());
+    /// assert!(local_kv_service.put_cbor("key", &value).await.unwrap().is_none());
     ///
-    /// let value: Example = db_service.get_cbor("key").await.unwrap().unwrap();
+    /// let value: Example = local_kv_service.get_cbor("key").await.unwrap().unwrap();
     /// assert_eq!(value.value, "Hello, world!");
     /// # }
     /// ```

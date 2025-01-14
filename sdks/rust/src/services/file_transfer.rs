@@ -102,7 +102,7 @@ enum Client {
 ///
 /// let connection = Connection::new().await.unwrap();
 /// let mut file_transfer_service = connection.file_transfer();
-/// let cid = file_transfer_service.publish_file(&file_path).await.unwrap();
+/// let cid = file_transfer_service.publish(&file_path).await.unwrap();
 ///
 /// println!("Content ID: {cid:?}");
 /// # }
@@ -156,7 +156,7 @@ impl Service {
     ///
     /// let connection = Connection::new().await.unwrap();
     /// let mut file_transfer_service = connection.file_transfer();
-    /// let cid = file_transfer_service.publish_file(&file_path).await.unwrap();
+    /// let cid = file_transfer_service.publish(&file_path).await.unwrap();
     ///
     /// println!("Content ID: {cid:?}");
     /// # }
@@ -164,7 +164,7 @@ impl Service {
     ///
     /// [`ConnectionBuilder::custom`]: crate::connection::ConnectionBuilder::custom
     #[tracing::instrument(skip(self, path), fields(path = %path.as_ref().display()))]
-    pub async fn publish_file(&mut self, path: impl AsRef<Path>) -> Result<Cid> {
+    pub async fn publish(&mut self, path: impl AsRef<Path>) -> Result<Cid> {
         let path = path.as_ref().canonicalize()?;
 
         let Some(file_name) = path.file_name() else {
@@ -178,7 +178,7 @@ impl Service {
             Client::Local(client) => client,
             Client::Network(client, url) => {
                 let url = url.join(&format!(
-                    "file-transfer/publish-file/{}",
+                    "file-transfer/publish/{}",
                     file_name.to_string_lossy()
                 ))?;
 
@@ -219,7 +219,7 @@ impl Service {
         }?;
 
         client
-            .publish_file(path)
+            .publish(path)
             .await?
             .into_inner()
             .try_into()
@@ -245,12 +245,14 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let cid = dht_service.get_record_json("file", "example").await.unwrap();
+    /// // Let's assume that we can get a content ID of a published file
+    /// // from the key-value store topic "file" with the key "example".
+    /// let mut kv_service = connection.kv();
+    /// let cid = kv_service.get_record_json("file", "example").await.unwrap();
     ///
     /// if let Some(cid) = cid {
     ///     let mut file_transfer_service = connection.file_transfer();
-    ///     let path = file_transfer_service.get_file(cid).await.unwrap();
+    ///     let path = file_transfer_service.get(cid).await.unwrap();
     ///
     ///     println!("File path: {}", path.display());
     ///
@@ -262,14 +264,14 @@ impl Service {
     /// # }
     /// ```
     #[tracing::instrument(skip(self))]
-    pub async fn get_file(&mut self, cid: Cid) -> Result<PathBuf> {
+    pub async fn get(&mut self, cid: Cid) -> Result<PathBuf> {
         #[cfg(not(feature = "network"))]
         let client = &mut self.client;
         #[cfg(feature = "network")]
         let client = match &mut self.client {
             Client::Local(client) => client,
             Client::Network(client, url) => {
-                let url = url.join("file-transfer/get-file")?;
+                let url = url.join("file-transfer/get")?;
 
                 let stream = client.get(url).query(&cid).send().await?.bytes_stream();
 
@@ -292,7 +294,7 @@ impl Service {
         };
 
         client
-            .get_file(grpc::Cid::from(cid))
+            .get(grpc::Cid::from(cid))
             .await
             .map(|response| response.into_inner().into())
             .map_err(Into::into)
@@ -320,13 +322,15 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let cid = dht_service.get_record_json("file", "example").await.unwrap();
+    /// // Let's assume that we can get a content ID of a published file
+    /// // from the key-value store topic "file" with the key "example".
+    /// let mut kv_service = connection.kv();
+    /// let cid = kv_service.get_record_json("file", "example").await.unwrap();
     ///
     /// if let Some(cid) = cid {
     ///     let mut file_transfer_service = connection.file_transfer();
     ///     let mut stream = file_transfer_service
-    ///         .get_file_with_progress(cid)
+    ///         .get_with_progress(cid)
     ///         .await
     ///         .unwrap();
     ///
@@ -354,7 +358,7 @@ impl Service {
     /// # }
     /// ```
     #[tracing::instrument(skip(self))]
-    pub async fn get_file_with_progress(
+    pub async fn get_with_progress(
         &mut self,
         cid: Cid,
     ) -> Result<impl Stream<Item = Result<DownloadEvent>>> {
@@ -364,7 +368,7 @@ impl Service {
         let client = match &mut self.client {
             Client::Local(client) => client,
             Client::Network(client, url) => {
-                let url = url.join("file-transfer/get-file")?;
+                let url = url.join("file-transfer/get")?;
 
                 let (sender, receiver) = mpsc::unbounded_channel();
 
@@ -414,7 +418,7 @@ impl Service {
         };
 
         client
-            .get_file_with_progress(grpc::Cid::from(cid))
+            .get_with_progress(grpc::Cid::from(cid))
             .await
             .map(|response| {
                 let stream = response

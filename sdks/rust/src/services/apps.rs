@@ -1,9 +1,9 @@
 use hyveos_core::{
+    apps::RunningApp,
     grpc::{
-        scripting_client::ScriptingClient, DeployScriptRequest, DockerImage, DockerScript, Empty,
-        ListRunningScriptsRequest, StopScriptRequest,
+        apps_client::AppsClient, DeployAppRequest, DockerApp, DockerImage, Empty,
+        ListRunningAppsRequest, StopAppRequest,
     },
-    scripting::RunningScript,
 };
 use libp2p_identity::PeerId;
 use tonic::transport::Channel;
@@ -11,26 +11,26 @@ use ulid::Ulid;
 
 use crate::{connection::Connection, error::Result};
 
-/// Configuration for deploying a script.
+/// Configuration for deploying an application.
 ///
 /// To deploy to self, leave [`Config::target_peer_id`] unset.
 ///
 /// # Example
 ///
 /// ```no_run
-/// use hyveos_sdk::{Connection, services::ScriptingConfig};
+/// use hyveos_sdk::{Connection, services::AppConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut scripting_service = connection.scripting();
+/// let mut apps_service = connection.apps();
 ///
-/// let config = ScriptingConfig::new("my-docker-image:latest")
+/// let config = AppConfig::new("my-docker-image:latest")
 ///     .local()
 ///     .expose_port(8080);
-/// let script_id = scripting_service.deploy_script(config).await.unwrap();
+/// let app_id = apps_service.deploy(config).await.unwrap();
 ///
-/// println!("Deployed script with id on self: {script_id}");
+/// println!("Deployed app with id {app_id}");
 /// # }
 /// ```
 #[derive(Debug, Clone)]
@@ -43,7 +43,7 @@ pub struct Config {
 }
 
 impl Config {
-    /// Creates a new configuration for deploying a script.
+    /// Creates a new configuration for deploying an application.
     ///
     /// `image` should be a docker image name, optionally with a tag, e.g.
     /// `my-docker-image:latest`.
@@ -51,19 +51,19 @@ impl Config {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
+    /// let config = AppConfig::new("my-docker-image:latest")
     ///     .local()
     ///     .expose_port(8080);
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    /// let app_id = apps_service.deploy(config).await.unwrap();
     ///
-    /// println!("Deployed script with id on self: {script_id}");
+    /// println!("Deployed app with id {app_id}");
     /// # }
     /// ```
     pub fn new(image: impl Into<String>) -> Self {
@@ -76,25 +76,25 @@ impl Config {
         }
     }
 
-    /// Sets the script to expect a local image which does not need to be pulled from a docker
-    /// registry.
+    /// Sets the application to expect a local image which does not need to be
+    /// pulled from a docker registry.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
+    /// let config = AppConfig::new("my-docker-image:latest")
     ///     .local()
     ///     .expose_port(8080);
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    /// let app_id = apps_service.deploy(config).await.unwrap();
     ///
-    /// println!("Deployed script with id on self: {script_id}");
+    /// println!("Deployed app with id {app_id}");
     /// # }
     /// ```
     #[must_use]
@@ -103,19 +103,19 @@ impl Config {
         self
     }
 
-    /// Sets the deployment target of the script to a specific peer in the network.
+    /// Sets the deployment target of the application to a specific peer in the network.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use futures::StreamExt as _;
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()
@@ -124,14 +124,14 @@ impl Config {
     ///     .unwrap()
     ///     .unwrap();
     ///
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
+    /// let config = AppConfig::new("my-docker-image:latest")
     ///     .local()
     ///     .target(peer_id);
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    /// let app_id = apps_service.deploy(config).await.unwrap();
     ///
-    /// println!("Deployed script with id on {peer_id}: {script_id}");
+    /// println!("Deployed app with id {app_id} on {peer_id}");
     /// # }
     /// ```
     #[must_use]
@@ -140,24 +140,24 @@ impl Config {
         self
     }
 
-    /// Adds a port which is exposed by the docker container running the script.
+    /// Adds a port which is exposed by the docker container running the application.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
+    /// let config = AppConfig::new("my-docker-image:latest")
     ///     .local()
     ///     .expose_port(8080);
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    /// let app_id = apps_service.deploy(config).await.unwrap();
     ///
-    /// println!("Deployed script with id on self: {script_id}");
+    /// println!("Deployed app with id {app_id}");
     /// # }
     /// ```
     #[must_use]
@@ -166,24 +166,26 @@ impl Config {
         self
     }
 
-    /// Sets the script to be persistent, meaning it will be restarted when the runtime is restarted.
+    /// Sets the application to be persistent.
+    ///
+    /// When this is set, the app will be restarted when the runtime is restarted.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
-    ///    .local()
-    ///    .persistent();
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    /// let config = AppConfig::new("my-docker-image:latest")
+    ///     .local()
+    ///     .persistent();
+    /// let app_id = apps_service.deploy(config).await.unwrap();
     ///
-    /// println!("Deployed script with id on self: {script_id}");
+    /// println!("Deployed persistent app with id {app_id}");
     /// # }
     /// ```
     #[must_use]
@@ -193,43 +195,44 @@ impl Config {
     }
 }
 
-/// A handle to the scripting service.
+/// A handle to the application management service.
 ///
-/// Exposes methods to interact with the scripting service, like for deploying and stopping scripts
-/// on peers in the network.
+/// Exposes methods to interact with the application management service,
+/// like for deploying and stopping apps on peers in the network.
 ///
 /// # Example
 ///
 /// ```no_run
-/// use hyveos_sdk::{Connection, services::ScriptingConfig};
+/// use hyveos_sdk::{Connection, services::AppConfig};
 ///
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut scripting_service = connection.scripting();
+/// let mut apps_service = connection.apps();
 ///
-/// let config = ScriptingConfig::new("my-docker-image:latest")
+/// let config = AppConfig::new("my-docker-image:latest")
 ///     .local()
 ///     .expose_port(8080);
-/// let script_id = scripting_service.deploy_script(config).await.unwrap();
+/// let app_id = apps_service.deploy(config).await.unwrap();
 ///
-/// println!("Deployed script with id on self: {script_id}");
+/// println!("Deployed app with id {app_id}");
 /// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct Service {
-    client: ScriptingClient<Channel>,
+    client: AppsClient<Channel>,
 }
 
 impl Service {
     pub(crate) fn new(connection: &Connection) -> Self {
-        let client = ScriptingClient::new(connection.channel.clone());
+        let client = AppsClient::new(connection.channel.clone());
 
         Self { client }
     }
 
-    /// Deploys a script in a docker image to a peer in the network and returns the ULID of the
-    /// deployed script.
+    /// Deploys an application in a docker image to a peer in the network.
+    ///
+    /// Returns the ULID of the deployed application.
     ///
     /// To deploy to self, leave [`Config::target_peer_id`] unset.
     ///
@@ -240,25 +243,25 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let config = ScriptingConfig::new("my-docker-image:latest")
+    /// let config = AppConfig::new("my-docker-image:latest")
     ///     .local()
     ///     .expose_port(8080);
-    /// let script_id = scripting_service.deploy_script(config).await.unwrap();
+    /// let app_id = apps_service.deploy(config).await.unwrap();
     ///
-    /// println!("Deployed script with id on self: {script_id}");
+    /// println!("Deployed app with id {app_id}");
     /// # }
     /// ```
     #[tracing::instrument(skip(self))]
-    pub async fn deploy_script(&mut self, config: Config) -> Result<Ulid> {
-        let request = DeployScriptRequest {
-            script: DockerScript {
+    pub async fn deploy(&mut self, config: Config) -> Result<Ulid> {
+        let request = DeployAppRequest {
+            app: DockerApp {
                 image: DockerImage { name: config.image },
                 ports: config
                     .exposed_ports
@@ -273,16 +276,16 @@ impl Service {
         };
 
         self.client
-            .deploy_script(request)
+            .deploy(request)
             .await?
             .into_inner()
             .try_into()
             .map_err(Into::into)
     }
 
-    /// Lists the running scripts on a peer in the network.
+    /// Lists the running apps on a peer in the network.
     ///
-    /// To list the running scripts on self, set [`Config::target_peer_id`] to `None`.
+    /// To list the running apps on self, set [`target_peer_id`] to `None`.
     ///
     /// # Errors
     ///
@@ -291,43 +294,43 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
+    /// let mut apps_service = connection.apps();
     ///
-    /// let scripts = scripting_service.list_running_scripts(None).await.unwrap();
+    /// let apps = apps_service.list_running(None).await.unwrap();
     ///
-    /// for script in scripts {
-    ///     println!("Running script {} ({})", script.id, script.image);
+    /// for app in apps {
+    ///     println!("Running app {} ({})", app.id, app.image);
     /// }
     /// # }
     /// ```
     #[tracing::instrument(skip(self))]
-    pub async fn list_running_scripts(
+    pub async fn list_running(
         &mut self,
         target_peer_id: Option<PeerId>,
-    ) -> Result<Vec<RunningScript>> {
-        let request = ListRunningScriptsRequest {
+    ) -> Result<Vec<RunningApp>> {
+        let request = ListRunningAppsRequest {
             peer: target_peer_id.map(Into::into),
         };
 
         self.client
-            .list_running_scripts(request)
+            .list_running(request)
             .await?
             .into_inner()
-            .scripts
+            .apps
             .into_iter()
-            .map(|script| script.try_into().map_err(Into::into))
+            .map(|app| app.try_into().map_err(Into::into))
             .collect::<Result<_>>()
             .map_err(Into::into)
     }
 
-    /// Stops a running script with an ID on a peer in the network.
+    /// Stops a running app with an ID on a peer in the network.
     ///
-    /// To stop the running script on self, set [`Config::target_peer_id`] to `None`.
+    /// To stop the running app on self, set [`target_peer_id`] to `None`.
     ///
     /// # Errors
     ///
@@ -336,39 +339,41 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
-    /// let script_id = scripting_service.get_own_id().await.unwrap();
+    /// let mut apps_service = connection.apps();
+    /// let app_id = apps_service.get_own_app_id().await.unwrap();
     ///
-    /// let scripts = scripting_service.list_running_scripts(None).await.unwrap();
+    /// let apps = apps_service.list_running(None).await.unwrap();
     ///
-    /// for script in scripts {
-    ///     if script.id != script_id {
-    ///         println!("Stopping script {}", script.id);
-    ///         scripting_service.stop_script(script.id, None).await.unwrap();
+    /// for app in apps {
+    ///     if app.id != app_id {
+    ///         println!("Stopping app {}", app.id);
+    ///         apps_service.stop(app.id, None).await.unwrap();
     ///     }
     /// }
     /// # }
     /// ```
     #[tracing::instrument(skip(self))]
-    pub async fn stop_script(&mut self, id: Ulid, target_peer_id: Option<PeerId>) -> Result<()> {
-        let request = StopScriptRequest {
+    pub async fn stop(&mut self, id: Ulid, target_peer_id: Option<PeerId>) -> Result<()> {
+        let request = StopAppRequest {
             id: id.into(),
             peer: target_peer_id.map(Into::into),
         };
 
         self.client
-            .stop_script(request)
+            .stop(request)
             .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    /// Get the ID of the current script.
+    /// Get the ID of the current app.
+    ///
+    /// This can only be called from a running app.
     ///
     /// # Errors
     ///
@@ -377,21 +382,21 @@ impl Service {
     /// # Example
     ///
     /// ```no_run
-    /// use hyveos_sdk::{Connection, services::ScriptingConfig};
+    /// use hyveos_sdk::{Connection, services::AppConfig};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut scripting_service = connection.scripting();
-    /// let script_id = scripting_service.get_own_id().await.unwrap();
+    /// let mut apps_service = connection.apps();
+    /// let app_id = apps_service.get_own_app_id().await.unwrap();
     ///
-    /// println!("Script ID: {}", script_id);
+    /// println!("App ID: {}", app_id);
     /// # }
     /// ```
     #[tracing::instrument(skip(self))]
-    pub async fn get_own_id(&mut self) -> Result<Ulid> {
+    pub async fn get_own_app_id(&mut self) -> Result<Ulid> {
         self.client
-            .get_own_id(Empty {})
+            .get_own_app_id(Empty {})
             .await?
             .into_inner()
             .try_into()

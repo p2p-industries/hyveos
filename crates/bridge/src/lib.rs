@@ -329,11 +329,11 @@ impl<Db: DbClient, Apps: AppsClient> BridgeClient<Db, Apps> {
             Connection::Network(listener) => {
                 let router = axum::Router::new()
                     .route(
-                        "/file-transfer/publish-file/:file_name",
+                        "/file-transfer/publish/:file_name",
                         axum::routing::post(FileTransferServer::publish_http),
                     )
                     .route(
-                        "/file-transfer/get-file",
+                        "/file-transfer/get",
                         axum::routing::get(FileTransferServer::get_http),
                     )
                     .with_state(file_transfer);

@@ -1,28 +1,30 @@
-pub use hyveos_core::{debug::MeshTopologyEvent, discovery::NeighbourEvent};
+pub use hyveos_core::{debug::MeshTopologyEvent, neighbours::NeighbourEvent};
 
+#[doc(hidden)]
+#[cfg(feature = "app-management")]
+pub use self::apps::{Config as AppConfig, Service as AppsService};
 #[cfg(feature = "cbor")]
 #[doc(inline)]
 pub use self::req_resp::CborService as CborReqRespService;
 #[cfg(feature = "json")]
 #[doc(inline)]
 pub use self::req_resp::JsonService as JsonReqRespService;
-#[doc(hidden)]
-#[cfg(feature = "scripting")]
-pub use self::scripting::{Config as ScriptingConfig, Service as ScriptingService};
 #[doc(inline)]
 pub use self::{
-    db::Service as DbService, debug::Service as DebugService, dht::Service as DhtService,
-    discovery::Service as DiscoveryService, file_transfer::Service as FileTransferService,
-    gossipsub::Service as GossipSubService, req_resp::Service as ReqRespService,
+    debug::Service as DebugService, discovery::Service as DiscoveryService,
+    file_transfer::Service as FileTransferService, kv::Service as DhtService,
+    local_kv::Service as DbService, neighbours::Service as NeighboursService,
+    pub_sub::Service as GossipSubService, req_resp::Service as ReqRespService,
 };
 
-pub mod db;
+#[doc(hidden)]
+#[cfg(feature = "app-management")]
+pub mod apps;
 pub mod debug;
-pub mod dht;
 pub mod discovery;
 pub mod file_transfer;
-pub mod gossipsub;
+pub mod kv;
+pub mod local_kv;
+pub mod neighbours;
+pub mod pub_sub;
 pub mod req_resp;
-#[doc(hidden)]
-#[cfg(feature = "scripting")]
-pub mod scripting;
