@@ -3,7 +3,8 @@ name: Automated release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v[0-9]+.[0-9]+.[0-9]+"
+    
   pull_request:
     branches:
       - main
@@ -13,41 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  get-latest-release-number:
-    name: Get latest release number
-    runs-on: ubuntu-24.04
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
-    outputs:
-      old_version: ${{ steps.latest_number.outputs.old_version }}
-      new_version: ${{ steps.increment_version.outputs.new_version }}
-      number: ${{ steps.increment_version.outputs.number }}
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Get latest release tag
-        id: latest_number
-        run: |
-          number=$(gh release list --json tagName --jq '[.[].tagName | capture("^v(?<number>[0-9]+)-rolling$").number][0]')
-          echo "Current number: $number"
-          echo "number=$number" >> $GITHUB_ENV
-          echo "old_version=v${number}-rolling" >> $GITHUB_OUTPUT
-
-      - name: Increment version number
-        id: increment_version
-        run: |
-          new_number=$(( ${{ env.number }} + 1))
-          new_version="v${new_number}-rolling"
-          echo "New version: $new_version"
-          echo "new_version=$new_version" >> $GITHUB_ENV
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          echo "number=$new_number" >> $GITHUB_OUTPUT
-
   extract-debian-packages:
     name: Extract debian packages
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     outputs:
       crates: ${{ steps.cargo-metadata.outputs.crates }}
     steps:
@@ -65,10 +34,8 @@ jobs:
   build-debian:
     name: Build debian package ${{ matrix.crate.deb_name }} for ${{ matrix.target.arch }}
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
       - extract-debian-packages
-      - get-latest-release-number
     env:
       GH_TOKEN: ${{ github.token }}
       POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
@@ -108,21 +75,8 @@ jobs:
         with:
           key: ${{ matrix.target.target }}--${{ matrix.crate.name }}
 
-      - name: Calculate revision number
-        run: |
-          version_and_rev=$(gh release view --json assets --jq '.assets[].name | capture("^${{ matrix.crate.deb_name }}_(?<version>[0-9]+.[0-9]+.[0-9]+)-(?<rev>[0-9]+)_${{ matrix.target.arch }}.deb$") | {version, rev}' ${{ needs.get-latest-release-number.outputs.old_version }})
-          version=$(echo $version_and_rev | jq -r '.version')
-          rev=$(echo $version_and_rev | jq -r '.rev')
-          if [ "$version" == "${{ matrix.crate.version }}" ]; then
-            rev=$(( $rev + 1 ))
-          else
-            rev=1
-          fi
-          echo "Revision number: $rev"
-          echo "rev=$rev" >> $GITHUB_ENV
-
       - name: Build debian package
-        run: cargo deb -p ${{ matrix.crate.name }} --deb-revision ${{ env.rev }} --target ${{ matrix.target.target }}
+        run: cargo deb -p ${{ matrix.crate.name }} --target ${{ matrix.target.target }}
 
       - name: Upload artifacts
         id: upload-artifact
@@ -134,15 +88,14 @@ jobs:
   create-release:
     name: Create a release
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI')
     needs:
-      - get-latest-release-number
       - build-debian
     env:
       GH_TOKEN: ${{ github.token }}
     permissions:
       contents: write
       attestations: read
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Install APT packages
         uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
@@ -187,10 +140,6 @@ jobs:
 
       - name: Create release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # 2.0.8
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: ${{ needs.get-latest-release-number.outputs.new_version }}
-          make_latest: true
           files: ./apt-repo/*
-          name: Rolling release (${{ needs.get-latest-release-number.outputs.number }})
-          generate_release_notes: true
-          draft: ${{ github.event_name != 'push' }}
