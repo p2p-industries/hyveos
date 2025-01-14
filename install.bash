@@ -280,7 +280,29 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 			echo -e "To allow wpa_supplicant (or systemd-networkd) to manage ${wifi_interface},"
 			echo -e "you should remove or comment out any configuration for ${wifi_interface} in Netplan."
 			echo
+
+			if [ -f /etc/netplan/50-cloud-init.yaml ]; then
+			    echo -e "${YELLOW}Seems like cloud-init could be managing your Wi-Fi interface through Netplan.${RESET}"
+				echo "This is the current cloud-init Netplan file:"
+				echo "----- /etc/netplan/50-cloud-init.yaml -----"
+				sudo cat /etc/netplan/50-cloud-init.yaml
+				echo "-------------------------------------------"
+				# If EDITOR is not set, use nano as the default
+				EDITOR=${EDITOR:-nano}
+				echo -e "${YELLOW}Press ENTER to open this file in an editor. Remove references to ${wifi_interface}, then save & exit.${RESET}"
+				read # Wait for user to press ENTER
+				sudo $EDITOR /etc/netplan/50-cloud-init.yaml
+				echo -e "${YELLOW}Cloud-init needs to be disabled to prevent it from generating this file again.${RESET}"
+				echo -e "${YELLOW}Disabling cloud-init now...${RESET}"
+				continue_installation
+				sudo touch /etc/cloud/cloud-init.disabled
+				echo "cloud-init disabled."
+			fi
+
 			for npfile in /etc/netplan/*.yaml; do
+			    if [ "$npfile" == "/etc/netplan/50-cloud-init.yaml" ]; then
+                    continue
+                fi
 				echo -e "Reviewing Netplan file: ${GREEN}${npfile}${RESET}"
 				echo "----- Current contents -----"
 				sudo cat "$npfile"
