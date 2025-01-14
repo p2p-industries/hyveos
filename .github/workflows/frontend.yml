@@ -59,7 +59,9 @@ jobs:
 
       - name: Build package
         working-directory: sdks/typescript/${{ matrix.package }}
-        run: deno run -A scripts/build_npm.ts 0.1.0
+        run: |
+          sed -i 's/jsr/npm/g' mod.ts
+          deno run -A scripts/build_npm.ts 0.1.0
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
