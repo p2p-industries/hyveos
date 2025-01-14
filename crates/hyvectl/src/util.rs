@@ -10,6 +10,8 @@ pub trait CommandFamily {
 #[macro_export]
 macro_rules! boxed_try_stream {
     ($($body:tt)*) => {
-        async_stream::try_stream!{ $($body)* }.boxed()
+        ::futures::stream::StreamExt::boxed(
+            ::async_stream::try_stream!{ $($body)* }
+        )
     }
 }

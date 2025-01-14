@@ -1,6 +1,6 @@
-use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use futures::{stream::BoxStream, TryStreamExt as _};
 use hyvectl_commands::families::reqres::ReqRes;
-use hyveos_core::req_resp::Response;
+use hyveos_core::req_resp::{Response, TopicQuery};
 use hyveos_sdk::{Connection, PeerId};
 
 use crate::{boxed_try_stream, error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
@@ -13,18 +13,22 @@ impl CommandFamily for ReqRes {
         let mut reqres = connection.req_resp();
 
         match self {
-            ReqRes::Receive {} => {
+            ReqRes::Receive { topic } => {
                 boxed_try_stream! {
                     yield CommandOutput::spinner("Waiting for Requests...", &["◐", "◒", "◑", "◓"]);
 
-                    while let Some(request) = reqres.recv(None).await?.try_next().await? {
+                    let query = topic.map(Into::into).map(TopicQuery::String);
+
+                    let mut stream = reqres.recv(query).await?;
+
+                    while let Some(request) = stream.try_next().await? {
                         yield CommandOutput::result()
-                        .with_field("peer_id", request.0.peer_id.to_string())
-                        .with_field("topic", request.0.topic.unwrap_or_default())
-                        .with_field("data", String::from_utf8(request.0.data)?.into())
-                        .with_field("id", request.1.id().to_string())
-                        .with_tty_template("💬 [ID: {id}] { peer: {peer_id}, topic: {topic}, data: {data} }")
-                        .with_non_tty_template("{id},{peer_id},{topic},{data}");
+                            .with_field("peer_id", request.0.peer_id.to_string())
+                            .with_field("topic", request.0.topic.unwrap_or_default())
+                            .with_field("data", String::from_utf8(request.0.data)?.into())
+                            .with_field("id", request.1.id().to_string())
+                            .with_tty_template("💬 [ID: {id}] { peer: {peer_id}, topic: {topic}, data: {data} }")
+                            .with_non_tty_template("{id},{peer_id},{topic},{data}");
                     }
                 }
             }
@@ -53,8 +57,8 @@ impl CommandFamily for ReqRes {
                     };
 
                     yield output
-                    .with_tty_template("🗨  {response}")
-                    .with_non_tty_template("{response}")
+                        .with_tty_template("🗨  {response}")
+                        .with_non_tty_template("{response}")
                 }
             }
             ReqRes::Respond {
@@ -65,10 +69,10 @@ impl CommandFamily for ReqRes {
                     reqres.respond(id, Response::Data(message.clone().into())).await?;
 
                     yield CommandOutput::result()
-                    .with_field("id", id.to_string())
-                    .with_field("response", message)
-                    .with_tty_template("Sent { {response} } for { {id} }")
-                    .with_non_tty_template("{id},{response}")
+                        .with_field("id", id.to_string())
+                        .with_field("response", message)
+                        .with_tty_template("Sent { {response} } for { {id} }")
+                        .with_non_tty_template("{id},{response}")
                 }
             }
         }

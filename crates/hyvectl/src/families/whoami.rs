@@ -1,8 +1,9 @@
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use hyvectl_commands::families::whoami::Whoami;
 use hyveos_sdk::Connection;
 
 use crate::{boxed_try_stream, error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
+
 impl CommandFamily for Whoami {
     async fn run(
         self,

@@ -1,4 +1,4 @@
-use futures::{stream::BoxStream, StreamExt};
+use futures::{stream::BoxStream, TryStreamExt as _};
 use hyvectl_commands::families::file::File;
 use hyveos_core::file_transfer::{Cid, DownloadEvent};
 use hyveos_sdk::Connection;
@@ -36,8 +36,8 @@ impl CommandFamily for File {
 
                     yield CommandOutput::message("Starting Download...");
 
-                    while let Some(event) = download_stream.next().await {
-                        match event? {
+                    while let Some(event) = download_stream.try_next().await? {
+                        match event {
                             DownloadEvent::Progress(p) => {
                                 yield CommandOutput::progress(p)
                             }

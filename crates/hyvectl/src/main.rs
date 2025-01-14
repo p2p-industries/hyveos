@@ -1,9 +1,3 @@
-mod color;
-mod error;
-mod families;
-mod out;
-mod util;
-
 use std::{
     io::{stdout, IsTerminal, Write},
     path::PathBuf,
@@ -11,7 +5,7 @@ use std::{
 };
 
 use clap::Parser;
-use futures::{stream::BoxStream, StreamExt};
+use futures::{stream::BoxStream, TryStreamExt as _};
 use hyvectl_commands::command::{Cli, Families};
 use hyveos_sdk::Connection;
 use indicatif::ProgressStyle;
@@ -22,6 +16,12 @@ use crate::{
     error::{HyveCtlError, HyveCtlResult},
     out::CommandOutput,
 };
+
+mod color;
+mod error;
+mod families;
+mod out;
+mod util;
 
 impl CommandFamily for Families {
     async fn run(
@@ -103,9 +103,7 @@ async fn main() -> miette::Result<()> {
     let mut progress_bar = None;
     let mut spinner = None;
 
-    while let Some(output) = output_stream.next().await {
-        let command_output = output?;
-
+    while let Some(command_output) = output_stream.try_next().await? {
         match command_output {
             CommandOutput::Progress(p) => {
                 if is_tty {

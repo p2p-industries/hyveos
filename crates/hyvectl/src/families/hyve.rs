@@ -1,4 +1,4 @@
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use hyvectl_commands::families::hyve::Hyve;
 use hyveos_sdk::{services::ScriptingConfig, Connection, PeerId};
 use ulid::Ulid;

@@ -1,4 +1,4 @@
-use futures::{stream::BoxStream, StreamExt};
+use futures::{stream::BoxStream, TryStreamExt as _};
 use hyvectl_commands::families::pubsub::PubSub;
 use hyveos_core::gossipsub::ReceivedMessage;
 use hyveos_sdk::Connection;
@@ -19,12 +19,13 @@ impl TryFrom<ReceivedMessage> for CommandOutput {
             .with_field("topic", value.message.topic)
             .with_field("message", String::from_utf8(value.message.data)?)
             .with_field("message_id", String::from_utf8(value.message_id.0)?)
-            .with_tty_template("📨 {{ topic: {topic}, message: {message} }}")
+            .with_tty_template("📨 { topic: {topic}, message: {message} }")
             .with_non_tty_template("{topic},{message}");
 
         match value.source {
             Some(source) => Ok(output
                 .with_field("source", source.to_string())
+                .with_tty_template("📨 { topic: {topic}, message: {message}, source: {source} }")
                 .with_non_tty_template("{topic},{message},{source}")),
             None => Ok(output),
         }
@@ -52,12 +53,12 @@ impl CommandFamily for PubSub {
             }
             PubSub::Get { topic } => {
                 boxed_try_stream! {
-                    let mut message_stream = pubsub.subscribe(&topic).await?;
-
                     yield CommandOutput::spinner("Waiting for Messages...", &["◐", "◒", "◑", "◓"]);
 
-                    while let Some(event) = message_stream.next().await {
-                        yield event?.try_into()?
+                    let mut message_stream = pubsub.subscribe(&topic).await?;
+
+                    while let Some(event) = message_stream.try_next().await? {
+                        yield event.try_into()?
                     }
                 }
             }
