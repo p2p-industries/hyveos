@@ -1,52 +1,42 @@
 from grpc.aio import Channel
-from ..protocol.script_pb2_grpc import DiscoveryStub
-from ..protocol.script_pb2 import Peer, Empty, NeighbourEvent
+from ..protocol.bridge_pb2_grpc import DiscoveryStub
+from ..protocol.bridge_pb2 import DHTKey, Topic, Peer
 from .stream import ManagedStream
+from .util import enc
 
 
 class DiscoveryService:
     """
-    Keeping track of neighbours
+    A handle to the discovery service.
+
+    Exposes methods to interact with the discovery service,
+    like for marking the local runtime as a provider for a discovery key
+    or getting the providers for a discovery key.
     """
 
     def __init__(self, conn: Channel):
         self.stub = DiscoveryStub(conn)
-        self.empty = Empty()
 
-    def discovery_events(self) -> ManagedStream[NeighbourEvent]:
+    async def provide(self, topic: str, key: str | bytes) -> None:
         """
-        Subscribe to neighbour discovery events to get notified when new neighbour peers are discovered or lost
+        Marks the local runtime as a provider for a discovery key.
+        """
+        await self.stub.Provide(DHTKey(topic=Topic(topic=topic), key=enc(key)))
+
+    def get_providers(self, topic: str, key: str | bytes) -> ManagedStream[Peer]:
+        """
+        Gets the providers for a discovery key.
 
         Returns
         -------
-        stream : ManagedStream[NeighbourEvent]
-            Iterator to handle the stream of neighbour events
+        stream : ManagedStream[Peer]
+            A stream of providers for the discovery key.
         """
-        neighbour_event_stream = self.stub.SubscribeEvents(self.empty)
-        return ManagedStream(neighbour_event_stream)
+        stream = self.stub.GetProviders(DHTKey(topic=Topic(topic=topic), key=enc(key)))
+        return ManagedStream(stream)
 
-    async def get_own_peer_object(self) -> Peer:
+    async def stop_providing(self, topic: str, key: str | bytes) -> None:
         """
-        Get the Peer object of the current node
-
-        Returns
-        -------
-        peer : Peer
-            Own Peer object
+        Stops providing a discovery key.
         """
-
-        peer = await self.stub.GetOwnId(self.empty)
-        return peer
-
-    async def get_own_id(self) -> str:
-        """
-        Get the peer_id of the current node
-
-        Returns
-        -------
-        peer_id : str
-            Own peer_id
-        """
-
-        peer = await self.stub.GetOwnId(self.empty)
-        return peer.peer_id
+        await self.stub.StopProviding(DHTKey(topic=Topic(topic=topic), key=enc(key)))

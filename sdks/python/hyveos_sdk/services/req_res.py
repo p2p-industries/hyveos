@@ -1,6 +1,6 @@
 from grpc.aio import Channel
-from ..protocol.script_pb2_grpc import ReqRespStub
-from ..protocol.script_pb2 import (
+from ..protocol.bridge_pb2_grpc import ReqRespStub
+from ..protocol.bridge_pb2 import (
     Data,
     Peer,
     Response,
@@ -21,7 +21,10 @@ from typing import Optional
 
 class RequestResponseService:
     """
-    Direct peer-to-peer message exchange (Unicast)
+    A handle to the request-response service.
+
+    Exposes methods to interact with the request-response service, like for sending and receiving
+    requests, and for sending responses.
     """
 
     def __init__(self, conn: Channel):
@@ -31,12 +34,15 @@ class RequestResponseService:
         self, peer_id: str, data: str | bytes, topic: Optional[str] = None
     ) -> Response:
         """
-        Send a request with an optional topic to a peer and await a response
+        Sends a request with an optional topic to a peer and returns the response.
+
+        The peer must be subscribed to the topic in order to receive the request.
+        If `topic` is `None`, the peer must be subscribed to `None` as well.
 
         Parameters
         ----------
         peer_id : str
-            Peer, the peer_id of the target
+            The peer_id of the target
         data : str | bytes
             Data to send
         topic : str, optional
@@ -67,7 +73,7 @@ class RequestResponseService:
         regex: bool = False,
     ) -> ManagedStream[RecvRequest]:
         """
-        Receive requests from peers that either have no topic or have a topic that has been subscribed to
+        Subscribes to a topic and returns a stream of received requests.
 
         Parameters
         ----------
@@ -79,7 +85,7 @@ class RequestResponseService:
         Returns
         -------
         stream : ManagedStream[RecvRequest]
-            Iterator to handle the stream of RecvRequests
+            Stream of received requests from the specified topic
         """
 
         optional_topic_query = OptionalTopicQuery()
@@ -109,10 +115,6 @@ class RequestResponseService:
             Reponse message data. If error is specified, this won't reach the peer
         error : str
             Respond with an error message if an error occurred (default:  None)
-
-        Returns
-        -------
-        None
         """
 
         if error is not None:

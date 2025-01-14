@@ -4,22 +4,24 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from .services.db import DBService
+from .services.apps import AppsService
 from .services.debug import DebugService
-from .services.dht import DHTService
 from .services.discovery import DiscoveryService
 from .services.file_transfer import (
     FileTransferService,
     GrpcFileTransferService,
     NetworkFileTransferService,
 )
-from .services.gossip_sub import GossipSubService
-from .services.request_response import RequestResponseService
+from .services.kv import KVService
+from .services.local_kv import LocalKVService
+from .services.neighbours import NeighboursService
+from .services.pub_sub import PubSubService
+from .services.req_res import RequestResponseService
 
 
 class Connection:
     """
-    A connection to the HyveOS runtime.
+    A connection to the hyveOS runtime.
 
     This class is used to establish a connection to the HyveOS runtime.
     It is used as a context manager to ensure that the connection is properly closed when it is no longer needed.
@@ -38,8 +40,7 @@ class Connection:
 
     async def main():
         async with Connection() as conn:
-            discovery = conn.get_discovery_service()
-            peer_id = await discovery.get_own_id()
+            peer_id = await conn.get_id()
 
             print(f'My peer ID: {peer_id}')
     ```
@@ -159,8 +160,7 @@ class OpenedConnection:
 
     async def main():
         async with Connection() as conn:
-            discovery = conn.get_discovery_service()
-            peer_id = await discovery.get_own_id()
+            peer_id = await conn.get_id()
 
             print(f'My peer ID: {peer_id}')
     ```
@@ -177,17 +177,16 @@ class OpenedConnection:
         self._uri = conn._uri
         self._session = conn._session
 
-    def get_db_service(self) -> DBService:
+    def get_apps_service(self) -> AppsService:
         """
-        Returns a handle to the database service.
+        Returns a handle to the application management service.
 
         Returns
         -------
-        DBService
-            A handle to the database service.
+        AppsService
+            A handle to the application management service.
         """
-
-        return DBService(self._conn)
+        return AppsService(self._conn)
 
     def get_debug_service(self) -> DebugService:
         """
@@ -198,20 +197,7 @@ class OpenedConnection:
         DebugService
             A handle to the debug service.
         """
-
         return DebugService(self._conn)
-
-    def get_dht_service(self) -> DHTService:
-        """
-        Returns a handle to the DHT service.
-
-        Returns
-        -------
-        DHTService
-            A handle to the DHT service.
-        """
-
-        return DHTService(self._conn)
 
     def get_discovery_service(self) -> DiscoveryService:
         """
@@ -222,7 +208,6 @@ class OpenedConnection:
         DiscoveryService
             A handle to the discovery service.
         """
-
         return DiscoveryService(self._conn)
 
     def get_file_transfer_service(self) -> FileTransferService:
@@ -234,23 +219,54 @@ class OpenedConnection:
         FileTransferService
             A handle to the file transfer service.
         """
-
         if self._uri is not None and self._session is not None:
             return NetworkFileTransferService(self._uri, self._session)
         else:
             return GrpcFileTransferService(self._conn, self._shared_dir_path)
 
-    def get_gossip_sub_service(self) -> GossipSubService:
+    def get_kv_service(self) -> KVService:
         """
-        Returns a handle to the gossipsub service.
+        Returns a handle to the distributed key-value store service.
 
         Returns
         -------
-        GossipSubService
-            A handle to the gossipsub service.
+        KVService
+            A handle to the distributed key-value store service.
         """
+        return KVService(self._conn)
 
-        return GossipSubService(self._conn)
+    def get_local_kv_service(self) -> LocalKVService:
+        """
+        Returns a handle to the local key-value store service.
+
+        Returns
+        -------
+        LocalKVService
+            A handle to the local key-value store service.
+        """
+        return LocalKVService(self._conn)
+
+    def get_neighbours_service(self) -> NeighboursService:
+        """
+        Returns a handle to the neighbours service.
+
+        Returns
+        -------
+        NeighboursService
+            A handle to the neighbours service.
+        """
+        return NeighboursService(self._conn)
+
+    def get_pub_sub_service(self) -> PubSubService:
+        """
+        Returns a handle to the pub-sub service.
+
+        Returns
+        -------
+        PubSubService
+            A handle to the pub-sub service.
+        """
+        return PubSubService(self._conn)
 
     def get_request_response_service(self) -> RequestResponseService:
         """
@@ -261,5 +277,4 @@ class OpenedConnection:
         RequestResponseService
             A handle to the request-response service.
         """
-
         return RequestResponseService(self._conn)
