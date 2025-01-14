@@ -72,9 +72,7 @@ class AppsService:
         )
         return id.ulid
 
-    async def list_running(
-        self, peer_id: Optional[str] = None
-    ) -> Iterable[RunningApp]:
+    async def list_running(self, peer_id: Optional[str] = None) -> Iterable[RunningApp]:
         """
         Lists the running apps on a peer in the network.
 
@@ -96,9 +94,7 @@ class AppsService:
         else:
             peer = None
 
-        response = await self.stub.ListRunning(
-            ListRunningAppsRequest(peer=peer)
-        )
+        response = await self.stub.ListRunning(ListRunningAppsRequest(peer=peer))
         return response.apps
 
     async def stop(self, app_id: str, peer_id: Optional[str] = None):

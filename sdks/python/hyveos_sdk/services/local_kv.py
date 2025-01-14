@@ -38,7 +38,9 @@ class LocalKVService:
         value : bytes | None
             The previous value of the record or `None` if it did not exist
         """
-        record = await self.stub.Put(LocalKVRecord(key=key, value=Data(data=enc(value))))
+        record = await self.stub.Put(
+            LocalKVRecord(key=key, value=Data(data=enc(value)))
+        )
         if record.data is not None:
             return record.data.data
         else:
