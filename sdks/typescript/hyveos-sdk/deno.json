@@ -1,6 +1,6 @@
 {
-  "name": "hyveos-sdk",
-  "version": "1.0.0",
+  "name": "@hyveos/sdk",
+  "version": "0.1.0",
   "exports": "./mod.ts",
   "tasks": {
     "gen": "deno run --allow-env --allow-read --allow-run npm:@bufbuild/buf/buf generate",

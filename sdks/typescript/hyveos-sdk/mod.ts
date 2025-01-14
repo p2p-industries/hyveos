@@ -16,7 +16,7 @@
  */
 export default {}
 
-import type { Transport } from 'npm:@connectrpc/connect'
+import type { Transport } from 'npm:@connectrpc/connect@2.0.1'
 import { ReqRes } from './reqresp.ts'
 export { ReqRes } from './reqresp.ts'
 import { GossipSub } from './gossipsub.ts'
