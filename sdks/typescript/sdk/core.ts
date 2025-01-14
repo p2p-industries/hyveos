@@ -3,7 +3,7 @@ import {
   type Client,
   createClient,
   type Transport,
-} from 'npm:@connectrpc/connect@2.0.0'
+} from 'npm:@connectrpc/connect@2.0.1'
 import { literal, object, string, union } from 'npm:valibot@1.0.0-beta.11'
 import type { BaseIssue, BaseSchema } from 'npm:valibot@1.0.0-beta.11'
 

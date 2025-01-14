@@ -245,21 +245,11 @@
   },
   "workspace": {
     "members": {
-      "hyveos-sdk": {
+      "sdk": {
         "dependencies": [
           "npm:@bufbuild/protobuf@^2.2.3",
           "npm:@bufbuild/protoc-gen-es@^2.2.3",
           "npm:valibot@^1.0.0-beta.9"
-        ]
-      },
-      "hyveos-server": {
-        "dependencies": [
-          "jsr:hyveos-sdk@1"
-        ]
-      },
-      "hyveos-web": {
-        "dependencies": [
-          "jsr:hyveos-sdk@1"
         ]
       }
     }

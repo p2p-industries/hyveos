@@ -38,9 +38,9 @@ jobs:
       fail-fast: true
       matrix:
         package:
-          - hyveos-sdk
-          - hyveos-web
-          - hyveos-server
+          - sdk
+          - web
+          - server
     env:
       DENO_DIR: /tmp/${{ matrix.package }}-cache
     steps:
@@ -59,7 +59,7 @@ jobs:
 
       - name: Build package
         working-directory: sdks/typescript/${{ matrix.package }}
-        run: deno run -A scripts/build_npm.ts 1.0.0
+        run: deno run -A scripts/build_npm.ts 0.1.0
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
