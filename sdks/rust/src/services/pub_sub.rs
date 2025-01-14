@@ -30,8 +30,8 @@ pub struct TypedMessage<T> {
 
 /// A handle to the pub-sub service.
 ///
-/// Exposes methods to interact with the pub-sub service, like for subscribing to topics and
-/// publishing messages.
+/// Exposes methods to interact with the pub-sub service,
+/// like for subscribing to topics and publishing messages.
 ///
 /// # Example
 ///

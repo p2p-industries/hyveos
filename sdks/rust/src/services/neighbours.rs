@@ -10,8 +10,8 @@ use crate::{connection::Connection, error::Result};
 
 /// A handle to the neighbours service.
 ///
-/// Exposes methods to interact with the neighbours service, such as subscribing to neighbour events
-/// and getting the current set of neighbours.
+/// Exposes methods to interact with the neighbours service,
+/// such as subscribing to neighbour events and getting the current set of neighbours.
 ///
 /// # Example
 ///

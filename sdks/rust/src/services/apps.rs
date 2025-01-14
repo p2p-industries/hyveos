@@ -45,8 +45,8 @@ pub struct Config {
 impl Config {
     /// Creates a new configuration for deploying an application.
     ///
-    /// `image` should be a docker image name, optionally with a tag, e.g.
-    /// `my-docker-image:latest`.
+    /// `image` should be a docker image name, can contain a tag,
+    /// e.g. `my-docker-image:latest`.
     ///
     /// # Example
     ///

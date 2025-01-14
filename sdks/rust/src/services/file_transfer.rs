@@ -84,8 +84,8 @@ enum Client {
 
 /// A handle to the file transfer service.
 ///
-/// Exposes methods to interact with the file transfer service, like for publishing and getting
-/// files.
+/// Exposes methods to interact with the file transfer service,
+/// like for publishing and getting files.
 ///
 /// # Example
 ///

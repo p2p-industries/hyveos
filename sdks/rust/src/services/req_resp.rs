@@ -307,8 +307,8 @@ where
 
 /// A handle to the request-response service.
 ///
-/// Exposes methods to interact with the request-response service, like for sending and receiving
-/// requests, and for sending responses.
+/// Exposes methods to interact with the request-response service,
+/// like for sending and receiving requests, and for sending responses.
 ///
 /// # Example
 ///
