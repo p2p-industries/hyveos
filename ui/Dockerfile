@@ -51,3 +51,8 @@ ENV PORT=8080
 EXPOSE $PORT
 
 CMD ["sh", "-c", "httpd -f -p ${PORT} -h /www"]
+
+
+LABEL org.opencontainers.image.title="hyveOS Debug UI"
+LABEL org.opencontainers.image.documentation="https://docs.p2p.industries"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"

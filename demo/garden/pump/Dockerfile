@@ -21,3 +21,9 @@ ENV FWD_PIN=23
 ENV REV_PIN=24
 
 CMD ["poetry", "run", "python", "main.py"]
+
+LABEL org.opencontainers.image.title="hyveOS Pump"
+LABEL org.opencontainers.image.description="Image to be a pump in the hyveOS plant watering demo"
+LABEL org.opencontainers.image.url="https://docs.p2p.industries"
+LABEL org.opencontainers.image.documentation="https://docs.p2p.industries"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"
