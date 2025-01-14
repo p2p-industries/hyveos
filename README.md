@@ -200,4 +200,4 @@ You should see something like
 
 If it succeeds, that's it! Your machine is ready to join multi-node swarms!
 
-Continue with the [Quickstart](/concepts/quickstart) or learn about [hyveOS concepts](/concepts/concepts)
+Continue with the [Quickstart](https://docs.p2p.industries/concepts/quickstart) or learn about [hyveOS concepts](https://docs.p2p.industries/concepts/concepts)
