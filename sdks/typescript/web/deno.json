@@ -2,5 +2,5 @@
   "name": "@hyveos/web",
   "version": "0.1.0",
   "exports": "./mod.ts",
-  "description": "Transport provider for the Web to use the hyveOS SDK",
+  "description": "Transport provider for the Web to use the hyveOS SDK"
 }
