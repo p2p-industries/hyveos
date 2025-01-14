@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
 
     let connection = Connection::new().await?;
 
-    let mut stream = connection.gossipsub().subscribe("export_data").await?;
+    let mut stream = connection.pub_sub().subscribe("export_data").await?;
 
     let mut metrics: HashMap<String, Metric> = HashMap::new();
 
