@@ -7,3 +7,4 @@
 # script-management = "deny"
 # log-dir = "/tmp/hyved/logs"
 # log-level = "info"
+# telemetry = true
