@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from .protocol.bridge_pb2_grpc import DiscoveryStub
+from .protocol.bridge_pb2 import Empty
 from .services.apps import AppsService
 from .services.debug import DebugService
 from .services.discovery import DiscoveryService
@@ -278,3 +280,15 @@ class OpenedConnection:
             A handle to the request-response service.
         """
         return RequestResponseService(self._conn)
+
+    async def get_id(self) -> str:
+        """
+        Returns the peer ID of the local runtime.
+
+        Returns
+        -------
+        str
+            The peer ID of the runtime.
+        """
+        peer = await DiscoveryStub(self._conn).GetOwnId(Empty())
+        return peer.peer_id
