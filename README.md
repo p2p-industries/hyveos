@@ -1,10 +1,41 @@
 # ![P2P Industries Logo](logo.png)
 
-[![Rust](https://github.com/p2p-industries/hyveos/actions/workflows/rust.yml/badge.svg)](https://github.com/p2p-industries/hyveos/actions/workflows/rust.yml)
+[![Crates.io Version](https://img.shields.io/crates/v/hyveos-sdk)](https://crates.io/crates/hyveos-sdk)
+[![NPM Version](https://img.shields.io/npm/v/%40hyveos%2Fsdk)](https://www.npmjs.com/package/@hyveos/sdk)
+[![JSR](https://jsr.io/badges/@hyveos/sdk)](https://jsr.io/@hyveos/sdk)
+[![PyPI - Version](https://img.shields.io/pypi/v/hyveos-sdk)](https://pypi.org/project/hyveos-sdk/)
 
 ## P2P Industries builds the first decentralized robot communication system
 
-# [Documentation](https://docs.p2p.industries)
+## [Documentation](https://docs.p2p.industries)
+
+We've tried to provide comprehensive documentation for everything that you can do with hyveOS!
+
+## Example Use Cases
+
+While the provided abstractions are universally useful, hyveOS is ideally suited for robot swarms.
+
+### Live Video to first Responders
+
+Today many search and rescue operators already use drones to save lives. With hyveOS's [File Transfer](https://docs.p2p.industries/sdk/file_transfer/) the video feed can be
+broadcastet to countless on-the-ground operators even while the cellular network is down.
+
+### Warehouse
+
+Any time robots come together, like in a warehouse, communication is key. Instead of relying on a central server that distributes tasks
+or provides information about roles (who can do what), with hyveOS the robots can exchange that information between each other.
+
+Think of a warehouse where robots move individual parcels, but sometimes they need to come together to carry a pallet or a bit item.
+
+With hyveOS one robot that took up the task can publish a message in the `carry-stuff` topic of our [Pub-Sub](https://docs.p2p.industries/sdk/pub_sub/), asking robots that are in [proximity](https://docs.p2p.industries/sdk/discovery/) for assitance.
+They can [respond to the request](https://docs.p2p.industries/sdk/request_response/) and once they are enough, they can proceed together.
+
+### Infrastructure Interaction
+
+Think of a service robot that wants to deliver a coffee to you, while you are sitting at your desk.
+
+With hyveOS the service robot can directly talk to your computer (or a website where you ordered the coffee), the coffee machine, the doors in the way
+and the elevator that takes it to the right floor. Made possible by our [Key Value Store](https://docs.p2p.industries/sdk/dht/) (find a coffee machine) and [request-response](https://docs.p2p.industries/sdk/request_response/) (open the door for me please).
 
 ## Installation
 
