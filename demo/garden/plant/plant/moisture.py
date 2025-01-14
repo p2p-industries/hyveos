@@ -3,7 +3,7 @@ import time
 import os
 
 from gpiozero import DigitalInputDevice
-from hyveos_sdk.services.db import DBService
+from hyveos_sdk import LocalKVService
 
 MOISTURE_1_PIN = 23
 MOISTURE_2_PIN = 8
@@ -15,7 +15,7 @@ class MoistureSensor(object):
 
     _gpio_pin: int
     _input: DigitalInputDevice
-    _db: DBService
+    _local_kv: LocalKVService
     _loop: asyncio.AbstractEventLoop
     _key: str
     _threshold: int
@@ -30,7 +30,7 @@ class MoistureSensor(object):
     async def create(
         cls,
         channel: int,
-        db: DBService,
+        local_kv: LocalKVService,
     ) -> 'MoistureSensor':
         """Create a new moisture sensor.
 
@@ -52,16 +52,16 @@ class MoistureSensor(object):
 
         self._input = DigitalInputDevice(self._gpio_pin, bounce_time=1 / 1000.0)
 
-        self._db = db
+        self._local_kv = local_kv
         self._loop = asyncio.get_event_loop()
 
         self._key = f'moisture_threshold_{channel}'
-        data = (await db.get(self._key)).data
+        data = (await local_kv.get(self._key))
         if data is not None:
-            threshold = int.from_bytes(data.data)
+            threshold = int.from_bytes(data)
         else:
             threshold = 10
-            await db.put(self._key, threshold.to_bytes(1))
+            await local_kv.put(self._key, threshold.to_bytes(1))
 
         self._threshold = threshold
 
@@ -86,11 +86,11 @@ class MoistureSensor(object):
 
     async def increase_threshold(self):
         self._threshold += 1
-        await self._db.put(self._key, self._threshold.to_bytes(1))
+        await self._local_kv.put(self._key, self._threshold.to_bytes(1))
 
     async def decrease_threshold(self):
         self._threshold -= 1
-        await self._db.put(self._key, self._threshold.to_bytes(1))
+        await self._local_kv.put(self._key, self._threshold.to_bytes(1))
 
     @property
     def _time_elapsed(self):
