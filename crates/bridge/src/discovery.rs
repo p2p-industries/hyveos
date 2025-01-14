@@ -7,15 +7,16 @@ use hyveos_p2p_stack::Client;
 use libp2p::kad::GetProvidersOk;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{kv::convert_key, ServerStream, TonicResult};
+use crate::{kv::convert_key, ServerStream, Telemetry, TonicResult};
 
 pub struct DiscoveryServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl DiscoveryServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -24,6 +25,7 @@ impl Discovery for DiscoveryServer {
     type GetProvidersStream = ServerStream<grpc::Peer>;
 
     async fn provide(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("discovery.provide");
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received provide request");
@@ -40,6 +42,7 @@ impl Discovery for DiscoveryServer {
         &self,
         request: TonicRequest<grpc::DhtKey>,
     ) -> TonicResult<Self::GetProvidersStream> {
+        self.telemetry.track("discovery.get_providers");
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received get_providers request");
@@ -70,6 +73,8 @@ impl Discovery for DiscoveryServer {
         &self,
         request: TonicRequest<grpc::DhtKey>,
     ) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("discovery.stop_providing");
+
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received stop_providing request");
@@ -84,6 +89,7 @@ impl Discovery for DiscoveryServer {
     }
 
     async fn get_own_id(&self, _request: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Peer> {
+        self.telemetry.track("discovery.get_own_id");
         tracing::debug!("Received get_own_id request");
 
         Ok(TonicResponse::new(self.client.peer_id().into()))

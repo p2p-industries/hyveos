@@ -1,13 +1,9 @@
-use crate::boxed_try_stream;
-use crate::error::HyveCtlResult;
-use crate::out::CommandOutput;
-use crate::util::CommandFamily;
 use futures::stream::BoxStream;
-use futures::StreamExt;
 use hyvectl_commands::families::hyve::Hyve;
-use hyveos_sdk::services::ScriptingConfig;
-use hyveos_sdk::{Connection, PeerId};
+use hyveos_sdk::{services::ScriptingConfig, Connection, PeerId};
 use ulid::Ulid;
+
+use crate::{boxed_try_stream, error::HyveCtlResult, out::CommandOutput, util::CommandFamily};
 
 impl CommandFamily for Hyve {
     async fn run(

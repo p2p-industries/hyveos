@@ -8,6 +8,8 @@ on:
       - "**.proto"
       - "demo/garden/**"
       - ".github/workflows/docker-py.yml"
+    tags:
+      - "v*.*.*-python"
   pull_request:
     branches: ["main"]
     paths:
@@ -134,6 +136,14 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=edge,branch=main
+            type=sha
 
       - name: Build and push
         id: push
@@ -142,7 +152,7 @@ jobs:
           context: ${{ matrix.context }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ github.ref == 'refs/heads/main' && steps.meta.outputs.labels || github.ref }}
+          labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/aarch64
           build-args: BRANCH=${{ github.event_name == 'pull_request' && env.PR_NAME || 'main' }}
           cache-from: type=gha

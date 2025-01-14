@@ -1,0 +1,14 @@
+[Unit]
+Description=hyveOS Gateway (%i)
+Requires=hyveos-batman@%i.service
+After=hyveos-batman@%i.service
+ConditionPathExists=/etc/hyved/gateway
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/usr/sbin/batctl gw_mode server
+
+[Install]
+WantedBy=multi-user.target

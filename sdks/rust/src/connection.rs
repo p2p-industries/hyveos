@@ -605,7 +605,7 @@ impl Connection {
     ///     .await
     ///     .unwrap();
     ///
-    /// let data = Result::from(response).unwrap();
+    /// let data = Vec::try_from(response).unwrap();
     /// println!("Received response: {}", String::from_utf8(data).unwrap());
     /// # }
     /// ```

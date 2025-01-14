@@ -24,7 +24,7 @@ use ulid::Ulid;
 
 #[cfg(feature = "batman")]
 use crate::debug::DebugServer;
-pub use crate::{apps::AppsClient, local_kv::DbClient};
+pub use crate::{apps::AppsClient, local_kv::DbClient, telemetry::Telemetry};
 use crate::{
     apps::AppsServer, discovery::DiscoveryServer, file_transfer::FileTransferServer, kv::KvServer,
     local_kv::LocalKvServer, neighbours::NeighboursServer, pub_sub::PubSubServer,
@@ -41,6 +41,7 @@ mod local_kv;
 mod neighbours;
 mod pub_sub;
 mod req_resp;
+mod telemetry;
 
 pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
 
@@ -67,6 +68,7 @@ pub struct Bridge<Db, Apps> {
 }
 
 impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
+    #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
     pub async fn new(
         client: Client,
         db_client: Db,
@@ -75,6 +77,7 @@ impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         apps_client: Apps,
         is_application_bridge: bool,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -108,6 +111,7 @@ impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             is_application_bridge,
+            telemetry,
         };
 
         Ok(Self {
@@ -133,6 +137,7 @@ impl<Db: DbClient, Apps: AppsClient> NetworkBridge<Db, Apps> {
         socket_addr: SocketAddr,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         apps_client: Apps,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
 
@@ -158,6 +163,7 @@ impl<Db: DbClient, Apps: AppsClient> NetworkBridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             is_application_bridge: false,
+            telemetry,
         };
 
         Ok(Self {
@@ -182,6 +188,7 @@ impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
         mut base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         apps_client: Apps,
+        telemetry: Telemetry,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
         base_path.push(ulid.to_string());
@@ -203,6 +210,7 @@ impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             true,
+            telemetry.context("scripting"),
         )
         .await?;
 
@@ -238,6 +246,7 @@ pub struct BridgeClient<Db, Apps> {
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
     apps_client: Apps,
     is_application_bridge: bool,
+    telemetry: Telemetry,
 }
 
 macro_rules! build_tonic {
@@ -281,21 +290,39 @@ macro_rules! build_tonic {
 
 impl<Db: DbClient, Apps: AppsClient> BridgeClient<Db, Apps> {
     pub async fn run(self) -> Result<(), Error> {
-        let apps = AppsServer::new(self.apps_client, self.ulid);
-        let discovery = DiscoveryServer::new(self.client.clone());
+        let apps = AppsServer::new(
+            self.apps_client,
+            self.ulid,
+            self.telemetry.clone().service("apps"),
+        );
+        let discovery = DiscoveryServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("discovery"),
+        );
         let file_transfer = FileTransferServer::new(
             self.client.clone(),
             self.shared_dir_path,
             self.is_application_bridge,
+            self.telemetry.clone().service("file_transfer"),
         );
-        let kv = KvServer::new(self.client.clone());
-        let local_kv = LocalKvServer::new(self.db_client);
-        let neighbours = NeighboursServer::new(self.client.clone());
-        let pub_sub = PubSubServer::new(self.client.clone());
-        let req_resp = ReqRespServer::new(self.client);
+        let kv = KvServer::new(self.client.clone(), self.telemetry.clone().service("kv"));
+        let local_kv =
+            LocalKvServer::new(self.db_client, self.telemetry.clone().service("local_kv"));
+        let neighbours = NeighboursServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("neighbours"),
+        );
+        let pub_sub = PubSubServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("pub_sub"),
+        );
+        let req_resp = ReqRespServer::new(self.client, self.telemetry.clone().service("req_resp"));
 
         #[cfg(feature = "batman")]
-        let debug = DebugServer::new(self.debug_command_sender);
+        let debug = DebugServer::new(
+            self.debug_command_sender,
+            self.telemetry.clone().service("debug"),
+        );
 
         tracing::debug!(id=?self.ulid, "Starting bridge");
 

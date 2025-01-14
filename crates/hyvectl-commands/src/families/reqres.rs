@@ -14,7 +14,11 @@ pub enum ReqRes {
     },
 
     /// Retrieve a stream of messages from peers
-    Receive {},
+    Receive {
+        /// Topic to listen for
+        #[arg(long)]
+        topic: Option<String>,
+    },
 
     /// Respond to messages from peers
     Respond {

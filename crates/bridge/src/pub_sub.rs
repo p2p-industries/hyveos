@@ -5,15 +5,16 @@ use libp2p::gossipsub::IdentTopic;
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 pub struct PubSubServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl PubSubServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -25,6 +26,7 @@ impl PubSub for PubSubServer {
         &self,
         request: TonicRequest<grpc::Topic>,
     ) -> TonicResult<Self::SubscribeStream> {
+        self.telemetry.track("pub_sub.subscribe");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received subscribe request");
@@ -34,7 +36,7 @@ impl PubSub for PubSubServer {
         let receiver = self
             .client
             .gossipsub()
-            .get_topic(IdentTopic::new(format!("script/{topic}")))
+            .get_topic(IdentTopic::new(format!("app/{topic}")))
             .subscribe()
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
@@ -51,6 +53,7 @@ impl PubSub for PubSubServer {
         &self,
         request: TonicRequest<grpc::PubSubMessage>,
     ) -> TonicResult<grpc::PubSubMessageId> {
+        self.telemetry.track("pub_sub.publish");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received publish request");
@@ -62,7 +65,7 @@ impl PubSub for PubSubServer {
 
         self.client
             .gossipsub()
-            .get_topic(IdentTopic::new(format!("script/{topic}")))
+            .get_topic(IdentTopic::new(format!("app/{topic}")))
             .publish(data.into())
             .await
             .map(Into::into)

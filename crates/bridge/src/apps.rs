@@ -6,7 +6,7 @@ use libp2p::PeerId;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 use ulid::Ulid;
 
-use crate::TonicResult;
+use crate::{Telemetry, TonicResult};
 
 #[trait_variant::make(Send)]
 pub trait AppsClient: Sync + 'static {
@@ -46,17 +46,23 @@ pub trait AppsClient: Sync + 'static {
 pub struct AppsServer<C> {
     client: C,
     ulid: Option<Ulid>,
+    telemetry: Telemetry,
 }
 
 impl<C: AppsClient> AppsServer<C> {
-    pub fn new(client: C, ulid: Option<Ulid>) -> Self {
-        Self { client, ulid }
+    pub fn new(client: C, ulid: Option<Ulid>, telemetry: Telemetry) -> Self {
+        Self {
+            client,
+            ulid,
+            telemetry,
+        }
     }
 }
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl<C: AppsClient> Apps for AppsServer<C> {
     async fn deploy(&self, request: TonicRequest<grpc::DeployAppRequest>) -> TonicResult<grpc::Id> {
+        self.telemetry.track("apps.deploy");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received deploy request");
@@ -96,6 +102,7 @@ impl<C: AppsClient> Apps for AppsServer<C> {
         &self,
         request: TonicRequest<grpc::ListRunningAppsRequest>,
     ) -> TonicResult<grpc::RunningApps> {
+        self.telemetry.track("apps.list_running");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received list_running request");
@@ -114,6 +121,7 @@ impl<C: AppsClient> Apps for AppsServer<C> {
     }
 
     async fn stop(&self, request: TonicRequest<grpc::StopAppRequest>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("apps.stop");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received stop request");
@@ -130,6 +138,7 @@ impl<C: AppsClient> Apps for AppsServer<C> {
     }
 
     async fn get_own_app_id(&self, _: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Id> {
+        self.telemetry.track("apps.get_own_app_id");
         self.ulid
             .map(Into::into)
             .map(TonicResponse::new)

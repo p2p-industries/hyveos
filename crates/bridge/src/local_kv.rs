@@ -1,7 +1,7 @@
 use hyveos_core::grpc::{self, local_kv_server::LocalKv};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::TonicResult;
+use crate::{Telemetry, TonicResult};
 
 #[trait_variant::make(Send)]
 pub trait DbClient: Sync + 'static {
@@ -18,11 +18,12 @@ pub trait DbClient: Sync + 'static {
 
 pub struct LocalKvServer<C> {
     client: C,
+    telemetry: Telemetry,
 }
 
 impl<C: DbClient> LocalKvServer<C> {
-    pub fn new(client: C) -> Self {
-        Self { client }
+    pub fn new(client: C, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -32,6 +33,7 @@ impl<C: DbClient> LocalKv for LocalKvServer<C> {
         &self,
         request: TonicRequest<grpc::LocalKvRecord>,
     ) -> TonicResult<grpc::OptionalData> {
+        self.telemetry.track("local_kv.put");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received put request");
@@ -51,6 +53,7 @@ impl<C: DbClient> LocalKv for LocalKvServer<C> {
         &self,
         request: TonicRequest<grpc::LocalKvKey>,
     ) -> TonicResult<grpc::OptionalData> {
+        self.telemetry.track("local_kv.get");
         let request = request.into_inner();
 
         tracing::debug!(?request, "Received get request");

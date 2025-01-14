@@ -6,15 +6,16 @@ use hyveos_core::neighbours::NeighbourEvent;
 use hyveos_p2p_stack::Client;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 pub struct NeighboursServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl NeighboursServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
@@ -27,6 +28,7 @@ impl Neighbours for NeighboursServer {
         &self,
         _request: TonicRequest<grpc::Empty>,
     ) -> TonicResult<Self::SubscribeStream> {
+        self.telemetry.track("neighbours.subscribe");
         tracing::debug!("Received subscribe request");
 
         let stream = self
@@ -52,6 +54,7 @@ impl Neighbours for NeighboursServer {
 
     #[cfg(feature = "batman")]
     async fn get(&self, _request: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Peers> {
+        self.telemetry.track("neighbours.get");
         tracing::debug!("Received get request");
 
         let peers = self

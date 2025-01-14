@@ -1,5 +1,6 @@
-use crate::families::{file, hyve, inspect, kv, pubsub, reqres, whoami};
 use clap::{Command, CommandFactory, Parser, Subcommand};
+
+use crate::families::{file, hyve, init, inspect, kv, pubsub, reqres, whoami};
 
 #[derive(Parser)]
 #[command(name = "hyvectl", about = "Hyvectl")]
@@ -33,6 +34,8 @@ pub enum Families {
     File(file::File),
     /// Prints the local Peer-id
     Whoami(whoami::Whoami),
+    /// Initialize a new hyveOS instance. This should only be used during installation.
+    Init(init::Init),
 }
 
 pub fn build_cli() -> Command {

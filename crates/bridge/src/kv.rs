@@ -10,7 +10,7 @@ use hyveos_p2p_stack::Client;
 use libp2p::kad::{GetRecordOk, Quorum, RecordKey};
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::TonicResult;
+use crate::{Telemetry, TonicResult};
 
 pub(crate) fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
     DhtKey::from(key)
@@ -21,17 +21,20 @@ pub(crate) fn convert_key(key: grpc::DhtKey) -> Result<RecordKey, Status> {
 
 pub struct KvServer {
     client: Client,
+    telemetry: Telemetry,
 }
 
 impl KvServer {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, telemetry: Telemetry) -> Self {
+        Self { client, telemetry }
     }
 }
 
 #[tonic::async_trait] // TODO: rewrite when https://github.com/hyperium/tonic/pull/1697 is merged
 impl Kv for KvServer {
     async fn put_record(&self, request: TonicRequest<grpc::DhtRecord>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("kv.put_record");
+
         let record = request.into_inner();
 
         tracing::debug!(request=?record, "Received put_record request");
@@ -50,6 +53,8 @@ impl Kv for KvServer {
         &self,
         request: TonicRequest<grpc::DhtKey>,
     ) -> TonicResult<grpc::OptionalData> {
+        self.telemetry.track("kv.get_record");
+
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received get_record request");
@@ -78,6 +83,8 @@ impl Kv for KvServer {
     }
 
     async fn remove_record(&self, request: TonicRequest<grpc::DhtKey>) -> TonicResult<grpc::Empty> {
+        self.telemetry.track("kv.remove_record");
+
         let key = request.into_inner();
 
         tracing::debug!(request=?key, "Received remove_record request");

@@ -6,15 +6,19 @@ use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::BroadcastStream;
 use tonic::{Request as TonicRequest, Response as TonicResponse, Status};
 
-use crate::{ServerStream, TonicResult};
+use crate::{ServerStream, Telemetry, TonicResult};
 
 pub struct DebugServer {
     command_sender: mpsc::Sender<DebugClientCommand>,
+    telemetry: Telemetry,
 }
 
 impl DebugServer {
-    pub fn new(command_sender: mpsc::Sender<DebugClientCommand>) -> Self {
-        Self { command_sender }
+    pub fn new(command_sender: mpsc::Sender<DebugClientCommand>, telemetry: Telemetry) -> Self {
+        Self {
+            command_sender,
+            telemetry,
+        }
     }
 }
 
@@ -27,6 +31,7 @@ impl Debug for DebugServer {
         &self,
         _request: TonicRequest<grpc::Empty>,
     ) -> TonicResult<Self::SubscribeMeshTopologyStream> {
+        self.telemetry.track("debug.subscribe_mesh_topology");
         tracing::debug!("Received subscribe_mesh_topology request");
 
         let command_sender = self.command_sender.clone();
@@ -62,6 +67,7 @@ impl Debug for DebugServer {
         &self,
         _request: TonicRequest<grpc::Empty>,
     ) -> TonicResult<Self::SubscribeMessagesStream> {
+        self.telemetry.track("debug.subscribe_messages");
         tracing::debug!("Received subscribe_messages request");
 
         let command_sender = self.command_sender.clone();

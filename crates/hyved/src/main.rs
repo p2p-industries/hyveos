@@ -1,25 +1,22 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
 #[cfg(feature = "network")]
-use std::{net::SocketAddr, str::FromStr};
+use std::net::SocketAddr;
+use std::{env, path::PathBuf};
 
 use clap::Parser;
 use dirs::data_local_dir;
+#[cfg(feature = "network")]
+use hyveos_config::parse_socket_addr;
+use hyveos_config::{ApplicationManagementConfig, Config, LogFilter};
 use hyveos_core::DAEMON_NAME;
 #[cfg(feature = "batman")]
 use hyveos_ifaddr::if_name_to_index;
 #[cfg(any(feature = "network", feature = "batman"))]
 use hyveos_ifaddr::IfAddr;
-use hyveos_runtime::{
-    ApplicationManagementConfig, CliConnectionType, LogFilter, Runtime, RuntimeArgs,
-};
+use hyveos_runtime::{CliConnectionType, Runtime, RuntimeArgs};
 use libp2p::{
     identity::Keypair,
     multiaddr::{Multiaddr, Protocol},
 };
-use serde::Deserialize;
 
 const LISTEN_PORT: u16 = 39811;
 
@@ -27,63 +24,6 @@ fn default_store_directory() -> PathBuf {
     data_local_dir()
         .unwrap_or_else(env::temp_dir)
         .join(DAEMON_NAME)
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "kebab-case")]
-struct Config {
-    #[serde(default)]
-    interfaces: Option<Vec<String>>,
-    #[cfg(feature = "batman")]
-    #[serde(default)]
-    batman_interface: Option<String>,
-    #[serde(default)]
-    store_directory: Option<PathBuf>,
-    #[serde(default)]
-    db_file: Option<PathBuf>,
-    #[serde(default)]
-    key_file: Option<PathBuf>,
-    #[serde(default)]
-    random_directory: bool,
-    #[serde(default)]
-    application_management: Option<ApplicationManagementConfig>,
-    #[serde(default)]
-    log_dir: Option<PathBuf>,
-    #[serde(default)]
-    log_level: LogFilter,
-    #[serde(default)]
-    cli_socket_path: Option<PathBuf>,
-    #[cfg(feature = "network")]
-    #[serde(default, deserialize_with = "deserialize_socket_addr")]
-    cli_socket_addr: Option<SocketAddr>,
-}
-
-impl Config {
-    fn load(path: Option<impl AsRef<Path>>) -> anyhow::Result<Self> {
-        if let Some(path) = path {
-            std::fs::read_to_string(path)
-                .map(|s| toml::from_str(&s))?
-                .map_err(Into::into)
-        } else {
-            let base_paths = [Path::new("/etc"), Path::new("/usr/lib")];
-
-            for base_path in &base_paths {
-                let path = base_path.join(DAEMON_NAME).join("config.toml");
-                match std::fs::read_to_string(&path) {
-                    Ok(s) => {
-                        let config = toml::from_str(&s)?;
-                        tracing::debug!("Loaded config file from {}", path.display());
-                        return Ok(config);
-                    }
-                    Err(_) => {
-                        tracing::info!("Failed to load config file from {}", path.display());
-                    }
-                }
-            }
-
-            Ok(Self::default())
-        }
-    }
 }
 
 /// This daemon starts and manages the HyveOS runtime.
@@ -170,41 +110,6 @@ pub struct Opts {
         conflicts_with("cli_socket_path")
     )]
     cli_socket_addr: Option<SocketAddr>,
-}
-
-#[cfg(feature = "network")]
-fn deserialize_socket_addr<'de, D>(deserializer: D) -> Result<Option<SocketAddr>, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    let s: Option<&str> = Deserialize::deserialize(deserializer)?;
-
-    if let Some(s) = s {
-        parse_socket_addr(s)
-            .map_err(serde::de::Error::custom)
-            .map(Some)
-    } else {
-        Ok(None)
-    }
-}
-
-#[cfg(feature = "network")]
-fn parse_socket_addr(s: &str) -> Result<SocketAddr, anyhow::Error> {
-    if let Some(s) = s.strip_prefix("[") {
-        let mut parts = s.splitn(2, "]:");
-        let host = parts
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("Missing host"))
-            .and_then(|addr| IfAddr::from_str(addr).map_err(Into::into))?;
-        let port = parts
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("Missing port"))
-            .and_then(|port| port.parse().map_err(Into::into))?;
-
-        host.with_port(port).map_err(Into::into)
-    } else {
-        s.parse().map_err(Into::into)
-    }
 }
 
 #[cfg(not(feature = "batman"))]
@@ -310,6 +215,8 @@ async fn main() -> anyhow::Result<()> {
         cli_socket_path: config_cli_socket_path,
         #[cfg(feature = "network")]
             cli_socket_addr: config_cli_socket_addr,
+        telemetry,
+        ..
     } = Config::load(config_file)?;
 
     let listen_addrs = if let Some(addrs) = listen_addrs.map(|e| {
@@ -430,6 +337,7 @@ async fn main() -> anyhow::Result<()> {
         log_dir,
         log_level,
         cli_connection,
+        telemetry,
     };
 
     Runtime::new(args).await?.run().await

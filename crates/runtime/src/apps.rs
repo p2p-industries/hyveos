@@ -17,7 +17,8 @@ use futures::{
 };
 #[cfg(feature = "batman")]
 use hyveos_bridge::DebugCommandSender;
-use hyveos_bridge::{ApplicationBridge, Error as BridgeError, CONTAINER_SHARED_DIR};
+use hyveos_bridge::{ApplicationBridge, Error as BridgeError, Telemetry, CONTAINER_SHARED_DIR};
+use hyveos_config::ApplicationManagementConfig;
 use hyveos_core::{
     apps::RunningApp, file_transfer::Cid, BRIDGE_SHARED_DIR_ENV_VAR, BRIDGE_SOCKET_ENV_VAR,
 };
@@ -38,15 +39,6 @@ use crate::{
 };
 
 const CONTAINER_BRIDGE_SOCKET: &str = "/var/run/bridge.sock";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
-#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum ApplicationManagementConfig {
-    Allow,
-    #[default]
-    Deny,
-}
 
 enum SelfCommand {
     DeployImage {
@@ -76,6 +68,7 @@ pub struct ApplicationManagerBuilder {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     apps_management: ApplicationManagementConfig,
+    telemetry: Telemetry,
 }
 
 impl ApplicationManagerBuilder {
@@ -86,6 +79,7 @@ impl ApplicationManagerBuilder {
         base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         apps_management: ApplicationManagementConfig,
+        telemetry: Telemetry,
     ) -> Self {
         Self {
             command_broker,
@@ -95,6 +89,7 @@ impl ApplicationManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             apps_management,
+            telemetry,
         }
     }
 
@@ -107,6 +102,7 @@ impl ApplicationManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             apps_management,
+            telemetry,
         } = self;
         let (self_command_sender, self_command_receiver) = mpsc::channel(1);
 
@@ -131,6 +127,7 @@ impl ApplicationManagerBuilder {
                 debug_command_sender,
                 apps_client,
                 container_handles: FutureMap::new(),
+                telemetry,
             }
         };
 
@@ -149,6 +146,7 @@ pub struct ApplicationManager {
     debug_command_sender: DebugCommandSender,
     apps_client: Option<AppsClient>,
     container_handles: FutureMap<Ulid, ContainerHandle>,
+    telemetry: Telemetry,
 }
 
 impl ApplicationManager {
@@ -161,6 +159,7 @@ impl ApplicationManager {
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
             apps_client: self.apps_client.clone(),
+            telemetry: self.telemetry.clone(),
         }
     }
 
@@ -479,6 +478,7 @@ struct ExecutionManager<'a> {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     apps_client: Option<AppsClient>,
+    telemetry: Telemetry,
 }
 
 impl ExecutionManager<'_> {
@@ -524,6 +524,7 @@ impl ExecutionManager<'_> {
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
                 apps_client,
+                self.telemetry.image(image.image.clone()),
             )
             .await?;
 
@@ -536,6 +537,7 @@ impl ExecutionManager<'_> {
                 #[cfg(feature = "batman")]
                 self.debug_command_sender,
                 ForbiddenAppsClient,
+                self.telemetry.image(image.image.clone()),
             )
             .await?;
 

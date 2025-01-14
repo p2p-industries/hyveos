@@ -335,7 +335,7 @@ where
 ///     .await
 ///     .unwrap();
 ///
-/// let data = Result::from(response).unwrap();
+/// let data = Vec::try_from(response).unwrap();
 /// println!("Received response: {}", String::from_utf8(data).unwrap());
 /// # }
 /// ```
@@ -385,7 +385,7 @@ impl Service {
     ///     .await
     ///     .unwrap();
     ///
-    /// let data = Result::from(response).unwrap();
+    /// let data = Vec::try_from(response).unwrap();
     /// println!("Received response: {}", String::from_utf8(data).unwrap());
     /// # }
     /// ```
