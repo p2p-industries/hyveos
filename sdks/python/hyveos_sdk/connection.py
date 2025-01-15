@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from .protocol.bridge_pb2_grpc import DiscoveryStub
+from .protocol.bridge_pb2_grpc import ControlStub
 from .protocol.bridge_pb2 import Empty
 from .services.apps import AppsService
 from .services.debug import DebugService
@@ -169,12 +169,14 @@ class OpenedConnection:
     """
 
     _conn: grpc.aio.Channel
+    _control: ControlStub
     _shared_dir_path: Optional[Path]
     _uri: Optional[str]
     _session: Optional[aiohttp.ClientSession]
 
     def __init__(self, conn: Connection):
         self._conn = conn._conn
+        self._control = ControlStub(self._conn)
         self._shared_dir_path = conn._shared_dir_path
         self._uri = conn._uri
         self._session = conn._session
@@ -290,5 +292,5 @@ class OpenedConnection:
         str
             The peer ID of the runtime.
         """
-        peer = await DiscoveryStub(self._conn).GetOwnId(Empty())
+        peer = await self._control.GetId(Empty())
         return peer.peer_id

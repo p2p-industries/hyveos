@@ -16,8 +16,8 @@
  */
 export default {}
 
-import { createClient, type Transport } from 'npm:@connectrpc/connect'
-import { Discovery as DiscoveryService } from './gen/bridge_pb.ts'
+import { createClient, type Transport, type Client as ServiceClient } from 'npm:@connectrpc/connect'
+import { Control as ControlService } from './gen/bridge_pb.ts'
 import { Apps } from './apps.ts'
 export { Apps } from './apps.ts'
 import { Debug } from './debug.ts'
@@ -72,6 +72,10 @@ export class Client<T extends ITransport> {
    * @ignore
    */
   private transport: T
+  /**
+   * @ignore
+   */
+  private control: ServiceClient<typeof ControlService>
 
   /**
    * @param transport The transport object that is either a grpc-web or grpc transport.
@@ -79,6 +83,7 @@ export class Client<T extends ITransport> {
    */
   constructor(transport: T) {
     this.transport = transport
+    this.control = createClient(ControlService, transport.transport())
   }
 
   /**
@@ -152,8 +157,7 @@ export class Client<T extends ITransport> {
    * @returns The peer ID of the local runtime.
    */
   public async getId(): Promise<string> {
-    const client = createClient(DiscoveryService, this.transport.transport())
-    const { peerId } = await client.getOwnId({})
+    const { peerId } = await this.control.getId({})
     return peerId
   }
 }

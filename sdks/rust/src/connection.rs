@@ -1,8 +1,12 @@
-use std::{env, path::PathBuf, sync::Arc};
+use std::{
+    env,
+    path::PathBuf,
+    sync::{Arc, Mutex, PoisonError},
+};
 
 use hyper_util::rt::TokioIo;
 use hyveos_core::{
-    grpc::{discovery_client::DiscoveryClient, Empty},
+    grpc::{control_client::ControlClient, Empty},
     BRIDGE_SOCKET_ENV_VAR,
 };
 use libp2p_identity::PeerId;
@@ -68,10 +72,11 @@ impl internal::ConnectionType for BridgeConnection {
             .await?;
 
         Ok(Connection {
-            channel,
+            channel: channel.clone(),
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
             shared_dir_path: None,
+            control: Arc::new(Mutex::new(ControlClient::new(channel))),
         })
     }
 }
@@ -99,10 +104,11 @@ impl internal::ConnectionType for CustomConnection {
             .await?;
 
         Ok(Connection {
-            channel,
+            channel: channel.clone(),
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
             shared_dir_path: Some(Arc::new(self.shared_dir_path)),
+            control: Arc::new(Mutex::new(ControlClient::new(channel))),
         })
     }
 }
@@ -139,9 +145,10 @@ impl internal::ConnectionType for UriConnection {
         let client = client_builder.build()?;
 
         Ok(Connection {
-            channel,
+            channel: channel.clone(),
             reqwest_client_and_url: Some((client, url)),
             shared_dir_path: None,
+            control: Arc::new(Mutex::new(ControlClient::new(channel))),
         })
     }
 }
@@ -327,6 +334,7 @@ pub struct Connection {
     #[cfg(feature = "network")]
     pub(crate) reqwest_client_and_url: Option<(reqwest::Client, reqwest::Url)>,
     pub(crate) shared_dir_path: Option<Arc<PathBuf>>,
+    control: Arc<Mutex<ControlClient<Channel>>>,
 }
 
 impl Connection {
@@ -741,8 +749,10 @@ impl Connection {
     /// ```
     #[tracing::instrument(skip(self))]
     pub async fn get_id(&self) -> Result<PeerId> {
-        DiscoveryClient::new(self.channel.clone())
-            .get_own_id(Empty {})
+        self.control
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get_id(Empty {})
             .await?
             .into_inner()
             .try_into()
