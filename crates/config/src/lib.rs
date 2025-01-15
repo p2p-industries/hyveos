@@ -25,7 +25,7 @@ pub struct Config {
     #[serde(default)]
     pub random_directory: bool,
     #[serde(default)]
-    pub script_management: Option<ScriptManagementConfig>,
+    pub application_management: Option<ApplicationManagementConfig>,
     #[serde(default)]
     pub log_dir: Option<PathBuf>,
     #[serde(default)]
@@ -88,7 +88,7 @@ impl Config {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum ScriptManagementConfig {
+pub enum ApplicationManagementConfig {
     Allow,
     #[default]
     Deny,

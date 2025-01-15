@@ -4,6 +4,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let protos_path = Path::new(&var("CARGO_MANIFEST_DIR").unwrap()).join("protos");
     tonic_build::configure()
         .build_client(true)
-        .compile_protos(&[protos_path.join("script.proto")], &[protos_path])?;
+        .compile_protos(&[protos_path.join("bridge.proto")], &[protos_path])?;
     Ok(())
 }

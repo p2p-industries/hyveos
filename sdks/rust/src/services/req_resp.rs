@@ -307,8 +307,8 @@ where
 
 /// A handle to the request-response service.
 ///
-/// Exposes methods to interact with the request-response service, like for sending and receiving
-/// requests, and for sending responses.
+/// Exposes methods to interact with the request-response service,
+/// like for sending and receiving requests, and for sending responses.
 ///
 /// # Example
 ///
@@ -319,8 +319,8 @@ where
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut dht_service = connection.dht();
-/// let peer_id = dht_service
+/// let mut discovery_service = connection.discovery();
+/// let peer_id = discovery_service
 ///     .get_providers("identification", "example")
 ///     .await
 ///     .unwrap()
@@ -369,8 +369,8 @@ impl Service {
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()
@@ -525,8 +525,8 @@ impl Service {
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut dht_service = connection.dht();
-/// let peer_id = dht_service
+/// let mut discovery_service = connection.discovery();
+/// let peer_id = discovery_service
 ///     .get_providers("identification", "example")
 ///     .await
 ///     .unwrap()
@@ -604,8 +604,8 @@ where
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()
@@ -775,8 +775,8 @@ where
 /// # #[tokio::main]
 /// # async fn main() {
 /// let connection = Connection::new().await.unwrap();
-/// let mut dht_service = connection.dht();
-/// let peer_id = dht_service
+/// let mut discovery_service = connection.discovery();
+/// let peer_id = discovery_service
 ///     .get_providers("identification", "example")
 ///     .await
 ///     .unwrap()
@@ -854,8 +854,8 @@ where
     /// # #[tokio::main]
     /// # async fn main() {
     /// let connection = Connection::new().await.unwrap();
-    /// let mut dht_service = connection.dht();
-    /// let peer_id = dht_service
+    /// let mut discovery_service = connection.discovery();
+    /// let peer_id = discovery_service
     ///     .get_providers("identification", "example")
     ///     .await
     ///     .unwrap()

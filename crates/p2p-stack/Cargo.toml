@@ -16,7 +16,7 @@ cbor4ii = { version = "0.3.2", optional = true }
 dashmap = "6.0.1"
 hyveos-docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
-hyveos-core = { workspace = true, features = ["serde", "scripting"] }
+hyveos-core = { workspace = true, features = ["serde", "app-management"] }
 indicatif = { workspace = true }
 libp2p = { workspace = true, features = [
     "tokio",

@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use futures::stream::StreamExt as _;
 use hyveos_core::{
     debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType},
-    discovery,
-    gossipsub::ReceivedMessage,
+    neighbours,
+    pub_sub::ReceivedMessage,
 };
 use libp2p::{gossipsub::IdentTopic, PeerId};
 use serde::{Deserialize, Serialize};
@@ -166,7 +166,7 @@ impl DebugClient {
                         .debug()
                         .send_neighbour_event(
                             peer_id,
-                            discovery::NeighbourEvent::Init(current_neighbours),
+                            neighbours::NeighbourEvent::Init(current_neighbours),
                         )
                         .await
                         .unwrap();

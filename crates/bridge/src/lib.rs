@@ -24,21 +24,23 @@ use ulid::Ulid;
 
 #[cfg(feature = "batman")]
 use crate::debug::DebugServer;
-pub use crate::{db::DbClient, scripting::ScriptingClient, telemetry::Telemetry};
+pub use crate::{apps::AppsClient, local_kv::DbClient, telemetry::Telemetry};
 use crate::{
-    db::DbServer, dht::DhtServer, discovery::DiscoveryServer, file_transfer::FileTransferServer,
-    gossipsub::GossipSubServer, req_resp::ReqRespServer, scripting::ScriptingServer,
+    apps::AppsServer, discovery::DiscoveryServer, file_transfer::FileTransferServer, kv::KvServer,
+    local_kv::LocalKvServer, neighbours::NeighboursServer, pub_sub::PubSubServer,
+    req_resp::ReqRespServer,
 };
 
-mod db;
+mod apps;
 #[cfg(feature = "batman")]
 mod debug;
-mod dht;
 mod discovery;
 mod file_transfer;
-mod gossipsub;
+mod kv;
+mod local_kv;
+mod neighbours;
+mod pub_sub;
 mod req_resp;
-mod scripting;
 mod telemetry;
 
 pub const CONTAINER_SHARED_DIR: &str = "/hyveos/shared";
@@ -59,13 +61,13 @@ enum Connection {
     Network(TcpListener),
 }
 
-pub struct Bridge<Db, Scripting> {
-    pub client: BridgeClient<Db, Scripting>,
+pub struct Bridge<Db, Apps> {
+    pub client: BridgeClient<Db, Apps>,
     pub cancellation_token: CancellationToken,
     pub shared_dir_path: PathBuf,
 }
 
-impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
+impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
     #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
     pub async fn new(
         client: Client,
@@ -73,8 +75,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
         base_path: PathBuf,
         socket_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
-        scripting_client: Scripting,
-        running_for_container: bool,
+        apps_client: Apps,
+        is_application_bridge: bool,
         telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
@@ -107,8 +109,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
             connection: Connection::Local(socket),
             #[cfg(feature = "batman")]
             debug_command_sender,
-            scripting_client,
-            running_for_container,
+            apps_client,
+            is_application_bridge,
             telemetry,
         };
 
@@ -121,20 +123,20 @@ impl<Db: DbClient, Scripting: ScriptingClient> Bridge<Db, Scripting> {
 }
 
 #[cfg(feature = "network")]
-pub struct NetworkBridge<Db, Scripting> {
-    pub client: BridgeClient<Db, Scripting>,
+pub struct NetworkBridge<Db, Apps> {
+    pub client: BridgeClient<Db, Apps>,
     pub cancellation_token: CancellationToken,
 }
 
 #[cfg(feature = "network")]
-impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
+impl<Db: DbClient, Apps: AppsClient> NetworkBridge<Db, Apps> {
     pub async fn new(
         client: Client,
         db_client: Db,
         base_path: PathBuf,
         socket_addr: SocketAddr,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
-        scripting_client: Scripting,
+        apps_client: Apps,
         telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
@@ -159,8 +161,8 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
             connection: Connection::Network(socket),
             #[cfg(feature = "batman")]
             debug_command_sender,
-            scripting_client,
-            running_for_container: false,
+            apps_client,
+            is_application_bridge: false,
             telemetry,
         };
 
@@ -171,21 +173,21 @@ impl<Db: DbClient, Scripting: ScriptingClient> NetworkBridge<Db, Scripting> {
     }
 }
 
-pub struct ScriptingBridge<Db, Scripting> {
-    pub client: BridgeClient<Db, Scripting>,
+pub struct ApplicationBridge<Db, Apps> {
+    pub client: BridgeClient<Db, Apps>,
     pub cancellation_token: CancellationToken,
     pub ulid: Ulid,
     pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
 }
 
-impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
+impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
     pub async fn new(
         client: Client,
         db_client: Db,
         mut base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
-        scripting_client: Scripting,
+        apps_client: Apps,
         telemetry: Telemetry,
     ) -> io::Result<Self> {
         let ulid = Ulid::new();
@@ -206,9 +208,9 @@ impl<Db: DbClient, Scripting: ScriptingClient> ScriptingBridge<Db, Scripting> {
             socket_path.clone(),
             #[cfg(feature = "batman")]
             debug_command_sender,
-            scripting_client,
+            apps_client,
             true,
-            telemetry.context("scripting"),
+            telemetry.context("application"),
         )
         .await?;
 
@@ -232,7 +234,7 @@ pub enum Error {
     Tonic(#[from] tonic::transport::Error),
 }
 
-pub struct BridgeClient<Db, Scripting> {
+pub struct BridgeClient<Db, Apps> {
     client: Client,
     db_client: Db,
     cancellation_token: CancellationToken,
@@ -242,37 +244,41 @@ pub struct BridgeClient<Db, Scripting> {
     connection: Connection,
     #[cfg(feature = "batman")]
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
-    scripting_client: Scripting,
-    running_for_container: bool,
+    apps_client: Apps,
+    is_application_bridge: bool,
     telemetry: Telemetry,
 }
 
 macro_rules! build_tonic {
     (
         $tonic:expr,
-        $db:ident,
-        $dht:ident,
+        $apps:ident,
         $discovery:ident,
-        $gossipsub:ident,
+        $kv:ident,
+        $local_kv:ident,
+        $neighbours:ident,
+        $pub_sub:ident,
         $req_resp:ident,
-        $scripting:ident,
         $debug:ident,
         $transform:expr
     ) => {{
         let tmp = $tonic
-            .add_service($transform(grpc::db_server::DbServer::new($db)))
-            .add_service($transform(grpc::dht_server::DhtServer::new($dht)))
+            .add_service($transform(grpc::apps_server::AppsServer::new($apps)))
             .add_service($transform(grpc::discovery_server::DiscoveryServer::new(
                 $discovery,
             )))
-            .add_service($transform(grpc::gossip_sub_server::GossipSubServer::new(
-                $gossipsub,
+            .add_service($transform(grpc::kv_server::KvServer::new($kv)))
+            .add_service($transform(grpc::local_kv_server::LocalKvServer::new(
+                $local_kv,
+            )))
+            .add_service($transform(grpc::neighbours_server::NeighboursServer::new(
+                $neighbours,
+            )))
+            .add_service($transform(grpc::pub_sub_server::PubSubServer::new(
+                $pub_sub,
             )))
             .add_service($transform(grpc::req_resp_server::ReqRespServer::new(
                 $req_resp,
-            )))
-            .add_service($transform(grpc::scripting_server::ScriptingServer::new(
-                $scripting,
             )));
 
         #[cfg(feature = "batman")]
@@ -282,10 +288,13 @@ macro_rules! build_tonic {
     }};
 }
 
-impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
+impl<Db: DbClient, Apps: AppsClient> BridgeClient<Db, Apps> {
     pub async fn run(self) -> Result<(), Error> {
-        let db = DbServer::new(self.db_client, self.telemetry.clone().service("db"));
-        let dht = DhtServer::new(self.client.clone(), self.telemetry.clone().service("dht"));
+        let apps = AppsServer::new(
+            self.apps_client,
+            self.ulid,
+            self.telemetry.clone().service("apps"),
+        );
         let discovery = DiscoveryServer::new(
             self.client.clone(),
             self.telemetry.clone().service("discovery"),
@@ -293,19 +302,21 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
         let file_transfer = FileTransferServer::new(
             self.client.clone(),
             self.shared_dir_path,
-            self.running_for_container,
+            self.is_application_bridge,
             self.telemetry.clone().service("file_transfer"),
         );
-        let gossipsub = GossipSubServer::new(
+        let kv = KvServer::new(self.client.clone(), self.telemetry.clone().service("kv"));
+        let local_kv =
+            LocalKvServer::new(self.db_client, self.telemetry.clone().service("local_kv"));
+        let neighbours = NeighboursServer::new(
             self.client.clone(),
-            self.telemetry.clone().service("gossipsub"),
+            self.telemetry.clone().service("neighbours"),
+        );
+        let pub_sub = PubSubServer::new(
+            self.client.clone(),
+            self.telemetry.clone().service("pub_sub"),
         );
         let req_resp = ReqRespServer::new(self.client, self.telemetry.clone().service("req_resp"));
-        let scripting = ScriptingServer::new(
-            self.scripting_client,
-            self.ulid,
-            self.telemetry.clone().service("scripting"),
-        );
 
         #[cfg(feature = "batman")]
         let debug = DebugServer::new(
@@ -319,12 +330,13 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
             Connection::Local(socket) => {
                 let router = build_tonic!(
                     TonicServer::builder(),
-                    db,
-                    dht,
+                    apps,
                     discovery,
-                    gossipsub,
+                    kv,
+                    local_kv,
+                    neighbours,
+                    pub_sub,
                     req_resp,
-                    scripting,
                     debug,
                     std::convert::identity
                 )
@@ -344,23 +356,24 @@ impl<Db: DbClient, Scripting: ScriptingClient> BridgeClient<Db, Scripting> {
             Connection::Network(listener) => {
                 let router = axum::Router::new()
                     .route(
-                        "/file-transfer/publish-file/:file_name",
-                        axum::routing::post(FileTransferServer::publish_file_http),
+                        "/file-transfer/publish/:file_name",
+                        axum::routing::post(FileTransferServer::publish_http),
                     )
                     .route(
-                        "/file-transfer/get-file",
-                        axum::routing::get(FileTransferServer::get_file_http),
+                        "/file-transfer/get",
+                        axum::routing::get(FileTransferServer::get_http),
                     )
                     .with_state(file_transfer);
 
                 let tonic_routes = build_tonic!(
                     TonicRoutes::from(router),
-                    db,
-                    dht,
+                    apps,
                     discovery,
-                    gossipsub,
+                    kv,
+                    local_kv,
+                    neighbours,
+                    pub_sub,
                     req_resp,
-                    scripting,
                     debug,
                     tonic_web::enable
                 );

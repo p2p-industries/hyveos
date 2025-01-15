@@ -20,28 +20,4 @@ pub enum Kv {
         #[arg(long)]
         topic: Option<String>,
     },
-    /// Announce that this node can provide the value for the given key
-    Provide {
-        /// Key to provide
-        key: String,
-        /// Topic under which to provide key
-        #[arg(long)]
-        topic: Option<String>,
-    },
-    /// Get the providers for the given key
-    GetProviders {
-        /// Key to get providers for
-        key: String,
-        /// Topic under which to get providers for key
-        #[arg(long)]
-        topic: Option<String>,
-    },
-    /// Stop providing a given key
-    StopProvide {
-        /// Key to stop providing
-        key: String,
-        /// Topic under which to stop providing key
-        #[arg(long)]
-        topic: Option<String>,
-    },
 }

@@ -4,10 +4,7 @@ import json
 import asyncio
 from typing import Callable
 import ltr559
-from hyveos_sdk import Connection
-from hyveos_sdk.services.dht import DHTService
-from hyveos_sdk.services.gossip_sub import GossipSubService
-from hyveos_sdk.services.request_response import RequestResponseService
+from hyveos_sdk import Connection, DiscoveryService, PubSubService, RequestResponseService
 from .display import Display
 from .moisture import MoistureSensor
 from .plant import Plant
@@ -26,7 +23,7 @@ class MetricType(Enum):
 
 
 async def write_to_prometheus(
-    gos: GossipSubService, name, generator: Callable[[], float], metric_type: MetricType
+    pub_sub: PubSubService, name, generator: Callable[[], float], metric_type: MetricType
 ):
     while True:
         value = generator()
@@ -34,11 +31,11 @@ async def write_to_prometheus(
         payload = json.dumps(
             {'name': name, 'value': value, 'metric_type': metric_type.value}
         )
-        await gos.publish(payload, TOPIC)
+        await pub_sub.publish(payload, TOPIC)
         await asyncio.sleep(DATA_PUBLISH_INTERVAL)
 
 
-async def manage_watering_request(gos: GossipSubService, peer_id, plants: list[Plant]):
+async def manage_watering_request(pub_sub: PubSubService, peer_id, plants: list[Plant]):
     global pending_watering_request
 
     while True:
@@ -50,8 +47,8 @@ async def manage_watering_request(gos: GossipSubService, peer_id, plants: list[P
                     print(
                         f'Moisture level of plant {i + 1} above threshold: {plant.moisture_sensor.moisture:.2f} Hz'
                     )
-                    print(f'Sending watering request')
-                    await gos.publish(
+                    print('Sending watering request')
+                    await pub_sub.publish(
                         json.dumps(
                             {
                                 'peer_id': peer_id,
@@ -67,10 +64,10 @@ async def manage_watering_request(gos: GossipSubService, peer_id, plants: list[P
             await asyncio.sleep(1)
 
 
-async def manage_valve(reqres: RequestResponseService, plants: list[Plant], peer_id):
+async def manage_valve(req_res: RequestResponseService, plants: list[Plant], peer_id):
     global pending_watering_request
 
-    async with reqres.receive('water') as requests:
+    async with req_res.receive('water') as requests:
         async for request in requests:
             if json.loads(request.msg.data.data)['water_ready']:
                 async with lock:
@@ -78,57 +75,55 @@ async def manage_valve(reqres: RequestResponseService, plants: list[Plant], peer
                         plant = plants[pending_watering_request]
                         async with plant.valve_controller:
                             await plant.valve_controller.open_until_satisfied()
-                            await reqres.respond(
+                            await req_res.respond(
                                 request.seq,
                                 json.dumps({'peer_id': peer_id, 'done': True}),
                             )
                             pending_watering_request = None
                     else:
-                        await reqres.respond(
+                        await req_res.respond(
                             request.seq, '', f'Peer {peer_id} did not request water'
                         )
 
 
 async def control_soil_moisture(
-    gos: GossipSubService, reqres: RequestResponseService, plants: list[Plant], peer_id
+    pub_sub: PubSubService, req_res: RequestResponseService, plants: list[Plant], peer_id
 ):
     await asyncio.gather(
-        asyncio.create_task(manage_valve(reqres, plants, peer_id)),
-        asyncio.create_task(manage_watering_request(gos, peer_id, plants)),
+        asyncio.create_task(manage_valve(req_res, plants, peer_id)),
+        asyncio.create_task(manage_watering_request(pub_sub, peer_id, plants)),
     )
 
 
-async def discover_role_peer(dht: DHTService, name):
-    async with dht.get_providers('identification', name) as providers:
+async def discover_role_peer(discovery: DiscoveryService, name):
+    async with discovery.get_providers('identification', name) as providers:
         async for provider in providers:
             return provider.peer_id
 
 
-async def register_plant(dht: DHTService):
-    await dht.provide('identification', 'plant')
+async def register_plant(discovery: DiscoveryService):
+    await discovery.provide('identification', 'plant')
 
 
 async def main():
     async with Connection() as connection:
         discovery = connection.get_discovery_service()
-        reqres = connection.get_request_response_service()
-        gos = connection.get_gossip_sub_service()
-        dht = connection.get_dht_service()
-        db = connection.get_db_service()
+        req_res = connection.get_request_response_service()
+        pub_sub = connection.get_pub_sub_service()
+        local_kv = connection.get_local_kv_service()
 
-        plants: list[Plant] = [await Plant.create(i, db) for i in range(3)]
+        plants: list[Plant] = [await Plant.create(i, local_kv) for i in range(3)]
 
         light = ltr559.LTR559()
 
         display = Display(plants, light)
 
-        my_peer_id = await discovery.get_own_id()
-        _prometheus_peer = await discover_role_peer(dht, 'prometheus')
-        await register_plant(dht)
+        my_peer_id = await connection.get_id()
+        await register_plant(discovery)
 
         plant_data_tasks = [
             write_to_prometheus(
-                gos,
+                pub_sub,
                 f'moisture_{i}_{my_peer_id}',
                 lambda: plant.moisture_sensor.moisture,
                 MetricType.GAUGE,
@@ -137,11 +132,11 @@ async def main():
         ]
 
         await asyncio.gather(
-            asyncio.create_task(control_soil_moisture(gos, reqres, plants, my_peer_id)),
+            asyncio.create_task(control_soil_moisture(pub_sub, req_res, plants, my_peer_id)),
             asyncio.create_task(display.run()),
             asyncio.create_task(
                 write_to_prometheus(
-                    gos, f'light_{my_peer_id}', light.get_lux, MetricType.GAUGE
+                    pub_sub, f'light_{my_peer_id}', light.get_lux, MetricType.GAUGE
                 )
             ),
             *plant_data_tasks,

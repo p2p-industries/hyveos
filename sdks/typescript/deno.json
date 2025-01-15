@@ -1,17 +1,13 @@
 {
-  "workspace": [
-    "./hyveos-sdk",
-    "./hyveos-web",
-    "./hyveos-server"
-  ],
+  "workspace": ["./hyveos-sdk", "./hyveos-web", "./hyveos-server"],
   "nodeModulesDir": "auto",
   "fmt": {
     "semiColons": false,
     "singleQuote": true,
-    "exclude": ["./hyveos-sdk/gen/script_pb.ts"]
+    "exclude": ["./hyveos-sdk/gen/bridge_pb.ts"]
   },
   "lint": {
-    "exclude": ["./hyveos-sdk/gen/script_pb.ts"]
+    "exclude": ["./hyveos-sdk/gen/bridge_pb.ts"]
   },
   "imports": {
     "jsr:hyveos-sdk": "./hyveos-sdk/mod.ts"

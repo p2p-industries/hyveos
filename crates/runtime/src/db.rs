@@ -8,8 +8,7 @@ use redb::{
     WriteTransaction,
 };
 
-const STARTUP_SCRIPTS_TABLE: TableDefinition<String, Vec<u16>> =
-    TableDefinition::new("startup_scripts");
+const STARTUP_APPS_TABLE: TableDefinition<String, Vec<u16>> = TableDefinition::new("startup_apps");
 
 const BRIDGE_TABLE: TableDefinition<String, Vec<u8>> = TableDefinition::new("bridge");
 
@@ -47,11 +46,11 @@ impl Client {
         })
     }
 
-    pub fn get_startup_scripts(&self) -> Result<Vec<(String, Vec<u16>)>> {
-        self.get_all_cloned(STARTUP_SCRIPTS_TABLE)
+    pub fn get_startup_apps(&self) -> Result<Vec<(String, Vec<u16>)>> {
+        self.get_all_cloned(STARTUP_APPS_TABLE)
     }
 
-    pub fn insert_startup_script(
+    pub fn insert_startup_app(
         &self,
         image: impl Into<String>,
         ports: Vec<u16>,
@@ -59,7 +58,7 @@ impl Client {
         let write = self.write()?;
 
         let old_ports = write
-            .open_table(STARTUP_SCRIPTS_TABLE)?
+            .open_table(STARTUP_APPS_TABLE)?
             .insert(image.into(), ports)?
             .map(|v| v.value().clone());
         write.commit()?;
@@ -67,10 +66,10 @@ impl Client {
         Ok(old_ports)
     }
 
-    pub fn remove_startup_script(&self, image: impl Into<String>) -> Result<Option<Vec<u16>>> {
+    pub fn remove_startup_app(&self, image: impl Into<String>) -> Result<Option<Vec<u16>>> {
         let write = self.write()?;
         let ports = write
-            .open_table(STARTUP_SCRIPTS_TABLE)?
+            .open_table(STARTUP_APPS_TABLE)?
             .remove(image.into())?
             .map(|v| v.value().clone());
         write.commit()?;

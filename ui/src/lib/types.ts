@@ -46,7 +46,7 @@ export interface TopologyUpdateData {
 }
 
 export type RequestResponse = {
-  type: 'req_resp';
+  type: 'reqResp';
   id: string;
   topic: string;
   data: Uint8Array;
@@ -62,13 +62,13 @@ export type RequestResponse = {
       };
 };
 
-export type GossipsubMessage = {
-  type: 'gossipsub';
+export type PubSubMessage = {
+  type: 'pubSub';
   topic: string;
   message: string;
 };
 
 export type Message = {
   sender: string;
-  data: RequestResponse | GossipsubMessage;
+  data: RequestResponse | PubSubMessage;
 };

@@ -1,13 +1,11 @@
 import asyncio
 import os
-from hyveos_sdk import Connection
+from hyveos_sdk import Connection, PubSubService, RequestResponseService
 from json import dumps, loads
 from gpiozero import PWMOutputDevice, OutputDevice
 from time import time
 
-from hyveos_sdk.protocol.script_pb2 import GossipSubRecvMessage
-from hyveos_sdk.services.gossip_sub import GossipSubService
-from hyveos_sdk.services.request_response import RequestResponseService
+from hyveos_sdk.protocol.bridge_pb2 import PubSubRecvMessage
 
 FLOW_METER_PIN = int(os.environ['FLOW_METER_PIN'])
 PWM_PIN = int(os.environ['PWM_PIN'])
@@ -88,7 +86,7 @@ class WaterClaims:
     semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
     event: asyncio.Event = asyncio.Event()
 
-    def add_claim(self, msg: GossipSubRecvMessage):
+    def add_claim(self, msg: PubSubRecvMessage):
         if msg.source.peer_id in self.claims:
             self.claims[msg.source.peer_id] += loads(msg.msg.data.data)['claim']
         else:
@@ -104,12 +102,6 @@ class WaterClaims:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.semaphore.release()
-
-
-async def discover_role_peer(dht, name):
-    async with dht.get_providers('identification', name) as providers:
-        async for provider in providers:
-            return provider.peer_id
 
 
 async def give_water(
@@ -143,8 +135,8 @@ async def give_water(
         water_claims.event.clear()
 
 
-async def monitor_water_claims(gos: GossipSubService, water_claims: WaterClaims):
-    async with await gos.subscribe('watering_request') as messages:
+async def monitor_water_claims(pub_sub: PubSubService, water_claims: WaterClaims):
+    async with pub_sub.subscribe('watering_request') as messages:
         async for msg in messages:
             async with water_claims:
                 print(f'Received water claim from {msg.source}')
@@ -153,7 +145,7 @@ async def monitor_water_claims(gos: GossipSubService, water_claims: WaterClaims)
 
 async def main():
     async with Connection() as conn:
-        gos = conn.get_gossip_sub_service()
+        pub_sub = conn.get_pub_sub_service()
         req_resp = conn.get_request_response_service()
 
         water_claims = WaterClaims()
@@ -161,7 +153,7 @@ async def main():
 
         try:
             await asyncio.gather(
-                monitor_water_claims(gos, water_claims),
+                monitor_water_claims(pub_sub, water_claims),
                 give_water(req_resp, water_claims, pump),
             )
         except Exception as e:

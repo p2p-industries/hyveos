@@ -17,7 +17,7 @@ use crate::{
     behaviour::{MyBehaviour, MyBehaviourEvent},
     client::Client,
     command::Command,
-    subactors::{file_transfer, gossipsub, kad, ping, req_resp, round_trip, scripting},
+    subactors::{apps, file_transfer, gossipsub, kad, ping, req_resp, round_trip},
 };
 
 const CHANNEL_CAP: usize = 10;
@@ -66,7 +66,7 @@ pub struct Actor<
     Identify,
     Neighbours,
     ReqResp,
-    Scripting,
+    Apps,
     FileTransfer,
     Debug,
     EventError,
@@ -86,7 +86,7 @@ pub struct Actor<
     #[cfg_attr(not(feature = "batman"), allow(dead_code))]
     neighbours: Neighbours,
     req_resp: ReqResp,
-    scripting: Scripting,
+    apps: Apps,
     file_transfer: FileTransfer,
     #[cfg_attr(not(feature = "batman"), allow(dead_code))]
     debug: Debug,
@@ -264,7 +264,7 @@ impl<
         Identify,
         Neighbours,
         ReqResp,
-        Scripting,
+        Apps,
         FileTransfer,
         Debug,
         EventError,
@@ -280,7 +280,7 @@ impl<
         Identify,
         Neighbours,
         ReqResp,
-        Scripting,
+        Apps,
         FileTransfer,
         Debug,
         EventError,
@@ -316,9 +316,9 @@ where
         EventError = void::Void,
         CommandError = void::Void,
     >,
-    Scripting: SubActor<
-        SubCommand = scripting::Command,
-        Event = scripting::Event,
+    Apps: SubActor<
+        SubCommand = apps::Command,
+        Event = apps::Event,
         CommandError = void::Void,
         EventError = void::Void,
     >,
@@ -362,7 +362,7 @@ where
                 identify: SubActor::new(peer_id),
                 neighbours: SubActor::new(peer_id),
                 req_resp: SubActor::new(peer_id),
-                scripting: SubActor::new(peer_id),
+                apps: SubActor::new(peer_id),
                 file_transfer: SubActor::new(peer_id),
                 debug: SubActor::new(peer_id),
                 _phantom: PhantomData,
@@ -449,8 +449,8 @@ where
                 .req_resp
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
-            SwarmEvent::Behaviour(MyBehaviourEvent::Scripting(event)) => self
-                .scripting
+            SwarmEvent::Behaviour(MyBehaviourEvent::Apps(event)) => self
+                .apps
                 .handle_event(event, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
             #[cfg(feature = "mdns")]
@@ -503,8 +503,8 @@ where
                 .req_resp
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
-            Command::Scripting(command) => self
-                .scripting
+            Command::Apps(command) => self
+                .apps
                 .handle_command(command, self.swarm.behaviour_mut())
                 .map_err(|e| void::unreachable(e)),
             Command::FileTransfer(command) => self

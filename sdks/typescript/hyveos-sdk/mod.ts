@@ -16,23 +16,26 @@
  */
 export default {}
 
-import type { Transport } from 'npm:@connectrpc/connect'
-import { ReqRes } from './reqresp.ts'
-export { ReqRes } from './reqresp.ts'
-import { GossipSub } from './gossipsub.ts'
-export { GossipSub } from './gossipsub.ts'
-import { Discovery } from './discovery.ts'
-export { Discovery } from './discovery.ts'
-import { DHT } from './dht.ts'
-export { DHT } from './dht.ts'
-import { LocalDb } from './db.ts'
-export { LocalDb } from './db.ts'
-import { FileTransfer } from './filetransfer.ts'
-export { FileTransfer } from './filetransfer.ts'
+import { createClient, type Transport } from 'npm:@connectrpc/connect'
+import { Discovery as DiscoveryService } from './gen/bridge_pb.ts'
+import { Apps } from './apps.ts'
+export { Apps } from './apps.ts'
 import { Debug } from './debug.ts'
 export { Debug } from './debug.ts'
-import { Scripting } from './scripting.ts'
-export { Scripting } from './scripting.ts'
+import { Discovery } from './discovery.ts'
+export { Discovery } from './discovery.ts'
+import { FileTransfer } from './file_transfer.ts'
+export { FileTransfer } from './file_transfer.ts'
+import { KV } from './kv.ts'
+export { KV } from './kv.ts'
+import { LocalKV } from './local_kv.ts'
+export { LocalKV } from './local_kv.ts'
+import { Neighbours } from './neighbours.ts'
+export { Neighbours } from './neighbours.ts'
+import { PubSub } from './pub_sub.ts'
+export { PubSub } from './pub_sub.ts'
+import { ReqResp } from './req_resp.ts'
+export { ReqResp } from './req_resp.ts'
 export { AbortOnDispose } from './core.ts'
 
 /**
@@ -79,63 +82,30 @@ export class Client<T extends ITransport> {
   }
 
   /**
-   * Get access to the reqresp service which is used for request response communication. The functionally is similar to http.
-   *
-   * @returns The ReqRes service.
-   *
-   * @example
-   * ```ts
-   * import { Client } from 'hyveos-sdk'
-   * import { Connection } from 'hyveos-web'
-   *
-   * const transport = new Connection('http://localhost:8080')
-   * const client = new Client(transport)
-   * const response = await client.reqresp.request('Qansdasbd', (new TextEncoder()).encode('Hello World'))
-   * const decoded = new TextDecoder().decode(response)
-   * console.log(decoded)
-   * ````
+   * @returns A handle to the application management service.
    */
-  public get reqresp(): ReqRes {
-    return ReqRes.__create(this.transport.transport())
+  public get apps(): Apps {
+    return Apps.__create(this.transport.transport())
   }
 
   /**
-   * Get access to the gossipsub service which is used for pubsub communication.
-   * @returns The GossipSub service.
+   * @returns A handle to the debug service.
    */
-  public get gossipsub(): GossipSub {
-    return GossipSub.__create(this.transport.transport())
+  public get debug(): Debug {
+    return Debug.__create(this.transport.transport())
   }
 
   /**
-   * Get access to the discovery service which is used for peer discovery.
-   * @returns The Discovery service.
+   * @returns A handle to the discovery service.
    */
   public get discovery(): Discovery {
     return Discovery.__create(this.transport.transport())
   }
 
   /**
-   * Get access to the dht service which is used for distributed hash table communication.
-   * @returns The DHT service.
+   * @returns A handle to the file transfer service.
    */
-  public get dht(): DHT {
-    return DHT.__create(this.transport.transport())
-  }
-
-  /**
-   * Get access to the localdb service which is used for local storage.
-   * @returns The LocalDb service.
-   */
-  public get localdb(): LocalDb {
-    return LocalDb.__create(this.transport.transport())
-  }
-
-  /**
-   * Get access to the filetransfer service which is used for file transfer.
-   * @returns The FileTransfer service.
-   */
-  public get filetransfer(): FileTransfer {
+  public get fileTransfer(): FileTransfer {
     return FileTransfer.__create(
       this.transport.transport(),
       this.transport.isUnix(),
@@ -144,18 +114,46 @@ export class Client<T extends ITransport> {
   }
 
   /**
-   * Get access to the debug service which is used for debugging.
-   * @returns The Debug service.
+   * @returns A handle to the distributed key-value store service.
    */
-  public get debug(): Debug {
-    return Debug.__create(this.transport.transport())
+  public get kv(): KV {
+    return KV.__create(this.transport.transport())
   }
 
   /**
-   * Get access to the scripting service which is used for deploying and managing scripts.
-   * @returns The Scripting service.
+   * @returns A handle to the local key-value store service.
    */
-  public get scripting(): Scripting {
-    return Scripting.__create(this.transport.transport())
+  public get localKV(): LocalKV {
+    return LocalKV.__create(this.transport.transport())
+  }
+
+  /**
+   * @returns A handle to the neighbours service.
+   */
+  public get neighbours(): Neighbours {
+    return Neighbours.__create(this.transport.transport())
+  }
+
+  /**
+   * @returns A handle to the pub-sub service.
+   */
+  public get pubSub(): PubSub {
+    return PubSub.__create(this.transport.transport())
+  }
+
+  /**
+   * @returns A handle to the request-response service.
+   */
+  public get reqResp(): ReqResp {
+    return ReqResp.__create(this.transport.transport())
+  }
+
+  /**
+   * @returns The peer ID of the local runtime.
+   */
+  public async getId(): Promise<string> {
+    const client = createClient(DiscoveryService, this.transport.transport())
+    const { peerId } = await client.getOwnId({})
+    return peerId
   }
 }

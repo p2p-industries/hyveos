@@ -1,0 +1,343 @@
+// Put the basic example for grpc using proto2 here
+
+syntax = "proto2";
+
+package bridge;
+
+// ----- MESSAGES -----
+
+message Empty {}
+
+message Data {
+  required bytes data = 1;
+}
+
+message OptionalData {
+  optional Data data = 1;
+}
+
+// Unique identifier in the form of a stringified ULID
+message ID {
+  required string ulid = 1;
+}
+
+// A peer in the network
+message Peer {
+  required string peer_id = 1;
+}
+
+// The topic of a message
+message Topic {
+  required string topic = 1;
+}
+
+// An optional topic for a message
+message OptionalTopic {
+  optional Topic topic = 1;
+}
+
+// A query for a topic that can be a regex
+message TopicQuery {
+  oneof query {
+    Topic topic = 1;
+    string regex = 2;
+  }
+}
+
+// An optional query for a topic
+message OptionalTopicQuery {
+  optional TopicQuery query = 1;
+}
+
+// A message with an optional topic
+message Message {
+  required Data data = 1;
+  required OptionalTopic topic = 2;
+}
+
+// A request to a peer with an optional topic
+message SendRequest {
+  required Peer peer = 1;
+  required Message msg = 2;
+}
+
+// A request from a peer with an optional topic
+message RecvRequest {
+  required Peer peer = 1;
+  required Message msg = 2;
+  // Sequence number for request-response matching
+  required uint64 seq = 3;
+}
+
+// A received response to a request or an error
+message Response {
+  oneof response {
+    Data data = 1;
+    string error = 2;
+  }
+}
+
+// A response to a request
+message SendResponse {
+  // Sequence number for request-response matching
+  required uint64 seq = 1;
+  required Response response = 2;
+}
+
+// A list of peers
+message Peers {
+  repeated Peer peers = 1;
+}
+
+// A neighbour discovery event
+message NeighbourEvent {
+  oneof event {
+    Peers init = 1;
+    Peer discovered = 2;
+    Peer lost = 3;
+  }
+}
+
+// An ID of a message in pub-sub
+message PubSubMessageID {
+  required bytes id = 1;
+}
+
+// A message for publishing in a pub-sub topic
+message PubSubMessage {
+  required Data data = 1;
+  required Topic topic = 2;
+}
+
+// A received message from a pub-sub topic
+message PubSubRecvMessage {
+  required Peer propagation_source = 1;
+  optional Peer source = 2;
+  required PubSubMessage msg = 3;
+  required PubSubMessageID msg_id = 4;
+}
+
+// A DHT key with a topic
+message DHTKey {
+  required Topic topic = 1;
+  required bytes key = 2;
+}
+
+// A record for putting in the DHT
+message DHTRecord {
+  required DHTKey key = 1;
+  required Data value = 2;
+}
+
+// A key-value pair for putting into the local key-value store
+message LocalKVRecord {
+  required string key = 1;
+  required Data value = 2;
+}
+
+// A key for getting a value from the local key-value store
+message LocalKVKey {
+  required string key = 1;
+}
+
+// A file path on the local filesystem
+message FilePath {
+  required string path = 1;
+}
+
+// The cid of a file
+message CID {
+  required bytes hash = 1;
+  required ID id = 2;
+}
+
+// A download event
+//
+// The progress field is a percentage of the download progress
+message DownloadEvent {
+  oneof event {
+    uint64 progress = 1;
+    FilePath ready = 2;
+  }
+}
+
+// A mesh topology event
+message MeshTopologyEvent {
+  required Peer peer = 1;
+  required NeighbourEvent event = 2;
+}
+
+// A request debug event
+message RequestDebugEvent {
+  required ID id = 1;
+  required Peer receiver = 2;
+  required Message msg = 3;
+}
+
+// A response debug event
+message ResponseDebugEvent {
+  required ID req_id = 1;
+  required Response response = 2;
+}
+
+// A message debug event
+message MessageDebugEvent {
+  required Peer sender = 1;
+  oneof event {
+    RequestDebugEvent req = 2;
+    ResponseDebugEvent res = 3;
+    PubSubMessage pub_sub = 4;
+  }
+}
+
+// A docker image
+message DockerImage {
+  required string name = 1;
+}
+
+// A docker app
+message DockerApp {
+  required DockerImage image = 1;
+  repeated uint32 ports = 2;
+}
+
+// A request to deploy an app to a peer
+message DeployAppRequest {
+  required DockerApp app = 1;
+  required bool local = 2;
+  // The peer can be empty if the app should be deployed to self
+  optional Peer peer = 3;
+  required bool persistent = 4;
+}
+
+// A request to list running apps on a peer
+message ListRunningAppsRequest {
+  // The peer can be empty if the apps running on self should be listed
+  optional Peer peer = 1;
+}
+
+// An app that is running on a peer
+message RunningApp {
+  required ID id = 1;
+  required DockerImage image = 2;
+  optional string name = 3;
+}
+
+// A list of running apps
+message RunningApps {
+  repeated RunningApp apps = 1;
+}
+
+// A request to stop a running app on a peer
+message StopAppRequest {
+  required ID id = 1;
+  // The peer can be empty if the app should be stopped on self
+  optional Peer peer = 2;
+}
+
+// ----- SERVICES -----
+
+service ReqResp {
+  // Send a request with an optional topic to a peer and wait for a response
+  rpc Send(SendRequest) returns (Response) {}
+
+  // Receive requests from peers that either have no topic or have a topic that
+  // has been subscribed to
+  rpc Recv(OptionalTopicQuery) returns (stream RecvRequest) {}
+
+  // Respond to a request received from Recv
+  rpc Respond(SendResponse) returns (Empty) {}
+}
+
+service Neighbours {
+  // Subscribe to neighbour discovery events to get notified when new neighbour
+  // peers are discovered or lost
+  rpc Subscribe(Empty) returns (stream NeighbourEvent) {}
+
+  // Get the neighbours of the current runtime
+  rpc Get(Empty) returns (Peers) {}
+}
+
+service PubSub {
+  // Subscribe to a pub-sub topic to receive messages published in that topic
+  rpc Subscribe(Topic) returns (stream PubSubRecvMessage) {}
+
+  // Publish a message in a pub-sub topic
+  rpc Publish(PubSubMessage) returns (PubSubMessageID) {}
+}
+
+service KV {
+  // Put a record into the global key-value store
+  rpc PutRecord(DHTRecord) returns (Empty) {}
+
+  // Get a record from the global key-value store.
+  // The value of the record will be empty if the key is not found.
+  rpc GetRecord(DHTKey) returns (OptionalData) {}
+
+  // Remove a record from the global key-value store.
+  // This only has local effects and only affects the key-value store once the
+  // records expire.
+  rpc RemoveRecord(DHTKey) returns (Empty) {}
+}
+
+service Discovery {
+  // Mark the current runtime as a provider for a discovery key
+  rpc Provide(DHTKey) returns (Empty) {}
+
+  // Get the providers of a discovery key
+  rpc GetProviders(DHTKey) returns (stream Peer) {}
+
+  // Stop providing a discovery key.
+  // This only has local effects and only affects other hyveOS nodes once the
+  // providers records expire.
+  rpc StopProviding(DHTKey) returns (Empty) {}
+
+  // Get the peer id of the current runtime
+  rpc GetOwnId(Empty) returns (Peer) {}
+}
+
+service LocalKV {
+  // Put a record into the local key-value store and get the previous value if
+  // it exists. This only has local effects but will be persisted across
+  // restarts.
+  rpc Put(LocalKVRecord) returns (OptionalData) {}
+
+  // Get a record from the local key-value store.
+  // This will not return records from other hyveOS nodes.
+  rpc Get(LocalKVKey) returns (OptionalData) {}
+}
+
+service FileTransfer {
+  // Publish a file in the runtime and get the cid of the file
+  rpc Publish(FilePath) returns (CID) {}
+
+  // Request a file with a cid from the runtime
+  rpc Get(CID) returns (FilePath) {}
+
+  // Request a file with a cid from the runtime and get notified about the
+  // download progress
+  rpc GetWithProgress(CID) returns (stream DownloadEvent) {}
+}
+
+service Debug {
+  // Subscribe to mesh topology events to get notified when the mesh topology
+  // changes
+  rpc SubscribeMeshTopology(Empty) returns (stream MeshTopologyEvent) {}
+
+  // Subscribe to message debug events to get notified when messages are sent
+  rpc SubscribeMessages(Empty) returns (stream MessageDebugEvent) {}
+}
+
+service Apps {
+  // Deploy an app to a peer and get the id of the deployed app
+  rpc Deploy(DeployAppRequest) returns (ID) {}
+
+  // List running apps on a peer
+  rpc ListRunning(ListRunningAppsRequest) returns (RunningApps) {}
+
+  // Stop a running app on a peer
+  rpc Stop(StopAppRequest) returns (Empty) {}
+
+  // Get the id of the current app
+  rpc GetOwnAppId(Empty) returns (ID) {}
+}

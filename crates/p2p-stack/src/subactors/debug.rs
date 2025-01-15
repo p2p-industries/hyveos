@@ -1,6 +1,6 @@
 use hyveos_core::{
     debug::{MeshTopologyEvent, MessageDebugEvent, MessageDebugEventType},
-    discovery::NeighbourEvent,
+    neighbours::NeighbourEvent,
 };
 use libp2p::{
     request_response::{cbor, Config, Event, Message as CborMessage, ProtocolSupport},

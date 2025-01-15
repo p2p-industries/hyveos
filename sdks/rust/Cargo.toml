@@ -58,7 +58,7 @@ network = [
 serde = ["hyveos-core/serde", "dep:serde"]
 json = ["serde", "dep:serde_json"]
 cbor = ["serde", "dep:serde_cbor"]
-scripting = ["hyveos-core/scripting"]
+app-management = ["hyveos-core/app-management"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -142,13 +142,13 @@ pub enum ResponseError {
         .0.as_deref().map_or("the empty topic".to_string(), |topic| format!("topic '{topic:?}'"))
     )]
     TopicNotSubscribed(Option<String>),
-    #[error("Script error: {0}")]
-    Script(String),
+    #[error("Application error: {0}")]
+    App(String),
 }
 
 impl From<String> for ResponseError {
     fn from(e: String) -> Self {
-        ResponseError::Script(e)
+        ResponseError::App(e)
     }
 }
 

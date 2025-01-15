@@ -6,7 +6,7 @@ use clap::Parser;
 use dirs::data_local_dir;
 #[cfg(feature = "network")]
 use hyveos_config::parse_socket_addr;
-use hyveos_config::{Config, LogFilter, ScriptManagementConfig};
+use hyveos_config::{ApplicationManagementConfig, Config, LogFilter};
 use hyveos_core::DAEMON_NAME;
 #[cfg(feature = "batman")]
 use hyveos_ifaddr::if_name_to_index;
@@ -84,9 +84,9 @@ pub struct Opts {
     /// Generate a random subdirectory in `store_directory` to store other runtime data in.
     #[clap(short, long)]
     pub random_directory: bool,
-    /// Whether to enable script management through the CLI or by other scripts.
+    /// Whether to enable application management by other running applications.
     #[clap(long, value_enum)]
-    pub script_management: Option<ScriptManagementConfig>,
+    pub application_management: Option<ApplicationManagementConfig>,
     /// Clean the store directory on startup.
     #[clap(long)]
     pub clean: bool,
@@ -192,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
         db_file,
         key_file,
         random_directory,
-        script_management,
+        application_management,
         clean,
         log_dir,
         log_level,
@@ -209,7 +209,7 @@ async fn main() -> anyhow::Result<()> {
         db_file: config_db_file,
         key_file: config_key_file,
         random_directory: config_random_directory,
-        script_management: config_script_management,
+        application_management: config_application_management,
         log_dir: config_log_dir,
         log_level: config_log_level,
         cli_socket_path: config_cli_socket_path,
@@ -282,8 +282,8 @@ async fn main() -> anyhow::Result<()> {
 
     let random_directory = random_directory || config_random_directory;
 
-    let script_management = script_management
-        .or(config_script_management)
+    let apps_management = application_management
+        .or(config_application_management)
         .unwrap_or_default();
 
     let log_dir = log_dir.or(config_log_dir);
@@ -332,7 +332,7 @@ async fn main() -> anyhow::Result<()> {
         db_file,
         keypair,
         random_directory,
-        script_management,
+        apps_management,
         clean,
         log_dir,
         log_level,

@@ -11,9 +11,9 @@ use std::{
 use futures::{future, FutureExt as _, TryFutureExt as _};
 #[cfg(feature = "network")]
 use hyveos_bridge::NetworkBridge;
-use hyveos_bridge::{Bridge, ScriptingClient as _, Telemetry};
-use hyveos_config::{LogFilter, ScriptManagementConfig};
-use hyveos_core::{get_runtime_base_path, gossipsub::ReceivedMessage};
+use hyveos_bridge::{AppsClient as _, Bridge, Telemetry};
+use hyveos_config::{ApplicationManagementConfig, LogFilter};
+use hyveos_core::{get_runtime_base_path, pub_sub::ReceivedMessage};
 #[cfg(feature = "batman")]
 use hyveos_p2p_stack::DebugClient;
 use hyveos_p2p_stack::{Client as P2PClient, FullActor};
@@ -26,13 +26,13 @@ use tracing_subscriber::{
 };
 
 use crate::{
+    apps::{ApplicationManagerBuilder, AppsClient},
     db::Client as DbClient,
-    scripting::{ScriptingClient, ScriptingManagerBuilder},
 };
 
+mod apps;
 mod db;
 mod future_map;
-mod scripting;
 
 #[derive(Debug)]
 pub enum CliConnectionType {
@@ -44,7 +44,7 @@ pub enum CliConnectionType {
 #[derive(Clone)]
 pub struct Clients {
     pub p2p_client: P2PClient,
-    pub scripting_client: ScriptingClient,
+    pub apps_client: AppsClient,
 }
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ pub struct RuntimeArgs {
     pub db_file: PathBuf,
     pub keypair: Keypair,
     pub random_directory: bool,
-    pub script_management: ScriptManagementConfig,
+    pub apps_management: ApplicationManagementConfig,
     pub clean: bool,
     pub log_dir: Option<PathBuf>,
     pub log_level: LogFilter,
@@ -70,7 +70,7 @@ pub struct Runtime {
     file_provider_task: JoinHandle<()>,
     #[cfg(feature = "batman")]
     debug_client_task: JoinHandle<()>,
-    scripting_manager_task: JoinHandle<()>,
+    application_manager_task: JoinHandle<()>,
     ping_task: JoinHandle<()>,
     cli_bridge_task: JoinHandle<Result<(), hyveos_bridge::Error>>,
     cli_bridge_cancellation_token: CancellationToken,
@@ -125,7 +125,7 @@ impl Runtime {
             db_file,
             keypair,
             random_directory,
-            script_management,
+            apps_management,
             clean,
             log_dir,
             log_level,
@@ -186,34 +186,34 @@ impl Runtime {
         #[cfg(feature = "batman")]
         let debug_client_task = tokio::spawn(debug_client.run());
 
-        let Ok(Some(scripting_command_broker)) = p2p_client.scripting().subscribe().await else {
+        let Ok(Some(apps_command_broker)) = p2p_client.apps().subscribe().await else {
             return Err(anyhow::anyhow!("Failed to get command broker"));
         };
 
-        let mut scripting_telemetry = Telemetry::default().context("scripting-telemetry");
+        let mut application_telemetry = Telemetry::default().context("application-telemetry");
 
         if !telemetry {
-            scripting_telemetry.opt_out();
+            application_telemetry.opt_out();
         }
 
-        let builder = ScriptingManagerBuilder::new(
-            scripting_command_broker,
+        let builder = ApplicationManagerBuilder::new(
+            apps_command_broker,
             p2p_client.clone(),
             db_client.clone(),
             runtime_base_path.clone(),
             #[cfg(feature = "batman")]
             debug_command_sender.clone(),
-            script_management,
-            scripting_telemetry,
+            apps_management,
+            application_telemetry,
         );
 
-        let (scripting_manager, scripting_client) = builder.build();
-        tracing::trace!("Starting scripting manager");
-        let scripting_manager_task = tokio::spawn(scripting_manager.run());
+        let (application_manager, apps_client) = builder.build();
+        tracing::trace!("Starting application manager");
+        let application_manager_task = tokio::spawn(application_manager.run());
 
-        for (image, ports) in db_client.get_startup_scripts()? {
+        for (image, ports) in db_client.get_startup_apps()? {
             tracing::trace!(?image, ?ports, "Deploying image");
-            scripting_client
+            apps_client
                 .self_deploy_image(&image, true, false, ports, false)
                 .await?;
         }
@@ -241,7 +241,7 @@ impl Runtime {
                     socket_path,
                     #[cfg(feature = "batman")]
                     debug_command_sender,
-                    scripting_client.clone(),
+                    apps_client.clone(),
                     false,
                     cli_telemetry.context("local-cli-bridge"),
                 )
@@ -263,7 +263,7 @@ impl Runtime {
                     socket_addr,
                     #[cfg(feature = "batman")]
                     debug_command_sender,
-                    scripting_client.clone(),
+                    apps_client.clone(),
                     cli_telemetry.context("network-cli-bridge"),
                 )
                 .await?;
@@ -275,7 +275,7 @@ impl Runtime {
 
         let clients = Clients {
             p2p_client,
-            scripting_client,
+            apps_client,
         };
 
         Ok(Self {
@@ -284,7 +284,7 @@ impl Runtime {
             file_provider_task,
             #[cfg(feature = "batman")]
             debug_client_task,
-            scripting_manager_task,
+            application_manager_task,
             ping_task,
             cli_bridge_task,
             cli_bridge_cancellation_token,
@@ -320,25 +320,25 @@ impl Runtime {
             file_provider_task,
             #[cfg(feature = "batman")]
             debug_client_task,
-            scripting_manager_task,
+            application_manager_task,
             ping_task,
             cli_bridge_task,
             cli_bridge_cancellation_token,
         } = self;
 
-        let scripting_client = clients.scripting_client.clone();
+        let apps_client = clients.apps_client.clone();
 
         tokio::try_join!(
             f(clients, actor_task.abort_handle()).map_err(anyhow::Error::from),
             actor_task.map_err(anyhow::Error::from)
         )?;
 
-        scripting_client.stop_all_containers(true, None).await?;
+        apps_client.stop_all_containers(true, None).await?;
 
         file_provider_task.abort();
         #[cfg(feature = "batman")]
         debug_client_task.abort();
-        scripting_manager_task.abort();
+        application_manager_task.abort();
         ping_task.abort();
 
         cli_bridge_cancellation_token.cancel();
@@ -346,7 +346,7 @@ impl Runtime {
         map_to_anyhow!(file_provider_task);
         #[cfg(feature = "batman")]
         map_to_anyhow!(debug_client_task);
-        map_to_anyhow!(scripting_manager_task);
+        map_to_anyhow!(application_manager_task);
         map_to_anyhow!(ping_task);
 
         let cli_bridge_task = cli_bridge_task.map(|res| match res {
@@ -359,7 +359,7 @@ impl Runtime {
         tokio::try_join!(
             file_provider_task,
             debug_client_task,
-            scripting_manager_task,
+            application_manager_task,
             ping_task,
             cli_bridge_task,
         )?;
@@ -367,7 +367,7 @@ impl Runtime {
         #[cfg(not(feature = "batman"))]
         tokio::try_join!(
             file_provider_task,
-            scripting_manager_task,
+            application_manager_task,
             ping_task,
             cli_bridge_task,
         )?;

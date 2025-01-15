@@ -7,8 +7,8 @@
 //!
 //! This crate provides a high-level API for interacting with the HyveOS runtime.
 //!
-//! > **Note**: By default, the [`Connection`] struct assumes that it's running inside a script docker container,
-//! > started by the HyveOS runtime.
+//! > **Note**: By default, the [`Connection`] struct assumes that it's running
+//! > inside an application docker container, started by the HyveOS runtime.
 //! > To use the SDK elsewhere, the connection can be configured using [`ConnectionBuilder`].
 //!
 //! ## Crate Features
@@ -25,8 +25,8 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     let connection = Connection::new().await.unwrap();
-//!     let mut dht_service = connection.dht();
-//!     let peer_id = dht_service
+//!     let mut discovery_service = connection.discovery();
+//!     let peer_id = discovery_service
 //!         .get_providers("identification", "example")
 //!         .await
 //!         .unwrap()

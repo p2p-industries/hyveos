@@ -1,12 +1,11 @@
 import asyncio
 from asyncio.tasks import sleep
-import os
 from typing import Optional
-from hyveos_sdk import Connection, DHTService
+from hyveos_sdk import Connection, DiscoveryService
 
 
-async def get_listener(dht: DHTService) -> Optional[str]:
-    async with dht.get_providers('identification', 'simple-listener') as providers:
+async def get_listener(discovery: DiscoveryService) -> Optional[str]:
+    async with discovery.get_providers('identification', 'simple-listener') as providers:
         async for provider in providers:
             return provider.peer_id
 
@@ -20,13 +19,12 @@ def print_response(peer_id: str, response):
 
 async def main():
     async with Connection() as connection:
-        dht = connection.get_dht_service()
         discovery = connection.get_discovery_service()
         req_resp = connection.get_request_response_service()
 
-        my_peer_id = await discovery.get_own_id()
+        my_peer_id = await connection.get_id()
 
-        peer_id = await get_listener(dht)
+        peer_id = await get_listener(discovery)
 
         if peer_id is None:
             print('No listener found')

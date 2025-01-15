@@ -4,7 +4,7 @@ use futures::{
     stream::{self, Chain, Iter},
     Stream, StreamExt as _,
 };
-use hyveos_core::discovery::NeighbourEvent;
+use hyveos_core::neighbours::NeighbourEvent;
 use hyveos_libp2p_batman_adv::{
     Event as BatmanEvent, ReadOnlyNeighbourStore, ResolvedNeighbour, UnresolvedNeighbour,
 };

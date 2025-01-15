@@ -15,10 +15,10 @@ async def handle_requests(
 
 async def main():
     async with Connection() as connection:
-        dht = connection.get_dht_service()
+        discovery = connection.get_discovery_service()
         req_resp = connection.get_request_response_service()
 
-        await dht.provide('identification', 'simple-listener')
+        await discovery.provide('identification', 'simple-listener')
 
         await handle_requests(req_resp, 'foo')
 

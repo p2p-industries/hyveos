@@ -3,7 +3,7 @@ use std::{
     net::{Ipv6Addr, SocketAddr},
 };
 
-use futures::StreamExt;
+use futures::TryStreamExt as _;
 use http_body_util::Full;
 use hyper::{body::Bytes, server::conn::http1, service::service_fn, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
@@ -79,17 +79,16 @@ async fn main() -> anyhow::Result<()> {
 
     let connection = Connection::new().await?;
 
-    let mut stream = connection.gossipsub().subscribe("export_data").await?;
+    let mut stream = connection.pub_sub().subscribe("export_data").await?;
 
     let mut metrics: HashMap<String, Metric> = HashMap::new();
 
-    while let Some(msg) = stream.next().await {
-        let msg = msg?;
-        let exported_megric: ExportedMetric = serde_json::from_slice(&msg.message.data[..])?;
+    while let Some(msg) = stream.try_next().await? {
+        let exported_metric: ExportedMetric = serde_json::from_slice(&msg.message.data[..])?;
         let metric = metrics
-            .entry(exported_megric.name.clone())
+            .entry(exported_metric.name.clone())
             .or_insert_with_key(|name| {
-                let metric = match exported_megric.metric_type {
+                let metric = match exported_metric.metric_type {
                     MetricType::Counter => {
                         Metric::Counter(prometheus::Counter::new(name, "counter").unwrap())
                     }
@@ -100,9 +99,9 @@ async fn main() -> anyhow::Result<()> {
                 let _ = prometheus::register(metric.clone().into());
                 metric
             });
-        match (metric, exported_megric.metric_type) {
-            (Metric::Counter(c), MetricType::Counter) => c.inc_by(exported_megric.value),
-            (Metric::Gauge(g), MetricType::Gauge) => g.set(exported_megric.value),
+        match (metric, exported_metric.metric_type) {
+            (Metric::Counter(c), MetricType::Counter) => c.inc_by(exported_metric.value),
+            (Metric::Gauge(g), MetricType::Gauge) => g.set(exported_metric.value),
             _ => {
                 eprintln!("Metric type mismatch");
                 continue;

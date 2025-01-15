@@ -1,6 +1,6 @@
 use hyveos_core::{
     debug::MessageDebugEventType,
-    gossipsub::{MessageId, ReceivedMessage},
+    pub_sub::{MessageId, ReceivedMessage},
 };
 use libp2p::gossipsub::{IdentTopic, PublishError, SubscriptionError};
 use tokio::sync::{broadcast, oneshot};
