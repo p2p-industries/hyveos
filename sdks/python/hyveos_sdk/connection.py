@@ -28,7 +28,7 @@ class Connection:
     This class is used to establish a connection to the HyveOS runtime.
     It is used as a context manager to ensure that the connection is properly closed when it is no longer needed.
 
-    By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+    By default, the connection to the HyveOS runtime will be made through the application bridge,
     i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable will be used to communicate with the runtime.
 
     If another connection type is desired, you can specify either the `socket_path` and `shared_dir_path` parameters,
@@ -62,7 +62,7 @@ class Connection:
         """
         Establishes a connection to the HyveOS runtime.
 
-        By default, the connection to the HyveOS runtime will be made through the scripting bridge,
+        By default, the connection to the HyveOS runtime will be made through the application bridge,
         i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable will be used to communicate with the runtime.
 
         If another connection type is desired, you can specify either the `socket_path` and `shared_dir_path` parameters,

@@ -18,6 +18,6 @@ COPY plant plant
 
 ENV PYTHONUNBUFFERED=1
 
-LABEL industries.p2p.script.name=plant
+LABEL industries.p2p.app.name=plant
 
 CMD ["poetry", "run", "python", "-m", "plant.main"]

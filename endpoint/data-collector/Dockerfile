@@ -37,7 +37,7 @@ ARG EXTRA_FEATURES
 
 WORKDIR /app/build/endpoint/data-collector
 
-RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
+RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
@@ -51,14 +51,14 @@ COPY endpoint/data-collector/src /app/build/endpoint/data-collector/src
 RUN touch /app/build/endpoint/data-collector/src/*
 
 WORKDIR /app/build/endpoint/data-collector
-RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
+RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
     --mount=type=cache,target=/root/.cargo/registry/index \
     xx-cargo build -r -p data-collector --target-dir /app/build/target && \
     xx-verify /app/build/target/$(xx-cargo --print-target-triple)/release/data-collector
-RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \ 
+RUN --mount=type=cache,target=/app/build/target/x86_64-unknown-linux-musl \
     --mount=type=cache,target=/app/build/target/aarch64-unknown-linux-musl \
     --mount=type=cache,target=/root/.cargo/git/db \
     --mount=type=cache,target=/root/.cargo/registry/cache \
@@ -76,7 +76,7 @@ LABEL org.opencontainers.image.ref.name="data-collector"
 LABEL org.opencontainers.image.title="data-collector"
 LABEL org.opencontainers.image.description="Backend component to gather data from gossipsub and put it into prometheus"
 LABEL org.opencontainers.image.base.name="rust:1.80-alpine"
-LABEL industries.p2p.script.name="data-collector"
+LABEL industries.p2p.app.name="data-collector"
 
 ENV PORT=8080
 

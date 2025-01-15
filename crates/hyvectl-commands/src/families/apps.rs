@@ -31,7 +31,7 @@ pub enum Apps {
 
     /// Stops an application on a given node
     Stop {
-        /// Identifier of the script to stop
+        /// Identifier of the application to stop
         id: String,
 
         /// Peer-Id of the target node

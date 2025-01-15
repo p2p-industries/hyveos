@@ -210,7 +210,7 @@ impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             true,
-            telemetry.context("scripting"),
+            telemetry.context("application"),
         )
         .await?;
 

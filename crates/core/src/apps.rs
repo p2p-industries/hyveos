@@ -18,13 +18,13 @@ pub struct RunningApp {
 }
 
 impl From<RunningApp> for grpc::RunningApp {
-    fn from(script: RunningApp) -> Self {
+    fn from(app: RunningApp) -> Self {
         Self {
-            id: script.id.into(),
+            id: app.id.into(),
             image: grpc::DockerImage {
-                name: script.image.to_string(),
+                name: app.image.to_string(),
             },
-            name: script.name.map(|name| name.to_string()),
+            name: app.name.map(|name| name.to_string()),
         }
     }
 }
@@ -32,11 +32,11 @@ impl From<RunningApp> for grpc::RunningApp {
 impl TryFrom<grpc::RunningApp> for RunningApp {
     type Error = Error;
 
-    fn try_from(script: grpc::RunningApp) -> Result<Self> {
+    fn try_from(app: grpc::RunningApp) -> Result<Self> {
         Ok(Self {
-            id: script.id.try_into()?,
-            image: script.image.name.into(),
-            name: script.name.map(Into::into),
+            id: app.id.try_into()?,
+            image: app.image.name.into(),
+            name: app.name.map(Into::into),
         })
     }
 }

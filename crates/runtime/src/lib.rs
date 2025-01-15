@@ -190,10 +190,10 @@ impl Runtime {
             return Err(anyhow::anyhow!("Failed to get command broker"));
         };
 
-        let mut scripting_telemetry = Telemetry::default().context("scripting-telemetry");
+        let mut application_telemetry = Telemetry::default().context("application-telemetry");
 
         if !telemetry {
-            scripting_telemetry.opt_out();
+            application_telemetry.opt_out();
         }
 
         let builder = ApplicationManagerBuilder::new(
@@ -204,7 +204,7 @@ impl Runtime {
             #[cfg(feature = "batman")]
             debug_command_sender.clone(),
             apps_management,
-            scripting_telemetry,
+            application_telemetry,
         );
 
         let (application_manager, apps_client) = builder.build();
