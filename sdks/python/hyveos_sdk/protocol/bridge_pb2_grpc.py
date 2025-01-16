@@ -616,11 +616,6 @@ class DiscoveryStub(object):
                 request_serializer=bridge__pb2.DHTKey.SerializeToString,
                 response_deserializer=bridge__pb2.Empty.FromString,
                 _registered_method=True)
-        self.GetOwnId = channel.unary_unary(
-                '/bridge.Discovery/GetOwnId',
-                request_serializer=bridge__pb2.Empty.SerializeToString,
-                response_deserializer=bridge__pb2.Peer.FromString,
-                _registered_method=True)
 
 
 class DiscoveryServicer(object):
@@ -649,13 +644,6 @@ class DiscoveryServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetOwnId(self, request, context):
-        """Get the peer id of the current runtime
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_DiscoveryServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -673,11 +661,6 @@ def add_DiscoveryServicer_to_server(servicer, server):
                     servicer.StopProviding,
                     request_deserializer=bridge__pb2.DHTKey.FromString,
                     response_serializer=bridge__pb2.Empty.SerializeToString,
-            ),
-            'GetOwnId': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetOwnId,
-                    request_deserializer=bridge__pb2.Empty.FromString,
-                    response_serializer=bridge__pb2.Peer.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -761,33 +744,6 @@ class Discovery(object):
             '/bridge.Discovery/StopProviding',
             bridge__pb2.DHTKey.SerializeToString,
             bridge__pb2.Empty.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GetOwnId(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/bridge.Discovery/GetOwnId',
-            bridge__pb2.Empty.SerializeToString,
-            bridge__pb2.Peer.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1393,6 +1349,123 @@ class Apps(object):
             '/bridge.Apps/GetOwnAppId',
             bridge__pb2.Empty.SerializeToString,
             bridge__pb2.ID.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class ControlStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Heartbeat = channel.unary_unary(
+                '/bridge.Control/Heartbeat',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.Empty.FromString,
+                _registered_method=True)
+        self.GetId = channel.unary_unary(
+                '/bridge.Control/GetId',
+                request_serializer=bridge__pb2.Empty.SerializeToString,
+                response_deserializer=bridge__pb2.Peer.FromString,
+                _registered_method=True)
+
+
+class ControlServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Heartbeat(self, request, context):
+        """Send a heartbeat to the runtime to let it know that the app is still alive
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetId(self, request, context):
+        """Get the peer id of the current runtime
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ControlServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Heartbeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.Heartbeat,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.Empty.SerializeToString,
+            ),
+            'GetId': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetId,
+                    request_deserializer=bridge__pb2.Empty.FromString,
+                    response_serializer=bridge__pb2.Peer.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'bridge.Control', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('bridge.Control', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class Control(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Heartbeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/bridge.Control/Heartbeat',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetId(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/bridge.Control/GetId',
+            bridge__pb2.Empty.SerializeToString,
+            bridge__pb2.Peer.FromString,
             options,
             channel_credentials,
             insecure,

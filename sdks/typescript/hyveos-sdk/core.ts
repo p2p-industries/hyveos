@@ -25,11 +25,28 @@ export function createJsonResult<
   ])
 }
 
-export function toBytes(str: Uint8Array | string): Uint8Array {
-  if (typeof str === 'string') {
-    return new TextEncoder().encode(str)
+export function toBytes(data: Uint8Array | string): Uint8Array {
+  if (typeof data === 'string') {
+    return new TextEncoder().encode(data)
   }
-  return str
+  return data
+}
+
+export function repeatWithTimeoutCancellable(
+  fn: () => Promise<void>,
+  interval: number,
+): () => void {
+  let isActive = true
+  ;(async () => {
+    while (isActive) {
+      await fn()
+      await new Promise((resolve) => setTimeout(resolve, interval))
+    }
+  })()
+
+  return () => {
+    isActive = false
+  }
 }
 
 export class BaseService<Service extends DescService> {

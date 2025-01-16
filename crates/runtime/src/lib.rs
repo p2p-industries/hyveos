@@ -6,6 +6,7 @@ use std::net::SocketAddr;
 use std::{
     future::Future,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use futures::{future, FutureExt as _, TryFutureExt as _};
@@ -57,6 +58,7 @@ pub struct RuntimeArgs {
     pub keypair: Keypair,
     pub random_directory: bool,
     pub apps_management: ApplicationManagementConfig,
+    pub application_heartbeat_timeout: Duration,
     pub clean: bool,
     pub log_dir: Option<PathBuf>,
     pub log_level: LogFilter,
@@ -126,6 +128,7 @@ impl Runtime {
             keypair,
             random_directory,
             apps_management,
+            application_heartbeat_timeout,
             clean,
             log_dir,
             log_level,
@@ -204,6 +207,7 @@ impl Runtime {
             #[cfg(feature = "batman")]
             debug_command_sender.clone(),
             apps_management,
+            application_heartbeat_timeout,
             application_telemetry,
         );
 
@@ -243,6 +247,7 @@ impl Runtime {
                     debug_command_sender,
                     apps_client.clone(),
                     false,
+                    None,
                     cli_telemetry.context("local-cli-bridge"),
                 )
                 .await?;

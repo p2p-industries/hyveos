@@ -87,11 +87,4 @@ impl Discovery for DiscoveryServer {
 
         Ok(TonicResponse::new(grpc::Empty {}))
     }
-
-    async fn get_own_id(&self, _request: TonicRequest<grpc::Empty>) -> TonicResult<grpc::Peer> {
-        self.telemetry.track("discovery.get_own_id");
-        tracing::debug!("Received get_own_id request");
-
-        Ok(TonicResponse::new(self.client.peer_id().into()))
-    }
 }

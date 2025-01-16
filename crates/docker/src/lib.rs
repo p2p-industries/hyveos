@@ -23,7 +23,7 @@ use bollard::{
 };
 use bytes::Bytes;
 use futures::{
-    future::{FusedFuture as _, FutureExt, OptionFuture},
+    future::{BoxFuture, FusedFuture as _, FutureExt, OptionFuture},
     TryStreamExt as _,
 };
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -843,7 +843,7 @@ impl<'a> RunningContainer<'a> {
     /// Run the container to completion
     pub async fn run_to_completion(
         mut self,
-        stop: Option<oneshot::Receiver<bool>>,
+        stop_future: Option<BoxFuture<'static, bool>>,
     ) -> Result<StoppedContainer<'a>, BollardError> {
         let mut wait_future = OptionFuture::from(Some(
             self.docker
@@ -854,7 +854,7 @@ impl<'a> RunningContainer<'a> {
         let mut output_future =
             OptionFuture::from(self.output_handle.as_mut().map(FutureExt::fuse));
         let mut input_future = OptionFuture::from(self.input_handle.as_mut().map(FutureExt::fuse));
-        let mut stop_future = OptionFuture::from(stop);
+        let mut stop_future = OptionFuture::from(stop_future);
 
         loop {
             tokio::select! {
@@ -884,7 +884,7 @@ impl<'a> RunningContainer<'a> {
                         Err(e) => return Err(BollardError::from(io::Error::from(e))),
                     }
                 }
-                Some(res) = &mut stop_future => {
+                Some(kill) = &mut stop_future => {
                     if output_future.is_terminated() {
                         self.output_handle = None;
                     }
@@ -892,7 +892,7 @@ impl<'a> RunningContainer<'a> {
                         self.input_handle = None;
                     }
 
-                    if res.unwrap_or(true) {
+                    if kill {
                         return self.kill().await;
                     } else {
                         return self.stop().await;
@@ -996,6 +996,7 @@ mod tests {
         io::{Read, Write as _},
     };
 
+    use futures::{FutureExt as _, TryFutureExt as _};
     use tempfile::{tempdir, NamedTempFile};
     use tokio::{
         io::{AsyncBufReadExt, BufReader},
@@ -1123,7 +1124,9 @@ mod tests {
 
         let (stop_sender, stop_receiver) = oneshot::channel();
 
-        let handle = tokio::spawn(container.run_to_completion(Some(stop_receiver)));
+        let handle = tokio::spawn(
+            container.run_to_completion(Some(stop_receiver.unwrap_or_else(|_| true).boxed())),
+        );
 
         let mut rx = BufReader::new(rx).lines();
         for _ in 0..5 {

@@ -291,9 +291,6 @@ service Discovery {
   // This only has local effects and only affects other hyveOS nodes once the
   // providers records expire.
   rpc StopProviding(DHTKey) returns (Empty) {}
-
-  // Get the peer id of the current runtime
-  rpc GetOwnId(Empty) returns (Peer) {}
 }
 
 service LocalKV {
@@ -340,4 +337,12 @@ service Apps {
 
   // Get the id of the current app
   rpc GetOwnAppId(Empty) returns (ID) {}
+}
+
+service Control {
+  // Send a heartbeat to the runtime to let it know that the app is still alive
+  rpc Heartbeat(Empty) returns (Empty) {}
+
+  // Get the peer id of the current runtime
+  rpc GetId(Empty) returns (Peer) {}
 }

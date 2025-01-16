@@ -3,7 +3,7 @@
 
 #[cfg(feature = "network")]
 use std::net::SocketAddr;
-use std::{io, os::unix::fs::PermissionsExt as _, path::PathBuf};
+use std::{io, os::unix::fs::PermissionsExt as _, path::PathBuf, sync::Arc};
 
 use futures::stream::BoxStream;
 use hyveos_core::grpc;
@@ -12,9 +12,9 @@ use hyveos_p2p_stack::Client;
 use hyveos_p2p_stack::DebugClientCommand;
 #[cfg(feature = "network")]
 use tokio::net::TcpListener;
-use tokio::net::UnixListener;
 #[cfg(feature = "batman")]
 use tokio::sync::mpsc;
+use tokio::{net::UnixListener, sync::Notify};
 use tokio_stream::wrappers::UnixListenerStream;
 use tokio_util::sync::CancellationToken;
 #[cfg(feature = "network")]
@@ -26,12 +26,13 @@ use ulid::Ulid;
 use crate::debug::DebugServer;
 pub use crate::{apps::AppsClient, local_kv::DbClient, telemetry::Telemetry};
 use crate::{
-    apps::AppsServer, discovery::DiscoveryServer, file_transfer::FileTransferServer, kv::KvServer,
-    local_kv::LocalKvServer, neighbours::NeighboursServer, pub_sub::PubSubServer,
-    req_resp::ReqRespServer,
+    apps::AppsServer, control::ControlServer, discovery::DiscoveryServer,
+    file_transfer::FileTransferServer, kv::KvServer, local_kv::LocalKvServer,
+    neighbours::NeighboursServer, pub_sub::PubSubServer, req_resp::ReqRespServer,
 };
 
 mod apps;
+mod control;
 #[cfg(feature = "batman")]
 mod debug;
 mod discovery;
@@ -68,7 +69,7 @@ pub struct Bridge<Db, Apps> {
 }
 
 impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
-    #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
+    #[expect(clippy::too_many_arguments)]
     pub async fn new(
         client: Client,
         db_client: Db,
@@ -77,6 +78,7 @@ impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         apps_client: Apps,
         is_application_bridge: bool,
+        heartbeat_sender: Option<Arc<Notify>>,
         telemetry: Telemetry,
     ) -> io::Result<Self> {
         tokio::fs::create_dir_all(&base_path).await?;
@@ -111,6 +113,7 @@ impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             is_application_bridge,
+            heartbeat_sender,
             telemetry,
         };
 
@@ -163,6 +166,7 @@ impl<Db: DbClient, Apps: AppsClient> NetworkBridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             is_application_bridge: false,
+            heartbeat_sender: None,
             telemetry,
         };
 
@@ -179,6 +183,7 @@ pub struct ApplicationBridge<Db, Apps> {
     pub ulid: Ulid,
     pub socket_path: PathBuf,
     pub shared_dir_path: PathBuf,
+    pub heartbeat_receiver: Arc<Notify>,
 }
 
 impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
@@ -197,6 +202,8 @@ impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
 
         let socket_path = base_path.join("bridge.sock");
 
+        let heartbeat_receiver = Arc::new(Notify::new());
+
         let Bridge {
             mut client,
             cancellation_token,
@@ -210,6 +217,7 @@ impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
             debug_command_sender,
             apps_client,
             true,
+            Some(heartbeat_receiver.clone()),
             telemetry.context("application"),
         )
         .await?;
@@ -222,6 +230,7 @@ impl<Db: DbClient, Apps: AppsClient> ApplicationBridge<Db, Apps> {
             ulid,
             socket_path,
             shared_dir_path,
+            heartbeat_receiver,
         })
     }
 }
@@ -246,6 +255,7 @@ pub struct BridgeClient<Db, Apps> {
     debug_command_sender: mpsc::Sender<DebugClientCommand>,
     apps_client: Apps,
     is_application_bridge: bool,
+    heartbeat_sender: Option<Arc<Notify>>,
     telemetry: Telemetry,
 }
 
@@ -253,6 +263,7 @@ macro_rules! build_tonic {
     (
         $tonic:expr,
         $apps:ident,
+        $control:ident,
         $discovery:ident,
         $kv:ident,
         $local_kv:ident,
@@ -264,6 +275,9 @@ macro_rules! build_tonic {
     ) => {{
         let tmp = $tonic
             .add_service($transform(grpc::apps_server::AppsServer::new($apps)))
+            .add_service($transform(grpc::control_server::ControlServer::new(
+                $control,
+            )))
             .add_service($transform(grpc::discovery_server::DiscoveryServer::new(
                 $discovery,
             )))
@@ -294,6 +308,11 @@ impl<Db: DbClient, Apps: AppsClient> BridgeClient<Db, Apps> {
             self.apps_client,
             self.ulid,
             self.telemetry.clone().service("apps"),
+        );
+        let control = ControlServer::new(
+            self.client.clone(),
+            self.heartbeat_sender,
+            self.telemetry.clone().service("control"),
         );
         let discovery = DiscoveryServer::new(
             self.client.clone(),
@@ -331,6 +350,7 @@ impl<Db: DbClient, Apps: AppsClient> BridgeClient<Db, Apps> {
                 let router = build_tonic!(
                     TonicServer::builder(),
                     apps,
+                    control,
                     discovery,
                     kv,
                     local_kv,
@@ -368,6 +388,7 @@ impl<Db: DbClient, Apps: AppsClient> BridgeClient<Db, Apps> {
                 let tonic_routes = build_tonic!(
                     TonicRoutes::from(router),
                     apps,
+                    control,
                     discovery,
                     kv,
                     local_kv,

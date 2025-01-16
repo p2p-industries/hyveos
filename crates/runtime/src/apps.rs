@@ -7,13 +7,14 @@ use std::{
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
+    time::Duration,
 };
 
 use bytes::Bytes;
 use futures::{
     future::{try_maybe_done, OptionFuture, TryMaybeDone},
     stream::{FuturesUnordered, StreamExt as _, TryStreamExt as _},
-    FutureExt as _,
+    FutureExt as _, TryFutureExt as _,
 };
 #[cfg(feature = "batman")]
 use hyveos_bridge::DebugCommandSender;
@@ -68,10 +69,12 @@ pub struct ApplicationManagerBuilder {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     apps_management: ApplicationManagementConfig,
+    heartbeat_timeout: Duration,
     telemetry: Telemetry,
 }
 
 impl ApplicationManagerBuilder {
+    #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
     pub fn new(
         command_broker: mpsc::Receiver<ActorToClient>,
         client: P2PClient,
@@ -79,6 +82,7 @@ impl ApplicationManagerBuilder {
         base_path: PathBuf,
         #[cfg(feature = "batman")] debug_command_sender: DebugCommandSender,
         apps_management: ApplicationManagementConfig,
+        heartbeat_timeout: Duration,
         telemetry: Telemetry,
     ) -> Self {
         Self {
@@ -89,6 +93,7 @@ impl ApplicationManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             apps_management,
+            heartbeat_timeout,
             telemetry,
         }
     }
@@ -102,6 +107,7 @@ impl ApplicationManagerBuilder {
             #[cfg(feature = "batman")]
             debug_command_sender,
             apps_management,
+            heartbeat_timeout,
             telemetry,
         } = self;
         let (self_command_sender, self_command_receiver) = mpsc::channel(1);
@@ -126,6 +132,7 @@ impl ApplicationManagerBuilder {
                 #[cfg(feature = "batman")]
                 debug_command_sender,
                 apps_client,
+                heartbeat_timeout,
                 container_handles: FutureMap::new(),
                 telemetry,
             }
@@ -145,6 +152,7 @@ pub struct ApplicationManager {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     apps_client: Option<AppsClient>,
+    heartbeat_timeout: Duration,
     container_handles: FutureMap<Ulid, ContainerHandle>,
     telemetry: Telemetry,
 }
@@ -159,6 +167,7 @@ impl ApplicationManager {
             #[cfg(feature = "batman")]
             debug_command_sender: self.debug_command_sender.clone(),
             apps_client: self.apps_client.clone(),
+            heartbeat_timeout: self.heartbeat_timeout,
             telemetry: self.telemetry.clone(),
         }
     }
@@ -478,6 +487,7 @@ struct ExecutionManager<'a> {
     #[cfg(feature = "batman")]
     debug_command_sender: DebugCommandSender,
     apps_client: Option<AppsClient>,
+    heartbeat_timeout: Duration,
     telemetry: Telemetry,
 }
 
@@ -528,7 +538,7 @@ impl ExecutionManager<'_> {
             )
             .await?;
 
-            Self::exec_with_bridge(bridge, image, ports).await
+            Self::exec_with_bridge(bridge, image, ports, self.heartbeat_timeout).await
         } else {
             let bridge = ApplicationBridge::new(
                 self.client,
@@ -541,7 +551,7 @@ impl ExecutionManager<'_> {
             )
             .await?;
 
-            Self::exec_with_bridge(bridge, image, ports).await
+            Self::exec_with_bridge(bridge, image, ports, self.heartbeat_timeout).await
         }
     }
 
@@ -549,6 +559,7 @@ impl ExecutionManager<'_> {
         bridge: ApplicationBridge<DbClient, impl hyveos_bridge::AppsClient>,
         image: PulledImage<'_>,
         ports: Vec<u16>,
+        heartbeat_timeout: Duration,
     ) -> Result<ContainerHandle, ExecutionError> {
         let ApplicationBridge {
             client,
@@ -556,6 +567,7 @@ impl ExecutionManager<'_> {
             ulid,
             socket_path,
             shared_dir_path,
+            heartbeat_receiver,
         } = bridge;
 
         let image_name = Arc::from(&*image.image);
@@ -610,10 +622,28 @@ impl ExecutionManager<'_> {
 
         let (stop_sender, stop_receiver) = oneshot::channel();
 
+        let stop_future = async move {
+            let mut stop_future = stop_receiver.unwrap_or_else(|_| true);
+            loop {
+                tokio::select! {
+                    kill = &mut stop_future => {
+                        return kill;
+                    }
+                    res = tokio::time::timeout(heartbeat_timeout, heartbeat_receiver.notified()) => {
+                        if res.is_err() {
+                            tracing::error!(id=?ulid, "Bridge heartbeat timed out");
+                            return true;
+                        }
+
+                        tracing::debug!(id=?ulid, "Bridge heartbeat received");
+                    }
+                }
+            }
+        }
+        .boxed();
+
         let handle = tokio::spawn(async move {
-            let res = running_container
-                .run_to_completion(Some(stop_receiver))
-                .await;
+            let res = running_container.run_to_completion(Some(stop_future)).await;
             if let Err(e) = &res {
                 tracing::error!(error = ?e, "Container exited with error");
             } else {

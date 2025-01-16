@@ -27,6 +27,8 @@ pub struct Config {
     #[serde(default)]
     pub application_management: Option<ApplicationManagementConfig>,
     #[serde(default)]
+    pub application_heartbeat_timeout: Option<u64>,
+    #[serde(default)]
     pub log_dir: Option<PathBuf>,
     #[serde(default)]
     pub log_level: LogFilter,
