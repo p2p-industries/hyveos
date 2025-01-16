@@ -16,7 +16,11 @@
  */
 export default {}
 
-import { createClient, type Transport, type Client as ServiceClient } from 'npm:@connectrpc/connect'
+import {
+  type Client as ServiceClient,
+  createClient,
+  type Transport,
+} from 'npm:@connectrpc/connect'
 import { Control as ControlService } from './gen/bridge_pb.ts'
 import { Apps } from './apps.ts'
 export { Apps } from './apps.ts'
@@ -36,6 +40,7 @@ import { PubSub } from './pub_sub.ts'
 export { PubSub } from './pub_sub.ts'
 import { ReqResp } from './req_resp.ts'
 export { ReqResp } from './req_resp.ts'
+import { repeatWithTimeoutCancellable } from './core.ts'
 export { AbortOnDispose } from './core.ts'
 
 /**
@@ -76,6 +81,10 @@ export class Client<T extends ITransport> {
    * @ignore
    */
   private control: ServiceClient<typeof ControlService>
+  /**
+   * @ignore
+   */
+  private cancelHeartbeat: (() => void) | null
 
   /**
    * @param transport The transport object that is either a grpc-web or grpc transport.
@@ -84,6 +93,16 @@ export class Client<T extends ITransport> {
   constructor(transport: T) {
     this.transport = transport
     this.control = createClient(ControlService, transport.transport())
+    if (transport.isUnix()) {
+      this.cancelHeartbeat = repeatWithTimeoutCancellable(
+        async () => {
+          await this.control.heartbeat({})
+        },
+        10000,
+      )
+    } else {
+      this.cancelHeartbeat = null
+    }
   }
 
   /**
@@ -159,5 +178,15 @@ export class Client<T extends ITransport> {
   public async getId(): Promise<string> {
     const { peerId } = await this.control.getId({})
     return peerId
+  }
+
+  /**
+   * Close the client and release resources.
+   */
+  public close() {
+    if (this.cancelHeartbeat) {
+      this.cancelHeartbeat()
+      this.cancelHeartbeat = null
+    }
   }
 }
