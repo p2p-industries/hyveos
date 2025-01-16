@@ -89,10 +89,10 @@ impl internal::ConnectionType for ApplicationConnection {
                         tracing::error!(retries, "Failed to send heartbeat: {e}");
                         if retries >= 3 {
                             break;
-                        } else {
-                            retries += 1;
-                            continue;
                         }
+
+                        retries += 1;
+                        continue;
                     }
 
                     retries = 0;
@@ -249,6 +249,7 @@ impl ConnectionBuilder<DefaultConnection> {
     ///
     /// The default interval is 10 seconds.
     /// By default, the runtime will close the connection if no heartbeat messages are received within 20 seconds.
+    #[must_use]
     pub fn heartbeat_interval(
         self,
         interval: Duration,
@@ -282,6 +283,7 @@ impl ConnectionBuilder<DefaultConnection> {
     /// println!("My peer id: {peer_id}");
     /// # }
     /// ```
+    #[must_use]
     pub fn custom(
         self,
         socket_path: impl Into<PathBuf>,
@@ -322,6 +324,7 @@ impl ConnectionBuilder<DefaultConnection> {
     /// # }
     /// ```
     #[cfg(feature = "network")]
+    #[must_use]
     pub fn uri(self, uri: Uri) -> ConnectionBuilder<UriConnection> {
         ConnectionBuilder {
             connection_type: UriConnection { uri },
@@ -360,6 +363,7 @@ impl ConnectionBuilder<ApplicationConnection> {
     ///
     /// The default interval is 10 seconds.
     /// By default, the runtime will close the connection if no heartbeat messages are received within 20 seconds.
+    #[must_use]
     pub fn heartbeat_interval(mut self, interval: Duration) -> Self {
         self.connection_type.heartbeat_interval = interval;
         self

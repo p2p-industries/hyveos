@@ -221,6 +221,7 @@ class OpenedConnection:
 
         if conn._heartbeat_interval is not None:
             heartbeat_interval = conn._heartbeat_interval
+
             async def heartbeat():
                 retries = 0
                 while True:

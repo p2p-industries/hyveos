@@ -74,6 +74,7 @@ pub struct ApplicationManagerBuilder {
 }
 
 impl ApplicationManagerBuilder {
+    #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
     pub fn new(
         command_broker: mpsc::Receiver<ActorToClient>,
         client: P2PClient,

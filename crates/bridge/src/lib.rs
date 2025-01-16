@@ -69,7 +69,7 @@ pub struct Bridge<Db, Apps> {
 }
 
 impl<Db: DbClient, Apps: AppsClient> Bridge<Db, Apps> {
-    #[cfg_attr(feature = "batman", expect(clippy::too_many_arguments))]
+    #[expect(clippy::too_many_arguments)]
     pub async fn new(
         client: Client,
         db_client: Db,
