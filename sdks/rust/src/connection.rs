@@ -1,8 +1,4 @@
-use std::{
-    env,
-    path::PathBuf,
-    sync::{Arc, Mutex, PoisonError},
-};
+use std::{env, path::PathBuf, sync::Arc, time::Duration};
 
 use hyper_util::rt::TokioIo;
 use hyveos_core::{
@@ -12,7 +8,7 @@ use hyveos_core::{
 use libp2p_identity::PeerId;
 #[cfg(feature = "serde")]
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::net::UnixStream;
+use tokio::{net::UnixStream, sync::Mutex, task::JoinHandle};
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 
@@ -46,6 +42,9 @@ pub trait ConnectionType: internal::ConnectionType {}
 
 impl<T: internal::ConnectionType> ConnectionType for T {}
 
+#[derive(Debug, Clone)]
+pub struct DefaultConnection;
+
 /// A connection to the hyveOS runtime through the hyveOS application bridge.
 ///
 /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
@@ -53,13 +52,21 @@ impl<T: internal::ConnectionType> ConnectionType for T {}
 ///
 /// This is the standard connection type when used in a hyveOS app.
 #[derive(Debug, Clone)]
-pub struct BridgeConnection {
-    _private: (),
+pub struct ApplicationConnection {
+    heartbeat_interval: Duration,
 }
 
-impl internal::ConnectionType for BridgeConnection {
+impl Default for ApplicationConnection {
+    fn default() -> Self {
+        Self {
+            heartbeat_interval: Duration::from_secs(10),
+        }
+    }
+}
+
+impl internal::ConnectionType for ApplicationConnection {
     async fn connect(self) -> Result<Connection> {
-        let channel = Endpoint::try_from("http://[::]:50051")?
+        let channel = Endpoint::try_from("http://[::]:50051")? // dummy URI
             .connect_with_connector(service_fn(|_: Uri| async {
                 let path = env::var(BRIDGE_SOCKET_ENV_VAR)
                     .map_err(|e| Error::EnvVarMissing(BRIDGE_SOCKET_ENV_VAR, e))?;
@@ -71,12 +78,37 @@ impl internal::ConnectionType for BridgeConnection {
             }))
             .await?;
 
+        let control = Arc::new(Mutex::new(ControlClient::new(channel.clone())));
+
+        let heartbeat_task = tokio::spawn({
+            let control = control.clone();
+            async move {
+                let mut retries = 0;
+                loop {
+                    if let Err(e) = control.lock().await.heartbeat(Empty {}).await {
+                        tracing::error!(retries, "Failed to send heartbeat: {e}");
+                        if retries >= 3 {
+                            break;
+                        } else {
+                            retries += 1;
+                            continue;
+                        }
+                    }
+
+                    retries = 0;
+
+                    tokio::time::sleep(self.heartbeat_interval).await;
+                }
+            }
+        });
+
         Ok(Connection {
-            channel: channel.clone(),
+            channel,
             #[cfg(feature = "network")]
             reqwest_client_and_url: None,
             shared_dir_path: None,
-            control: Arc::new(Mutex::new(ControlClient::new(channel))),
+            control,
+            heartbeat_task: Some(heartbeat_task),
         })
     }
 }
@@ -109,6 +141,7 @@ impl internal::ConnectionType for CustomConnection {
             reqwest_client_and_url: None,
             shared_dir_path: Some(Arc::new(self.shared_dir_path)),
             control: Arc::new(Mutex::new(ControlClient::new(channel))),
+            heartbeat_task: None,
         })
     }
 }
@@ -149,6 +182,7 @@ impl internal::ConnectionType for UriConnection {
             reqwest_client_and_url: Some((client, url)),
             shared_dir_path: None,
             control: Arc::new(Mutex::new(ControlClient::new(channel))),
+            heartbeat_task: None,
         })
     }
 }
@@ -187,13 +221,13 @@ pub struct ConnectionBuilder<T> {
     connection_type: T,
 }
 
-impl Default for ConnectionBuilder<BridgeConnection> {
+impl Default for ConnectionBuilder<DefaultConnection> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ConnectionBuilder<BridgeConnection> {
+impl ConnectionBuilder<DefaultConnection> {
     /// Creates a new builder for configuring a connection to the HyveOS runtime.
     ///
     /// By default, the connection to the HyveOS runtime will be made through the application bridge,
@@ -203,7 +237,21 @@ impl ConnectionBuilder<BridgeConnection> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            connection_type: BridgeConnection { _private: () },
+            connection_type: DefaultConnection,
+        }
+    }
+
+    /// Sets the interval at which the connection should send heartbeat messages to the HyveOS runtime.
+    ///
+    /// The default interval is 10 seconds.
+    pub fn heartbeat_interval(
+        self,
+        interval: Duration,
+    ) -> ConnectionBuilder<ApplicationConnection> {
+        ConnectionBuilder {
+            connection_type: ApplicationConnection {
+                heartbeat_interval: interval,
+            },
         }
     }
 
@@ -274,6 +322,42 @@ impl ConnectionBuilder<BridgeConnection> {
             connection_type: UriConnection { uri },
         }
     }
+
+    /// Establishes a connection to the HyveOS runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the connection could not be established.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hyveos_sdk::Connection;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let connection = Connection::builder()
+    ///     .connect()
+    ///     .await
+    ///     .unwrap();
+    /// let peer_id = connection.get_id().await.unwrap();
+    ///
+    /// println!("My peer id: {peer_id}");
+    /// # }
+    /// ```
+    pub async fn connect(self) -> Result<Connection> {
+        internal::ConnectionType::connect(ApplicationConnection::default()).await
+    }
+}
+
+impl ConnectionBuilder<ApplicationConnection> {
+    /// Sets the interval at which the connection should send heartbeat messages to the HyveOS runtime.
+    ///
+    /// The default interval is 10 seconds.
+    pub fn heartbeat_interval(mut self, interval: Duration) -> Self {
+        self.connection_type.heartbeat_interval = interval;
+        self
+    }
 }
 
 impl<T: ConnectionType> ConnectionBuilder<T> {
@@ -335,6 +419,7 @@ pub struct Connection {
     pub(crate) reqwest_client_and_url: Option<(reqwest::Client, reqwest::Url)>,
     pub(crate) shared_dir_path: Option<Arc<PathBuf>>,
     control: Arc<Mutex<ControlClient<Channel>>>,
+    heartbeat_task: Option<JoinHandle<()>>,
 }
 
 impl Connection {
@@ -393,7 +478,7 @@ impl Connection {
     /// # }
     /// ```
     #[must_use]
-    pub fn builder() -> ConnectionBuilder<BridgeConnection> {
+    pub fn builder() -> ConnectionBuilder<DefaultConnection> {
         ConnectionBuilder::new()
     }
 
@@ -751,11 +836,19 @@ impl Connection {
     pub async fn get_id(&self) -> Result<PeerId> {
         self.control
             .lock()
-            .unwrap_or_else(PoisonError::into_inner)
+            .await
             .get_id(Empty {})
             .await?
             .into_inner()
             .try_into()
             .map_err(Into::into)
+    }
+}
+
+impl Drop for Connection {
+    fn drop(&mut self) {
+        if let Some(heartbeat_task) = self.heartbeat_task.take() {
+            heartbeat_task.abort();
+        }
     }
 }
