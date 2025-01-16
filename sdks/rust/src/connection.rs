@@ -234,6 +234,10 @@ impl ConnectionBuilder<DefaultConnection> {
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
     /// If another connection type is desired, use the [`Self::custom`] or [`Self::uri`] methods.
+    ///
+    /// If the connected through the application bridge, the connection will send heartbeat messages
+    /// at regular intervals (configurable using [`Self::heartbeat_interval`]) to the HyveOS runtime
+    /// to keep the connection alive.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -244,6 +248,7 @@ impl ConnectionBuilder<DefaultConnection> {
     /// Sets the interval at which the connection should send heartbeat messages to the HyveOS runtime.
     ///
     /// The default interval is 10 seconds.
+    /// By default, the runtime will close the connection if no heartbeat messages are received within 20 seconds.
     pub fn heartbeat_interval(
         self,
         interval: Duration,
@@ -354,6 +359,7 @@ impl ConnectionBuilder<ApplicationConnection> {
     /// Sets the interval at which the connection should send heartbeat messages to the HyveOS runtime.
     ///
     /// The default interval is 10 seconds.
+    /// By default, the runtime will close the connection if no heartbeat messages are received within 20 seconds.
     pub fn heartbeat_interval(mut self, interval: Duration) -> Self {
         self.connection_type.heartbeat_interval = interval;
         self

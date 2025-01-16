@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import grpc
 import os
 from pathlib import Path
@@ -52,12 +53,15 @@ class Connection:
     _shared_dir_path: Optional[Path]
     _uri: Optional[str]
     _session: Optional[aiohttp.ClientSession]
+    _heartbeat_interval: Optional[int]
+    _opened_connection: Optional['OpenedConnection']
 
     def __init__(
         self,
         socket_path: Optional[Path | str] = None,
         shared_dir_path: Optional[Path | str] = None,
         uri: Optional[str] = None,
+        heartbeat_interval: Optional[int] = None,
     ):
         """
         Establishes a connection to the HyveOS runtime.
@@ -85,6 +89,10 @@ class Connection:
             A HyveOS runtime should be listening at the given address.
 
             Mutually exclusive with `socket_path` and `shared_dir_path`.
+        heartbeat_interval : int, optional
+            The interval at which the connection should send heartbeat messages to the HyveOS runtime.
+            If not provided, the default interval of 10 seconds will be used.
+            Has no effect when the connection is not made through the application bridge.
 
         Raises
         ------
@@ -104,6 +112,7 @@ class Connection:
         )
         self._uri = uri
         self._session = None
+        self._heartbeat_interval = None
 
         if socket_path is not None:
             if shared_dir_path is None:
@@ -135,15 +144,40 @@ class Connection:
                 f'unix://{bridge_socket_path}',
                 options=(('grpc.default_authority', 'localhost'),),
             )
+            self._heartbeat_interval = heartbeat_interval or 10
+
+    async def open_connection_handle(self) -> 'OpenedConnection':
+        """
+        Get a handle to an opened connection to the HyveOS runtime.
+
+        Most users should use the `async with Connection() as conn:` syntax instead of this method.
+        """
+        self._opened_connection = OpenedConnection(self)
+        return self._opened_connection
 
     async def __aenter__(self) -> 'OpenedConnection':
-        return OpenedConnection(self)
+        return await self.open_connection_handle()
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def close(self):
+        """
+        Close the connection to the HyveOS runtime manually.
+
+        This is called automatically when using the `async with Connection() as conn:` syntax.
+        """
+        if self._opened_connection is not None:
+            if self._opened_connection._heartbeat_task is not None:
+                self._opened_connection._heartbeat_task.cancel()
+                await self._opened_connection._heartbeat_task
+
+            del self._opened_connection
+
         await self._conn.close()
 
         if self._session is not None:
             await self._session.close()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
 
 class OpenedConnection:
@@ -151,6 +185,9 @@ class OpenedConnection:
     An opened connection to the HyveOS runtime.
 
     This class provides access to the various services provided by HyveOS.
+    If the connection is made through the application bridge,
+    this handle will also send heartbeat messages to the runtime at regular intervals,
+    to keep the connection alive.
 
     An instance of this class is obtained by entering a `Connection` context manager.
 
@@ -173,6 +210,7 @@ class OpenedConnection:
     _shared_dir_path: Optional[Path]
     _uri: Optional[str]
     _session: Optional[aiohttp.ClientSession]
+    _heartbeat_task: Optional[asyncio.Task]
 
     def __init__(self, conn: Connection):
         self._conn = conn._conn
@@ -180,6 +218,24 @@ class OpenedConnection:
         self._shared_dir_path = conn._shared_dir_path
         self._uri = conn._uri
         self._session = conn._session
+
+        if conn._heartbeat_interval is not None:
+            heartbeat_interval = conn._heartbeat_interval
+            async def heartbeat():
+                retries = 0
+                while True:
+                    try:
+                        await self._control.Heartbeat(Empty())
+                        await asyncio.sleep(heartbeat_interval)
+                        retries = 0
+                    except asyncio.CancelledError:
+                        break
+                    except Exception as e:
+                        if retries >= 3:
+                            raise e
+                        retries += 1
+
+            self._heartbeat_task = asyncio.create_task(heartbeat())
 
     def get_apps_service(self) -> AppsService:
         """
