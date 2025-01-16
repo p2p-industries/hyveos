@@ -1,6 +1,6 @@
 #[cfg(feature = "network")]
 use std::net::SocketAddr;
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use dirs::data_local_dir;
@@ -87,6 +87,9 @@ pub struct Opts {
     /// Whether to enable application management by other running applications.
     #[clap(long, value_enum)]
     pub application_management: Option<ApplicationManagementConfig>,
+    /// The application heartbeat timeout in seconds (defaults to 20).
+    #[clap(long, value_name = "SECONDS")]
+    pub application_heartbeat_timeout: Option<u64>,
     /// Clean the store directory on startup.
     #[clap(long)]
     pub clean: bool,
@@ -193,6 +196,7 @@ async fn main() -> anyhow::Result<()> {
         key_file,
         random_directory,
         application_management,
+        application_heartbeat_timeout,
         clean,
         log_dir,
         log_level,
@@ -210,6 +214,7 @@ async fn main() -> anyhow::Result<()> {
         key_file: config_key_file,
         random_directory: config_random_directory,
         application_management: config_application_management,
+        application_heartbeat_timeout: config_application_heartbeat_timeout,
         log_dir: config_log_dir,
         log_level: config_log_level,
         cli_socket_path: config_cli_socket_path,
@@ -286,6 +291,12 @@ async fn main() -> anyhow::Result<()> {
         .or(config_application_management)
         .unwrap_or_default();
 
+    let application_heartbeat_timeout = Duration::from_secs(
+        application_heartbeat_timeout
+            .or(config_application_heartbeat_timeout)
+            .unwrap_or(20),
+    );
+
     let log_dir = log_dir.or(config_log_dir);
     let log_level = log_level.unwrap_or(config_log_level);
 
@@ -333,6 +344,7 @@ async fn main() -> anyhow::Result<()> {
         keypair,
         random_directory,
         apps_management,
+        application_heartbeat_timeout,
         clean,
         log_dir,
         log_level,

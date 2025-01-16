@@ -1,10 +1,14 @@
 # interfaces = ["bat0", "wlan0"]
 # batman-interface = "bat0"
+# wifi-interface = "wlan0"
 # store-directory = "/tmp/hyved"
 # db-file = "/tmp/hyved/db"
 # key-file = "/tmp/hyved/keypair"
 # random-directory = true
 # application-management = "deny"
+# application-heartbeat-timeout = 20
 # log-dir = "/tmp/hyved/logs"
 # log-level = "info"
+# cli-socket-path = "/tmp/hyved/bridge/bridge.sock"
+# cli-socket-addr = "127.0.0.1:8080"
 # telemetry = true
