@@ -99,7 +99,7 @@ pub struct Opts {
     /// Set the log level filter (defaults to `info`).
     #[clap(short = 'f', long)]
     pub log_level: Option<LogFilter>,
-    /// Set the path to the CLI socket file, used by `hyvectl` (defaults to $XDG_RUNTIME_DIR/hyved/bridge/bridge.sock).
+    /// Set the path to the CLI socket file, used by `hyvectl` (defaults to /run/hyved/bridge/bridge.sock).
     /// Conflicts with `--cli-socket-addr`.
     #[cfg_attr(feature = "network", clap(conflicts_with("cli_socket_addr")))]
     #[clap(long, value_name = "FILE")]

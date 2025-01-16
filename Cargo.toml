@@ -32,6 +32,7 @@ bytes = { version = "1.6.0" }
 clap = { version = "4.5.24", features = ["derive"] }
 hyveos-docker = { version = "0.1.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
+http = { version = "1.2.0" }
 hyveos-core = { version = "0.1.0", path = "crates/core" }
 hyveos-config = { version = "0.1.0", path = "crates/config" }
 hyvectl-commands = { version = "0.1.0", path = "crates/hyvectl-commands" }

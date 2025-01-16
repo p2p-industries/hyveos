@@ -12,6 +12,7 @@ license = { workspace = true }
 
 [dependencies]
 clap = { workspace = true }
+http = { workspace = true }
 hyveos-sdk = { workspace = true, features = ["app-management", "network"] }
 hyveos-core = { workspace = true }
 hyveos-config = { workspace = true, features = ["batman"] }
