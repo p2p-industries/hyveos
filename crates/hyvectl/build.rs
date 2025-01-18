@@ -44,7 +44,13 @@ where
 
 #[cfg(feature = "generate-completions")]
 fn generate_all_completions(out_dir: impl AsRef<OsStr>) -> Result<()> {
-    let shells = [Shell::Bash, Shell::Fish, Shell::Zsh];
+    let shells = [
+        Shell::Bash,
+        Shell::Fish,
+        Shell::Zsh,
+        Shell::PowerShell,
+        Shell::Elvish,
+    ];
 
     for shell in shells {
         let path = generate_one_completion(shell, &out_dir, "hyvectl")?;
@@ -55,25 +61,31 @@ fn generate_all_completions(out_dir: impl AsRef<OsStr>) -> Result<()> {
 }
 
 #[cfg(feature = "generate-completions")]
-fn main() -> Result<()> {
+fn target_dir() -> Result<PathBuf> {
+    let out_dir = env::var_os("OUT_DIR").expect("OUT_DIR not set");
+    let out_dir = PathBuf::from(out_dir);
+
     let manifest_dir = env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
-    let target_triple = env::var("TARGET").expect("TARGET not set");
-    let host_triple = env::var("HOST").expect("HOST not set");
-    let profile = env::var("PROFILE").expect("PROFILE not set");
-    let mut target_dir = PathBuf::from(manifest_dir)
+    let target_triple = env::var_os("TARGET").expect("TARGET not set");
+    let profile = env::var_os("PROFILE").expect("PROFILE not set");
+    let target_dir = PathBuf::from(manifest_dir)
         .join("..")
         .join("..")
         .join("target");
 
-    if target_triple != host_triple {
-        target_dir = target_dir.join(target_triple);
-    }
+    [
+        target_dir.join(target_triple).join(profile.clone()),
+        target_dir.join(profile),
+    ]
+    .iter()
+    .filter_map(|p| p.canonicalize().ok())
+    .find(|p| out_dir.starts_with(p))
+    .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "target dir not found in OUT_DIR"))
+}
 
-    let target_dir = target_dir
-        .join(profile)
-        .canonicalize()
-        .expect("target dir not found");
-    let debian_dir = target_dir.join("debian");
+#[cfg(feature = "generate-completions")]
+fn main() -> Result<()> {
+    let debian_dir = target_dir()?.join("debian");
     if !debian_dir.exists() {
         fs::create_dir(&debian_dir)?;
     }
