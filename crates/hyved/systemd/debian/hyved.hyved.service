@@ -1,5 +1,5 @@
 [Unit]
-Description=HyveOS Daemon
+Description=hyveOS Daemon
 Requires=batman-neighbours-daemon.service
 After=batman-neighbours-daemon.service
 
