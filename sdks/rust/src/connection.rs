@@ -113,7 +113,7 @@ impl internal::ConnectionType for ApplicationConnection {
     }
 }
 
-/// A connection to the HyveOS runtime through a custom Unix domain socket.
+/// A connection to the hyveOS runtime through a custom Unix domain socket.
 #[derive(Debug, Clone)]
 pub struct CustomConnection {
     socket_path: PathBuf,
@@ -146,7 +146,7 @@ impl internal::ConnectionType for CustomConnection {
     }
 }
 
-/// A connection over the network to a HyveOS runtime listening at a given URI.
+/// A connection over the network to a hyveOS runtime listening at a given URI.
 #[cfg(feature = "network")]
 #[derive(Debug, Clone)]
 pub struct UriConnection {
@@ -215,7 +215,7 @@ fn uri_to_url_and_if_name(uri: Uri) -> Result<(reqwest::Url, Option<String>)> {
     Ok((Uri::try_from(parts)?.to_string().parse()?, if_name))
 }
 
-/// A builder for configuring a connection to the HyveOS runtime.
+/// A builder for configuring a connection to the hyveOS runtime.
 #[derive(Debug, Clone)]
 pub struct ConnectionBuilder<T> {
     connection_type: T,
@@ -228,15 +228,15 @@ impl Default for ConnectionBuilder<DefaultConnection> {
 }
 
 impl ConnectionBuilder<DefaultConnection> {
-    /// Creates a new builder for configuring a connection to the HyveOS runtime.
+    /// Creates a new builder for configuring a connection to the hyveOS runtime.
     ///
-    /// By default, the connection to the HyveOS runtime will be made through the application bridge,
+    /// By default, the connection to the hyveOS runtime will be made through the application bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
     /// If another connection type is desired, use the [`Self::custom`] or [`Self::uri`] methods.
     ///
     /// If the connected through the application bridge, the connection will send heartbeat messages
-    /// at regular intervals (configurable using [`Self::heartbeat_interval`]) to the HyveOS runtime
+    /// at regular intervals (configurable using [`Self::heartbeat_interval`]) to the hyveOS runtime
     /// to keep the connection alive.
     #[must_use]
     pub fn new() -> Self {
@@ -245,7 +245,7 @@ impl ConnectionBuilder<DefaultConnection> {
         }
     }
 
-    /// Sets the interval at which the connection should send heartbeat messages to the HyveOS runtime.
+    /// Sets the interval at which the connection should send heartbeat messages to the hyveOS runtime.
     ///
     /// The default interval is 10 seconds.
     /// By default, the runtime will close the connection if no heartbeat messages are received within 20 seconds.
@@ -263,8 +263,8 @@ impl ConnectionBuilder<DefaultConnection> {
 
     /// Specifies a custom Unix domain socket to connect to.
     ///
-    /// The socket path should point to a Unix domain socket that the HyveOS runtime is listening on.
-    /// The shared directory path should point to the shared directory that the HyveOS runtime is using.
+    /// The socket path should point to a Unix domain socket that the hyveOS runtime is listening on.
+    /// The shared directory path should point to the shared directory that the hyveOS runtime is using.
     ///
     /// # Example
     ///
@@ -300,7 +300,7 @@ impl ConnectionBuilder<DefaultConnection> {
     /// Specifies a URI to connect to over the network.
     ///
     /// The URI should be in the format `http://<host>:<port>`.
-    /// A HyveOS runtime should be listening at the given address.
+    /// A hyveOS runtime should be listening at the given address.
     ///
     /// > **Note**: If the provided URI's path is not just `/` (e.g. `http://example.com:12345/foo/bar/`),
     /// > make sure that it ends with a slash!
@@ -331,7 +331,7 @@ impl ConnectionBuilder<DefaultConnection> {
         }
     }
 
-    /// Establishes a connection to the HyveOS runtime.
+    /// Establishes a connection to the hyveOS runtime.
     ///
     /// # Errors
     ///
@@ -359,7 +359,7 @@ impl ConnectionBuilder<DefaultConnection> {
 }
 
 impl ConnectionBuilder<ApplicationConnection> {
-    /// Sets the interval at which the connection should send heartbeat messages to the HyveOS runtime.
+    /// Sets the interval at which the connection should send heartbeat messages to the hyveOS runtime.
     ///
     /// The default interval is 10 seconds.
     /// By default, the runtime will close the connection if no heartbeat messages are received within 20 seconds.
@@ -371,7 +371,7 @@ impl ConnectionBuilder<ApplicationConnection> {
 }
 
 impl<T: ConnectionType> ConnectionBuilder<T> {
-    /// Establishes a connection to the HyveOS runtime.
+    /// Establishes a connection to the hyveOS runtime.
     ///
     /// # Errors
     ///
@@ -401,9 +401,9 @@ impl<T: ConnectionType> ConnectionBuilder<T> {
 
 /// A connection to the hyveOS runtime.
 ///
-/// This struct provides access to the various services provided by HyveOS.
+/// This struct provides access to the various services provided by hyveOS.
 ///
-/// By default, the connection to the HyveOS runtime will be made through the application bridge,
+/// By default, the connection to the hyveOS runtime will be made through the application bridge,
 /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
 /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
 /// If another connection type is desired, use the [`Self::builder`] function to get a
@@ -433,7 +433,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    /// Establishes a connection to the HyveOS runtime through the application bridge.
+    /// Establishes a connection to the hyveOS runtime through the application bridge.
     ///
     /// The Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
@@ -462,9 +462,9 @@ impl Connection {
         Connection::builder().connect().await
     }
 
-    /// Creates a new builder for configuring a connection to the HyveOS runtime.
+    /// Creates a new builder for configuring a connection to the hyveOS runtime.
     ///
-    /// By default, the connection to the HyveOS runtime will be made through the application bridge,
+    /// By default, the connection to the hyveOS runtime will be made through the application bridge,
     /// i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable
     /// ([`hyveos_core::BRIDGE_SOCKET_ENV_VAR`]) will be used to communicate with the runtime.
     /// If another connection type is desired, use the [`ConnectionBuilder::custom`] or

@@ -40,12 +40,12 @@ pub enum HyveCtlError {
     #[diagnostic(code(hyvectl::decode_ulid))]
     DecodeUlid(#[from] DecodeError),
 
-    /// HyveOS-SDK error
+    /// hyveOS-SDK error
     #[error("Error from hyveOS")]
     #[diagnostic(code(hyvectl::hyveos_error))]
     Sdk(#[from] hyveos_sdk::Error),
 
-    /// HyveOS-core error
+    /// hyveOS-core error
     #[error("Error from hyveOS")]
     #[diagnostic(code(hyvectl::hyveos_error))]
     Core(#[from] hyveos_core::Error),

@@ -26,7 +26,7 @@ fn default_store_directory() -> PathBuf {
         .join(DAEMON_NAME)
 }
 
-/// This daemon starts and manages the HyveOS runtime.
+/// This daemon starts and manages the hyveOS runtime.
 ///
 /// Most of the command line arguments can also be set by editing the config file (see also `--config-file`).
 #[allow(clippy::struct_excessive_bools)]

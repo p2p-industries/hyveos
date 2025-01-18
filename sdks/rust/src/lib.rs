@@ -3,12 +3,12 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![cfg_attr(docsrs, allow(unused_attributes))]
 
-//! # HyveOS SDK
+//! # hyveOS SDK
 //!
-//! This crate provides a high-level API for interacting with the HyveOS runtime.
+//! This crate provides a high-level API for interacting with the hyveOS runtime.
 //!
 //! > **Note**: By default, the [`Connection`] struct assumes that it's running
-//! > inside an application docker container, started by the HyveOS runtime.
+//! > inside an application docker container, started by the hyveOS runtime.
 //! > To use the SDK elsewhere, the connection can be configured using [`ConnectionBuilder`].
 //!
 //! ## Crate Features

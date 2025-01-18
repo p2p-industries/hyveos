@@ -39,7 +39,7 @@ class FileTransferService(ABC):
         Before it's published, the file is copied to the shared directory if it is not already
         there. By default, the shared directory is defined by the `HYVEOS_BRIDGE_SHARED_DIR`
         environment variable. However, it can be set to a custom path when initializing the
-        connection to the HyveOS runtime.
+        connection to the hyveOS runtime.
 
         Parameters
         ----------

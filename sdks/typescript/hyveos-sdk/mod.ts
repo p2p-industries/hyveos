@@ -1,5 +1,5 @@
 /**
- * A platform independent library to interact with a HyveOS network.
+ * A platform independent library to interact with a hyveOS network.
  *
  * The transport depends on the platform. For the server, it is a grpc transport, for the web it is a grpc-web transport.
  * The transport is typically obtained through the `hyveos-server` or `hyveos-web` package.
