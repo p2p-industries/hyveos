@@ -1,5 +1,6 @@
 [package]
 name = "batman-neighbours-daemon"
+description = "Daemon for discovering batman-adv neighbours"
 version = "0.1.0"
 edition = "2021"
 authors = ["Josef Zoller <josef@walterzollerpiano.com>"]

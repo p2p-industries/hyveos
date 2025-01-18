@@ -1797,6 +1797,7 @@ dependencies = [
  "colored",
  "default-net",
  "dialoguer",
+ "flate2",
  "futures",
  "http 1.2.0",
  "hyvectl-commands",
