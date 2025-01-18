@@ -1798,6 +1798,7 @@ dependencies = [
  "default-net",
  "dialoguer",
  "futures",
+ "http 1.2.0",
  "hyvectl-commands",
  "hyveos-config",
  "hyveos-core",

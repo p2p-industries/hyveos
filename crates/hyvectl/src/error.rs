@@ -15,6 +15,11 @@ pub enum HyveCtlError {
     #[diagnostic(code(hyvectl::io))]
     Io(#[from] std::io::Error),
 
+    /// Invalid URI error
+    #[error("Invalid URI")]
+    #[diagnostic(code(hyvectl::invalid_uri))]
+    InvalidUri(#[from] http::uri::InvalidUri),
+
     /// Int parse error
     #[error("Could not parse integer")]
     #[diagnostic(code(hyvectl::parse_int))]
@@ -54,6 +59,11 @@ pub enum HyveCtlError {
     #[error("Init error")]
     #[diagnostic(code(hyvectl::init_error))]
     Init(#[from] crate::families::init::Error),
+
+    /// Bridge path not found error
+    #[error("hyveOS bridge path not found")]
+    #[diagnostic(code(hyvectl::no_bridge_path))]
+    NoBridgePath,
 }
 
 pub type HyveCtlResult<T> = Result<T, HyveCtlError>;

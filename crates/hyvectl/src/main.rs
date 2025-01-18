@@ -6,10 +6,9 @@ use std::{
 
 use clap::Parser;
 use futures::{stream::BoxStream, TryStreamExt as _};
-use hyvectl_commands::command::{Cli, Families};
-use hyveos_sdk::Connection;
+use hyvectl_commands::command::{Cli, Families, GlobalArgs};
+use hyveos_sdk::{Connection, Uri};
 use indicatif::ProgressStyle;
-use miette::{Context, IntoDiagnostic};
 use util::CommandFamily;
 
 use crate::{
@@ -42,7 +41,7 @@ impl CommandFamily for Families {
     }
 }
 
-fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
+fn find_hyved_endpoint(endpoint: &str) -> HyveCtlResult<PathBuf> {
     let candidates = ["/run", "/var/run"]
         .into_iter()
         .map(PathBuf::from)
@@ -51,44 +50,61 @@ fn find_hyved_endpoint(endpoint: &str) -> miette::Result<PathBuf> {
     for dir in candidates {
         let candidate = dir.join("hyved").join("bridge").join(endpoint);
 
-        if let Ok(path) = candidate
-            .canonicalize()
-            .into_diagnostic()
-            .wrap_err("Unable to connect to hyveOS bridge")
-        {
+        if let Ok(path) = candidate.canonicalize() {
             return Ok(path);
         }
     }
 
-    Err(miette::miette!("No possible path to hyveOS Bridge sock"))
+    Err(HyveCtlError::NoBridgePath)
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> miette::Result<()> {
+    inner_main().await.map_err(Into::into)
+}
+
+async fn inner_main() -> HyveCtlResult<()> {
     let cli = Cli::parse();
+
+    let GlobalArgs {
+        json,
+        bridge_dir,
+        bridge_sock,
+        files_dir,
+        bridge_url,
+    } = cli.global;
 
     if let Families::Init(init) = cli.command {
         let output = crate::families::init::init(init).await?;
-        if cli.json {
-            output
-                .write_json(&mut stdout(), stdout().is_terminal())
-                .map_err(HyveCtlError::from)?;
+        if json {
+            output.write_json(&mut stdout(), stdout().is_terminal())?;
         } else {
-            output
-                .write(&mut stdout(), None, stdout().is_terminal())
-                .map_err(HyveCtlError::from)?;
+            output.write(&mut stdout(), None, stdout().is_terminal())?;
         }
         return Ok(());
     }
 
-    let socket_path = find_hyved_endpoint("bridge.sock")?;
-    let shared_dir_path = find_hyved_endpoint("files")?;
+    let connection = if let Some(bridge_url) = bridge_url {
+        let uri = Uri::try_from(bridge_url)?;
 
-    let connection = Connection::builder()
-        .custom(socket_path, shared_dir_path)
-        .connect()
-        .await
-        .map_err(HyveCtlError::from)?;
+        Connection::builder().uri(uri).connect().await?
+    } else {
+        let (socket_path, shared_dir_path) = if let Some(bridge_dir) = bridge_dir {
+            (bridge_dir.join("bridge.sock"), bridge_dir.join("files"))
+        } else if let (Some(bridge_sock), Some(files_dir)) = (bridge_sock, files_dir) {
+            (bridge_sock, files_dir)
+        } else {
+            (
+                find_hyved_endpoint("bridge.sock")?,
+                find_hyved_endpoint("files")?,
+            )
+        };
+
+        Connection::builder()
+            .custom(socket_path, shared_dir_path)
+            .connect()
+            .await?
+    };
 
     let is_tty = stdout().is_terminal();
     let mut stdout = stdout().lock();
@@ -128,7 +144,7 @@ async fn main() -> miette::Result<()> {
                 message,
                 tick_strings,
             } => {
-                if !is_tty || cli.json {
+                if !is_tty || json {
                     continue;
                 }
 
@@ -152,18 +168,12 @@ async fn main() -> miette::Result<()> {
                 spinner = Some(sp);
             }
             _ => {
-                if cli.json {
-                    command_output
-                        .write_json(&mut stdout, is_tty)
-                        .map_err(HyveCtlError::from)?;
+                if json {
+                    command_output.write_json(&mut stdout, is_tty)?;
                 } else if let Some(sp) = &spinner {
-                    command_output
-                        .write_to_spinner(sp, theme.as_ref(), is_tty)
-                        .map_err(HyveCtlError::from)?;
+                    command_output.write_to_spinner(sp, theme.as_ref(), is_tty)?;
                 } else {
-                    command_output
-                        .write(&mut stdout, theme.as_ref(), is_tty)
-                        .map_err(HyveCtlError::from)?;
+                    command_output.write(&mut stdout, theme.as_ref(), is_tty)?;
                 }
             }
         }
