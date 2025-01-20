@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "hello_world"
+version = "0.1.0"
+description = "P2P Hello World messaging from node to node"
+authors = ["Author <your.email@example.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+hyveos-sdk = "^0.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
