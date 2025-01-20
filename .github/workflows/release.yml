@@ -56,7 +56,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: taiki-e/cache-cargo-install-action@caa6f48d18d42462f9c30df89e2b4f71a42b7c2c
+      - uses: taiki-e/cache-cargo-install-action@44857e0ff6d186da8fe49f9ac9eedae5bbc37a93
         with:
           tool: cargo-deb
 
