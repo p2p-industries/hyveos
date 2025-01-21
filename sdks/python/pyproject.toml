@@ -17,7 +17,7 @@ authors = [
 [tool.poetry.dependencies]
 python = "^3.11"
 grpcio = "^1.69.0"
-protobuf = "^5.29.2"
+protobuf = "^5.29.3"
 aiohttp = "^3.11.11"
 yarl = "^1.18.3"
 
