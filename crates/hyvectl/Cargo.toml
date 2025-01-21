@@ -34,8 +34,8 @@ anyhow = { workspace = true }
 
 [build-dependencies]
 hyvectl-commands = { workspace = true }
-clap_mangen = "0.2.24"
-clap_complete = "4.5.40"
+clap_mangen = "0.2.26"
+clap_complete = "4.5.42"
 
 [package.metadata.deb]
 name = "hyvectl"
