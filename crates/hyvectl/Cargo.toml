@@ -20,7 +20,7 @@ hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-colored = "2.2.0"
+colored = "3.0.0"
 async-stream = "0.3.6"
 indicatif = { workspace = true }
 serde_json = { workspace = true }
