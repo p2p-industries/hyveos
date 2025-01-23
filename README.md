@@ -1,4 +1,6 @@
-# ![P2P Industries Logo](logo.png)
+# ![P2P Industries Logo Light](logo_light.png#gh-light-mode-only)
+
+# ![Logo Dark](logo_dark.png#gh-dark-mode-only)
 
 [![Crates.io Version](https://img.shields.io/crates/v/hyveos-sdk)](https://crates.io/crates/hyveos-sdk)
 [![NPM Version](https://img.shields.io/npm/v/%40hyveos%2Fsdk)](https://www.npmjs.com/package/@hyveos/sdk)
