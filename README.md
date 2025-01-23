@@ -9,6 +9,8 @@
 
 ## [Documentation](https://docs.p2p.industries)
 
+[https://docs.p2p.industries](https://docs.p2p.industries).
+
 We've tried to provide comprehensive documentation for everything that you can do with hyveOS!
 
 ## Example Use Cases
