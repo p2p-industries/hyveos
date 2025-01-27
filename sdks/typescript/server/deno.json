@@ -1,0 +1,9 @@
+{
+  "name": "@hyveos/server",
+  "version": "0.1.0",
+  "description": "Transport provider for the hyveOS SDK for use on the server",
+  "exports": "./mod.ts",
+  "tasks": {
+    "npm": "deno run -A scripts/build_npm.ts 0.1.0"
+  }
+}

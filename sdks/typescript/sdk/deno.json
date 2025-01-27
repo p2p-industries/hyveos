@@ -1,14 +1,14 @@
 {
-  "name": "hyveos-sdk",
-  "version": "1.0.0",
+  "name": "@hyveos/sdk",
+  "version": "0.1.0",
   "exports": "./mod.ts",
   "tasks": {
     "gen": "deno run --allow-env --allow-read --allow-run npm:@bufbuild/buf/buf generate",
-    "npm": "deno run -A scripts/build_npm.ts 1.0.0"
+    "npm": "deno run -A scripts/build_npm.ts 0.1.0"
   },
   "imports": {
     "@bufbuild/protobuf": "npm:@bufbuild/protobuf@^2.2.3",
     "@bufbuild/protoc-gen-es": "npm:@bufbuild/protoc-gen-es@^2.2.3",
-    "valibot": "npm:valibot@^1.0.0-beta.9"
+    "valibot": "npm:valibot@^1.0.0-beta.14"
   }
 }

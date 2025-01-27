@@ -25,14 +25,18 @@
     "jsr:@valibot/valibot@*": "0.42.1",
     "npm:@bufbuild/buf@*": "1.47.2",
     "npm:@bufbuild/protobuf@*": "2.2.3",
+    "npm:@bufbuild/protobuf@2.2.3": "2.2.3",
     "npm:@bufbuild/protobuf@^2.2.3": "2.2.3",
     "npm:@bufbuild/protoc-gen-es@^2.2.3": "2.2.3_@bufbuild+protobuf@2.2.3",
     "npm:@connectrpc/connect-node@*": "2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3",
+    "npm:@connectrpc/connect-node@2.0.1": "2.0.1_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.1__@bufbuild+protobuf@2.2.3",
     "npm:@connectrpc/connect-web@*": "2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3",
+    "npm:@connectrpc/connect-web@2.0.1": "2.0.1_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.1__@bufbuild+protobuf@2.2.3",
     "npm:@connectrpc/connect@*": "2.0.0_@bufbuild+protobuf@2.2.3",
+    "npm:@connectrpc/connect@2.0.1": "2.0.1_@bufbuild+protobuf@2.2.3",
     "npm:@types/node@*": "22.5.4",
-    "npm:valibot@*": "1.0.0-beta.9",
-    "npm:valibot@^1.0.0-beta.9": "1.0.0-beta.9"
+    "npm:valibot@1.0.0-beta.14": "1.0.0-beta.14",
+    "npm:valibot@^1.0.0-beta.14": "1.0.0-beta.14"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {
@@ -195,18 +199,38 @@
       "integrity": "sha512-DoI5T+SUvlS/8QBsxt2iDoUg15dSxqhckegrgZpWOtADtmGohBIVbx1UjtWmjLBrP4RdD0FeBw+XyRUSbpKnJQ==",
       "dependencies": [
         "@bufbuild/protobuf",
-        "@connectrpc/connect"
+        "@connectrpc/connect@2.0.0_@bufbuild+protobuf@2.2.3"
+      ]
+    },
+    "@connectrpc/connect-node@2.0.1_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.1__@bufbuild+protobuf@2.2.3": {
+      "integrity": "sha512-jXE9vMZ71aZnIXPDBqedwQyT/nN5pYs6pI8BScvvxJEKPJNAuwxltdJ2u0RpPaqox/dEW+ipzAN7kjYQIy3NHg==",
+      "dependencies": [
+        "@bufbuild/protobuf",
+        "@connectrpc/connect@2.0.1_@bufbuild+protobuf@2.2.3"
       ]
     },
     "@connectrpc/connect-web@2.0.0_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.0__@bufbuild+protobuf@2.2.3": {
       "integrity": "sha512-oeCxqHXLXlWJdmcvp9L3scgAuK+FjNSn+twyhUxc8yvDbTumnt5Io+LnBzSYxAdUdYqTw5yHfTSCJ4hj0QID0g==",
       "dependencies": [
         "@bufbuild/protobuf",
-        "@connectrpc/connect"
+        "@connectrpc/connect@2.0.0_@bufbuild+protobuf@2.2.3"
+      ]
+    },
+    "@connectrpc/connect-web@2.0.1_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.1__@bufbuild+protobuf@2.2.3": {
+      "integrity": "sha512-FmUR9TyuHu/3efr9cYZcqqAccgsswLSm3PQBXGuya5h57AjQWROW6ejL6Fg0d+A9EwsxRmJktefmFszXUMlU9Q==",
+      "dependencies": [
+        "@bufbuild/protobuf",
+        "@connectrpc/connect@2.0.1_@bufbuild+protobuf@2.2.3"
       ]
     },
     "@connectrpc/connect@2.0.0_@bufbuild+protobuf@2.2.3": {
       "integrity": "sha512-Usm8jgaaULANJU8vVnhWssSA6nrZ4DJEAbkNtXSoZay2YD5fDyMukCxu8NEhCvFzfHvrhxhcjttvgpyhOM7xAQ==",
+      "dependencies": [
+        "@bufbuild/protobuf"
+      ]
+    },
+    "@connectrpc/connect@2.0.1_@bufbuild+protobuf@2.2.3": {
+      "integrity": "sha512-o+MauvcOnfN4vjpS8ngoX+ubhcCDvnexlLwtk/VnkCLjoRMUz2PKqi87Si58ViWq0vzmGYPRf2LNwhJk5kcCXA==",
       "dependencies": [
         "@bufbuild/protobuf"
       ]
@@ -239,27 +263,17 @@
     "undici-types@6.19.8": {
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
-    "valibot@1.0.0-beta.9": {
-      "integrity": "sha512-yEX8gMAZ2R1yI2uwOO4NCtVnJQx36zn3vD0omzzj9FhcoblvPukENIiRZXKZwCnqSeV80bMm8wNiGhQ0S8fiww=="
+    "valibot@1.0.0-beta.14": {
+      "integrity": "sha512-tLyV2rE5QL6U29MFy3xt4AqMrn+/HErcp2ZThASnQvPMwfSozjV1uBGKIGiegtZIGjinJqn0SlBdannf18wENA=="
     }
   },
   "workspace": {
     "members": {
-      "hyveos-sdk": {
+      "sdk": {
         "dependencies": [
           "npm:@bufbuild/protobuf@^2.2.3",
           "npm:@bufbuild/protoc-gen-es@^2.2.3",
-          "npm:valibot@^1.0.0-beta.9"
-        ]
-      },
-      "hyveos-server": {
-        "dependencies": [
-          "jsr:hyveos-sdk@1"
-        ]
-      },
-      "hyveos-web": {
-        "dependencies": [
-          "jsr:hyveos-sdk@1"
+          "npm:valibot@^1.0.0-beta.14"
         ]
       }
     }

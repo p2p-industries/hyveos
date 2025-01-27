@@ -1,8 +1,0 @@
-{
-  "name": "hyveos-web",
-  "version": "1.0.0",
-  "exports": "./mod.ts",
-  "imports": {
-    "hyveos-sdk": "jsr:hyveos-sdk@^1.0.0"
-  }
-}
