@@ -20,7 +20,7 @@ import {
   type Client as ServiceClient,
   createClient,
   type Transport,
-} from 'npm:@connectrpc/connect'
+} from '@connectrpc/connect'
 import { Control as ControlService } from './gen/bridge_pb.ts'
 import { Apps } from './apps.ts'
 export { Apps } from './apps.ts'

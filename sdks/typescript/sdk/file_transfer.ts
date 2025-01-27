@@ -1,4 +1,4 @@
-import type { Transport } from 'npm:@connectrpc/connect'
+import type { Transport } from '@connectrpc/connect'
 import { BaseService, createJsonResult } from './core.ts'
 import { FileTransfer as Service } from './gen/bridge_pb.ts'
 import {
@@ -11,7 +11,7 @@ import {
   pipe,
   string,
   ulid as ulidParse,
-} from 'npm:valibot'
+} from 'valibot'
 
 const uploadResponse = createJsonResult(object({
   id: pipe(string(), ulidParse()),

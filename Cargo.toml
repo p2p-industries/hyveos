@@ -27,16 +27,16 @@ async-once-cell = { version = "0.5.4" }
 anyhow = { version = "1.0.95" }
 axum = { version = "0.7.9" }
 batman-neighbours-core = { version = "0.1.0", path = "crates/batman-neighbours-core" }
-hyveos-bridge = { version = "0.1.0", path = "crates/bridge" }
+hyveos-bridge = { version = "0.2.0", path = "crates/bridge" }
 bytes = { version = "1.6.0" }
 clap = { version = "4.5.24", features = ["derive"] }
-hyveos-docker = { version = "0.1.0", path = "crates/docker" }
+hyveos-docker = { version = "0.2.0", path = "crates/docker" }
 futures = { version = "0.3.31" }
 http = { version = "1.2.0" }
-hyveos-core = { version = "0.1.0", path = "crates/core" }
-hyveos-config = { version = "0.1.0", path = "crates/config" }
-hyvectl-commands = { version = "0.1.0", path = "crates/hyvectl-commands" }
-hyveos-sdk = { version = "0.1.0", path = "sdks/rust" }
+hyveos-core = { version = "0.2.0", path = "crates/core" }
+hyveos-config = { version = "0.2.0", path = "crates/config" }
+hyvectl-commands = { version = "0.2.0", path = "crates/hyvectl-commands" }
+hyveos-sdk = { version = "0.2.0", path = "sdks/rust" }
 hyveos-ifaddr = { version = "0.1.0", path = "crates/ifaddr" }
 hyveos-ifwatcher = { version = "0.1.0", path = "crates/ifwatcher" }
 indicatif = { version = "0.17.8", features = ["tokio"] }
@@ -49,7 +49,7 @@ libp2p-identity = { version = "0.2.10" } # This actually isn't a workspace depen
 hyveos-macaddress = { version = "0.1.0", path = "crates/macaddress" }
 multiaddr = { version = "0.18.2" }
 netlink-packet-core = { version = "0.7.0" }
-hyveos-p2p-stack = { version = "0.1.0", path = "crates/p2p-stack" }
+hyveos-p2p-stack = { version = "0.2.0", path = "crates/p2p-stack" }
 pin-project = { version = "1.1.8" }
 prost = { version = "0.13.4" }
 rand = { version = "0.8.5" }
@@ -59,7 +59,7 @@ regex = { version = "1.11.1", default-features = false, features = [
 ] }
 serde = { version = "1.0.217", features = ["derive", "rc"] }
 serde_json = { version = "1.0.135" }
-hyveos-runtime = { version = "0.1.0", path = "crates/runtime" }
+hyveos-runtime = { version = "0.2.0", path = "crates/runtime" }
 thiserror = { version = "2" }
 tarpc = "0.35.0"
 tokio = { version = "1.43" }

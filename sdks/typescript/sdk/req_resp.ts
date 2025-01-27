@@ -1,4 +1,4 @@
-import type { Client, Transport } from 'npm:@connectrpc/connect'
+import type { Client, Transport } from '@connectrpc/connect'
 import { AbortOnDispose, BaseService, toBytes } from './core.ts'
 import {
   type RecvRequest,

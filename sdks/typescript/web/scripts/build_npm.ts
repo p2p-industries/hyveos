@@ -12,9 +12,9 @@ await build({
     lib: ['ESNext', 'DOM'],
   },
   package: {
-    name: 'hyveos-sdk',
+    name: '@hyveos/web',
     version: Deno.args[0],
-    description: 'hyveOS SDK for the browser and Node.js',
+    description: 'Transport provider for the hyveOS SDK for use on the web',
     license: 'MIT',
   },
 })
