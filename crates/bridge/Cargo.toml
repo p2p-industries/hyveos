@@ -1,6 +1,6 @@
 [package]
 name = "hyveos-bridge"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = { workspace = true }
 publish = { workspace = true }
@@ -28,7 +28,10 @@ tower = { version = "0.5.2" }
 tracing = { workspace = true }
 trait-variant = "0.1.2"
 ulid = { workspace = true }
-reqwest = { workspace = true, default-features = false, features = ["rustls-tls", "json"] }
+reqwest = { workspace = true, default-features = false, features = [
+    "rustls-tls",
+    "json",
+] }
 serde_json = { workspace = true }
 chrono = { version = "0.4.39", features = ["serde"] }
 bon = "3.3.2"

@@ -1,11 +1,11 @@
 [project]
 name = "hyveos-sdk"
-dynamic = [ "version" ]
+dynamic = ["version"]
 license = { text = "MIT" }
 
 [tool.poetry]
 name = "hyveos-sdk"
-version = "0.1.1"
+version = "0.2.0"
 description = ""
 authors = [
     "Lukas Altun <laltun@student.ethz.ch>",

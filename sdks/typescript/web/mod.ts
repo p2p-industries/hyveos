@@ -1,4 +1,4 @@
-import type { ITransport } from 'jsr:@hyveos/sdk@0.1.0'
+import type { ITransport } from 'jsr:@hyveos/sdk@0.2.0'
 import { createGrpcWebTransport } from 'npm:@connectrpc/connect-web@2.0.1'
 import type { Transport } from 'npm:@connectrpc/connect@2.0.1'
 

@@ -1,6 +1,6 @@
 [package]
 name = "hyveos-core"
-version = "0.1.0"
+version = "0.2.0"
 description = "Core library for hyveOS sharing types and utilities between the SDK and the node"
 edition = "2021"
 rust-version = { workspace = true }
