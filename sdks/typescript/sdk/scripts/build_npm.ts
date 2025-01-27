@@ -5,6 +5,7 @@ await emptyDir('./npm')
 await build({
   entryPoints: ['./mod.ts'],
   outDir: './npm',
+  importMap: 'deno.json',
   shims: {
     deno: false,
   },
@@ -14,7 +15,7 @@ await build({
   package: {
     name: '@hyveos/sdk',
     version: Deno.args[0],
-    description: 'hyveOS SDK for the browser and Node.js',
+    description: 'Core SDK for hyveOS',
     license: 'MIT',
   },
 })

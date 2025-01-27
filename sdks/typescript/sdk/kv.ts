@@ -1,4 +1,4 @@
-import type { Transport } from 'npm:@connectrpc/connect@2.0.1'
+import type { Transport } from '@connectrpc/connect'
 import { BaseService, toBytes } from './core.ts'
 import { KV as Service } from './gen/bridge_pb.ts'
 

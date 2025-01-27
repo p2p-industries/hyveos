@@ -1,4 +1,4 @@
-import type { Transport } from 'npm:@connectrpc/connect@2.0.1'
+import type { Transport } from '@connectrpc/connect'
 import { AbortOnDispose, BaseService } from './core.ts'
 import type { Event as NeighbourEvent } from './neighbours.ts'
 import {

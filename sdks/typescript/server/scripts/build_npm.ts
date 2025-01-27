@@ -11,7 +11,7 @@ await build({
   package: {
     name: '@hyveos/server',
     version: Deno.args[0],
-    description: 'hyveOS connection for the server',
+    description: 'Transport provider for the hyveOS SDK for use on the server',
     license: 'MIT',
   },
 })

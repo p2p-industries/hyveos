@@ -1,4 +1,4 @@
-import type { Transport } from 'npm:@connectrpc/connect@2.0.1'
+import type { Transport } from '@connectrpc/connect'
 import { AbortOnDispose, BaseService, toBytes } from './core.ts'
 import { Discovery as Service, type Peer } from './gen/bridge_pb.ts'
 

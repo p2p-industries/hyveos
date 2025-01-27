@@ -14,7 +14,7 @@ await build({
   package: {
     name: '@hyveos/web',
     version: Deno.args[0],
-    description: 'hyveOS connector for the browser',
+    description: 'Transport provider for the hyveOS SDK for use on the web',
     license: 'MIT',
   },
 })

@@ -34,8 +34,8 @@
     "npm:@connectrpc/connect-web@2.0.1": "2.0.1_@bufbuild+protobuf@2.2.3_@connectrpc+connect@2.0.1__@bufbuild+protobuf@2.2.3",
     "npm:@connectrpc/connect@*": "2.0.0_@bufbuild+protobuf@2.2.3",
     "npm:@connectrpc/connect@2.0.1": "2.0.1_@bufbuild+protobuf@2.2.3",
+    "npm:@connectrpc/connect@^2.0.1": "2.0.1_@bufbuild+protobuf@2.2.3",
     "npm:@types/node@*": "22.5.4",
-    "npm:valibot@1.0.0-beta.14": "1.0.0-beta.14",
     "npm:valibot@^1.0.0-beta.14": "1.0.0-beta.14"
   },
   "jsr": {
@@ -273,6 +273,7 @@
         "dependencies": [
           "npm:@bufbuild/protobuf@^2.2.3",
           "npm:@bufbuild/protoc-gen-es@^2.2.3",
+          "npm:@connectrpc/connect@^2.0.1",
           "npm:valibot@^1.0.0-beta.14"
         ]
       }

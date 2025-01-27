@@ -1,4 +1,4 @@
-import type { Transport } from 'npm:@connectrpc/connect@2.0.1'
+import type { Transport } from '@connectrpc/connect'
 import { BaseService } from './core.ts'
 import { Apps as Service, type RunningApp } from './gen/bridge_pb.ts'
 
