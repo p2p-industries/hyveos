@@ -564,6 +564,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cbor4ii"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "189a2a2e5eec2f203b2bb8bc4c2db55c7253770d2c6bf3ae5f79ace5a15c305f"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2004,7 +2013,7 @@ dependencies = [
  "asynchronous-codec",
  "base64-simd",
  "bytes",
- "cbor4ii",
+ "cbor4ii 1.0.0",
  "dashmap",
  "futures",
  "hyveos-core",
@@ -2709,7 +2718,7 @@ version = "0.27.1"
 source = "git+https://github.com/p2p-industries/rust-libp2p.git?rev=d0ea971ccb4c85404454080df1363a5b42e1917c#d0ea971ccb4c85404454080df1363a5b42e1917c"
 dependencies = [
  "async-trait",
- "cbor4ii",
+ "cbor4ii 0.3.3",
  "futures",
  "futures-bounded",
  "futures-timer",
