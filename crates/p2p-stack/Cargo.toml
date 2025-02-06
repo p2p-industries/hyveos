@@ -12,7 +12,7 @@ async-once-cell = { workspace = true }
 asynchronous-codec = { version = "0.7.0", features = ["cbor"] }
 base64-simd = "0.8.0"
 bytes = { workspace = true }
-cbor4ii = { version = "1.0.0", optional = true }
+cbor4ii = { version = "1.0.0", features = ["serde1"], optional = true }
 dashmap = "6.0.1"
 hyveos-docker = { workspace = true, features = ["zstd"] }
 futures = { workspace = true }
