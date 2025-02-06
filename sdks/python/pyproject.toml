@@ -22,7 +22,7 @@ aiohttp = "^3.11.11"
 yarl = "^1.18.3"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.8.6"
+ruff = "^0.9.4"
 grpcio-tools = "^1.69.0"
 pdoc3 = "^0.11.5"
 
