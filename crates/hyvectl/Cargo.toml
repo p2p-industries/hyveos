@@ -1,5 +1,6 @@
 [package]
 name = "hyvectl"
+description = "CLI for controlling the hyveOS daemon"
 version = "0.1.0"
 edition = "2021"
 authors = [
@@ -33,13 +34,59 @@ dialoguer = { version = "0.11.0", default-features = false }
 anyhow = { workspace = true }
 
 [build-dependencies]
-hyvectl-commands = { workspace = true }
-clap_mangen = "0.2.26"
-clap_complete = "4.5.44"
+hyvectl-commands = { workspace = true, optional = true }
+clap_mangen = { version = "0.2.26", optional = true }
+clap_complete = { version = "4.5.44", optional = true }
+flate2 = { version = "1.0.35", optional = true }
+
+[features]
+generate-completions = [
+    "dep:hyvectl-commands",
+    "dep:clap_mangen",
+    "dep:clap_complete",
+    "dep:flate2",
+]
 
 [package.metadata.deb]
 name = "hyvectl"
 copyright = "Copyright (c) 2024-present P2P Industries Inc."
 license-file = ["../../LICENSE.md", "11"]
 depends = "hyved"
-assets = [["target/release/hyvectl", "usr/bin/", "755"]]
+assets = [
+    [
+        "target/release/hyvectl",
+        "usr/bin/",
+        "755",
+    ],
+    [
+        "target/release/debian/man/hyvectl.1.gz",
+        "usr/share/man/man1/",
+        "644",
+    ],
+    [
+        "target/release/debian/completions/hyvectl.bash",
+        "usr/share/bash-completion/completions/hyvectl",
+        "644",
+    ],
+    [
+        "target/release/debian/completions/hyvectl.fish",
+        "usr/share/fish/vendor_completions.d/hyvectl.fish",
+        "644",
+    ],
+    [
+        "target/release/debian/completions/_hyvectl",
+        "usr/share/zsh/vendor-completions/",
+        "644",
+    ],
+    [
+        "target/release/debian/completions/_hyvectl.ps1",
+        "/usr/lib/hyvectl/",
+        "644",
+    ],
+    [
+        "target/release/debian/completions/hyvectl.elv",
+        "/usr/lib/hyvectl/",
+        "644",
+    ],
+]
+features = ["generate-completions"]

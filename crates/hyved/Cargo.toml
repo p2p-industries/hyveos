@@ -1,5 +1,6 @@
 [package]
 name = "hyved"
+description = "The hyveOS daemon"
 version = "0.1.0"
 edition = "2021"
 authors = ["Josef Zoller <josef@walterzollerpiano.com>"]
@@ -25,7 +26,12 @@ toml = "0.8.13"
 tracing = { workspace = true }
 
 [features]
-batman = ["hyveos-runtime/batman", "hyveos-config/batman", "dep:hyveos-ifwatcher", "dep:netdev"]
+batman = [
+    "hyveos-runtime/batman",
+    "hyveos-config/batman",
+    "dep:hyveos-ifwatcher",
+    "dep:netdev",
+]
 console-subscriber = ["hyveos-runtime/console-subscriber"]
 network = ["hyveos-runtime/network", "hyveos-config/network"]
 mdns = ["hyveos-runtime/mdns"]
@@ -63,5 +69,5 @@ systemd-units = [
     { unit-name = "hyved", enable = false },
     { unit-name = "hyveos-batman", enable = true },
     { unit-name = "hyveos-dhcp-client", enable = true },
-    { unit-name = "hyveos-gateway", enable = true }
+    { unit-name = "hyveos-gateway", enable = true },
 ]
