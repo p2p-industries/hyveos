@@ -21,22 +21,22 @@ hyvectl-commands = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-colored = "2.2.0"
+colored = "3.0.0"
 async-stream = "0.3.6"
 indicatif = { workspace = true }
 serde_json = { workspace = true }
 ulid = { workspace = true }
 thiserror = { workspace = true }
 libp2p-identity = { workspace = true, features = ["peerid"] }
-miette = { version = "6.0.1", features = ["derive", "fancy"] }
+miette = { version = "7.5.0", features = ["derive", "fancy"] }
 default-net = "0.22.0"
 dialoguer = { version = "0.11.0", default-features = false }
 anyhow = { workspace = true }
 
 [build-dependencies]
 hyvectl-commands = { workspace = true, optional = true }
-clap_mangen = { version = "0.2.24", optional = true }
-clap_complete = { version = "4.5.40", optional = true }
+clap_mangen = { version = "0.2.26", optional = true }
+clap_complete = { version = "4.5.44", optional = true }
 flate2 = { version = "1.0.35", optional = true }
 
 [features]

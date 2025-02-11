@@ -38,7 +38,7 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 COPY --from=poetry-builder ${POETRY_HOME} ${POETRY_HOME}
 COPY --from=builder /app/python/sdks/dist/*.whl /app/python/sdks/dist/
 
-LABEL org.opencontainers.image.title="HyveOS Python SDK"
-LABEL org.opencontainers.image.description="HyveOS Python SDK"
+LABEL org.opencontainers.image.title="hyveOS Python SDK"
+LABEL org.opencontainers.image.description="hyveOS Python SDK"
 LABEL org.opencontainers.image.documentation="https://docs.p2p.industries"
 LABEL org.opencontainers.image.licenses="MIT"

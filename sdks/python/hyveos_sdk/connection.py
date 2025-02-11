@@ -26,10 +26,10 @@ class Connection:
     """
     A connection to the hyveOS runtime.
 
-    This class is used to establish a connection to the HyveOS runtime.
+    This class is used to establish a connection to the hyveOS runtime.
     It is used as a context manager to ensure that the connection is properly closed when it is no longer needed.
 
-    By default, the connection to the HyveOS runtime will be made through the application bridge,
+    By default, the connection to the hyveOS runtime will be made through the application bridge,
     i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable will be used to communicate with the runtime.
 
     If another connection type is desired, you can specify either the `socket_path` and `shared_dir_path` parameters,
@@ -64,9 +64,9 @@ class Connection:
         heartbeat_interval: Optional[int] = None,
     ):
         """
-        Establishes a connection to the HyveOS runtime.
+        Establishes a connection to the hyveOS runtime.
 
-        By default, the connection to the HyveOS runtime will be made through the application bridge,
+        By default, the connection to the hyveOS runtime will be made through the application bridge,
         i.e., the Unix domain socket specified by the `HYVEOS_BRIDGE_SOCKET` environment variable will be used to communicate with the runtime.
 
         If another connection type is desired, you can specify either the `socket_path` and `shared_dir_path` parameters,
@@ -76,7 +76,7 @@ class Connection:
         ----------
         socket_path : Path | str, optional
             A custom path to a Unix domain socket to connect to.
-            The socket path should point to a Unix domain socket that the HyveOS runtime is listening on.
+            The socket path should point to a Unix domain socket that the hyveOS runtime is listening on.
 
             Mutually exclusive with `uri`. If `socket_path` is provided, `shared_dir_path` must also be provided.
         shared_dir_path : Path | str, optional
@@ -86,11 +86,11 @@ class Connection:
         uri : str, optional
             A URI to connect to over the network.
             The URI should be in the format `http://<host>:<port>`.
-            A HyveOS runtime should be listening at the given address.
+            A hyveOS runtime should be listening at the given address.
 
             Mutually exclusive with `socket_path` and `shared_dir_path`.
         heartbeat_interval : int, optional
-            The interval at which the connection should send heartbeat messages to the HyveOS runtime.
+            The interval at which the connection should send heartbeat messages to the hyveOS runtime.
             If not provided, the default interval of 10 seconds will be used.
             Has no effect when the connection is not made through the application bridge.
 
@@ -148,7 +148,7 @@ class Connection:
 
     async def open_connection_handle(self) -> 'OpenedConnection':
         """
-        Get a handle to an opened connection to the HyveOS runtime.
+        Get a handle to an opened connection to the hyveOS runtime.
 
         Most users should use the `async with Connection() as conn:` syntax instead of this method.
         """
@@ -160,7 +160,7 @@ class Connection:
 
     async def close(self):
         """
-        Close the connection to the HyveOS runtime manually.
+        Close the connection to the hyveOS runtime manually.
 
         This is called automatically when using the `async with Connection() as conn:` syntax.
         """
@@ -182,9 +182,9 @@ class Connection:
 
 class OpenedConnection:
     """
-    An opened connection to the HyveOS runtime.
+    An opened connection to the hyveOS runtime.
 
-    This class provides access to the various services provided by HyveOS.
+    This class provides access to the various services provided by hyveOS.
     If the connection is made through the application bridge,
     this handle will also send heartbeat messages to the runtime at regular intervals,
     to keep the connection alive.

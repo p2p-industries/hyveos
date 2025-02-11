@@ -56,13 +56,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: taiki-e/cache-cargo-install-action@caa6f48d18d42462f9c30df89e2b4f71a42b7c2c
+      - uses: taiki-e/cache-cargo-install-action@44857e0ff6d186da8fe49f9ac9eedae5bbc37a93
         with:
           tool: cargo-deb
 
       - name: Install cross compile linker
         if: ${{ matrix.target.arch == 'arm64' }}
-        uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
+        uses: awalsh128/cache-apt-pkgs-action@5902b33ae29014e6ca012c5d8025d4346556bd40 # v1.4.3
         with:
           packages: gcc-aarch64-linux-gnu
           version: 1.0
@@ -98,14 +98,14 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Install APT packages
-        uses: awalsh128/cache-apt-pkgs-action@a6c3917cc929dd0345bfb2d3feaf9101823370ad # v1.4.2
+        uses: awalsh128/cache-apt-pkgs-action@5902b33ae29014e6ca012c5d8025d4346556bd40 # v1.4.3
         with:
           packages: apt-utils
           version: 1.0
 
       - name: Import GPG key
         id: import-gpg
-        uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
+        uses: crazy-max/ghaction-import-gpg@cb9bde2e2525e640591a934b1fd28eef1dcaf5e5 # v6.2.0
         with:
           gpg_private_key: ${{ secrets.APT_REPO_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.APT_REPO_GPG_PRIVATE_KEY_PW }}
@@ -139,7 +139,7 @@ jobs:
           gpg --default-key ${{ steps.import-gpg.outputs.keyid }} --clearsign -o - Release > InRelease
 
       - name: Create release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # 2.0.8
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # 2.2.1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ./apt-repo/*
