@@ -22,7 +22,7 @@ netdev = { version = "0.32.0", optional = true }
 serde = { workspace = true }
 hyveos-runtime = { workspace = true, features = ["clap", "serde"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
-toml = "0.8.13"
+toml = "0.8.20"
 tracing = { workspace = true }
 
 [features]
