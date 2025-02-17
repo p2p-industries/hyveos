@@ -42,28 +42,28 @@ files = [
 
 [[package]]
 name = "gpiod"
-version = "2.2.3"
+version = "2.2.4"
 description = "Python bindings for libgpiod"
 optional = false
 python-versions = ">=3.9.0"
 files = [
-    {file = "gpiod-2.2.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb380ae38d90417c919ee5680445fa741ea52fc0c70c9b1ee86d7e97b7aba759"},
-    {file = "gpiod-2.2.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9701258bee39246444d32fa5ac53eb9bd65e81fe8b1f880c6a0f31078a7ac47"},
-    {file = "gpiod-2.2.3-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:da10cca5811ed5938f96bcc5b71841f6bc415c5ebe793541d80dffe4d5326620"},
-    {file = "gpiod-2.2.3-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:1ddd5f8e3a3085929ca35d839185066142f4219b282f242ff6dd07bb337ed7c7"},
-    {file = "gpiod-2.2.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8033e7d52c4f48b554948966676cc4f724a1d9ef3fec02ea4ed1750dd1e3cc8d"},
-    {file = "gpiod-2.2.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:089811d242431ab19e821215e15c46043e9760aef06dafebdb207c4ea782e55c"},
-    {file = "gpiod-2.2.3-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:a783545b8945900c924a946b31a9853180d04483f93f1653dd260719b1778e18"},
-    {file = "gpiod-2.2.3-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:5160a9983e72285585dff04c1f1a58c89e2f234a70eaaab6a01409751318e36a"},
-    {file = "gpiod-2.2.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c1bdabffb96d1036c2b4aed59f626a5e84d7ac521d5ccd4f11f4eb6f711170d5"},
-    {file = "gpiod-2.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fd9335ecd0d7582e8817dda831e2cb9c2498517c3a48e63fd2c9c9f10864b421"},
-    {file = "gpiod-2.2.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:806e0a7256db6d96219cd06c0af95c5ef6a17f2a22f184d31a8f10cfcbd7724a"},
-    {file = "gpiod-2.2.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:d1a04b08a0c6a3b16634ef6708adf87927b34f39924acc1e515d8353c222121a"},
-    {file = "gpiod-2.2.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b7599018ae999eef995a0a072bd0294062fde41c8b97f39265fc16540728fbc0"},
-    {file = "gpiod-2.2.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:420f45cec6b8e6861bf8e9e3d284da50e34e709c16bd436ba564b1877f44942a"},
-    {file = "gpiod-2.2.3-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:320f2f69e0ae88a45c6f8e3a6e6f1bdfdb67545287d84d6ece7476861fd8a90b"},
-    {file = "gpiod-2.2.3-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:c8caa1ef53939a1e6438c79f4a6f7c8229abdd687cd7d3f85a683b72ef1c6fc5"},
-    {file = "gpiod-2.2.3.tar.gz", hash = "sha256:b916c3741dfc4dbcf6224b39e50765f672b137896287715709d49e9f063304c5"},
+    {file = "gpiod-2.2.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5704003c4cf3d8b45ee28379d61a033bd5d4dc28af4436fc6c167a334cd27424"},
+    {file = "gpiod-2.2.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0952637e2822530f46bda4979a4ce521e6ecaf8864aa437ec25d237ad2e842b6"},
+    {file = "gpiod-2.2.4-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:550c2f0fd0cc18e80ceba10dbba43cfe8bf4ddaa19b4c788b002d9e0f206f33c"},
+    {file = "gpiod-2.2.4-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:5f73b49b354ebb7cfb71e34a52436333e5342d7e94087b3cb9e9680f02fa546f"},
+    {file = "gpiod-2.2.4-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b0638510d72d9b60f40cf5c04b1adcc39db26967882d933247a41f72816d342"},
+    {file = "gpiod-2.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4c89250ec2bbc7d38425eedfbd633c4e68967da99de68d895a3fc5d7164d1719"},
+    {file = "gpiod-2.2.4-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:c4efe38d9b1a622505fa7262ab6008db7caf5dd572cf42fd1534f21c72a54a17"},
+    {file = "gpiod-2.2.4-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:114a9be9110441469306287a669a568add01809b8fe7d829d5cef3d380c3f8a5"},
+    {file = "gpiod-2.2.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:60a84a71687883171c6e2724e46940e5fe82e08dbdcc98439aabeecd319edb10"},
+    {file = "gpiod-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:832f91b6d5757fd5f4449ffce96d2a9ef3691d1f17a4e49e1f621724a5778285"},
+    {file = "gpiod-2.2.4-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:c8d0e535896dbefbc372ff461af459de4fce43c798cd906d3d6669a7664546b3"},
+    {file = "gpiod-2.2.4-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:3f59544b7fc8fed582080acd09bd5b469122c91441ce6413f861bb7f5e6afe20"},
+    {file = "gpiod-2.2.4-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:008356932a214f64af774886c1313968fbddd25c753cbef3a0d3ddceb31d456c"},
+    {file = "gpiod-2.2.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a53faa0e563fd8aaf73216e3d7fc95ec1306493c08dbcc8f008dd66d11cad054"},
+    {file = "gpiod-2.2.4-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:9e788522e79717c54e09d4f3bbdae9d7e411e3a10fda66c043b65e8bcd526959"},
+    {file = "gpiod-2.2.4-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:6035fbf05a6e094de390f8bfa6bfae7584b96886012aa7f8db88db5e43ebd07f"},
+    {file = "gpiod-2.2.4.tar.gz", hash = "sha256:4923c27262c70815054fe7a1962b98dd1d6822a541c103d0acd7f42fc9aabae9"},
 ]
 
 [[package]]
@@ -495,4 +495,4 @@ spidev = ">=3.4"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "cb2422b50a294ec482639c5ed7d5ac13af4500346be2de39b4edfe7a1c90a57e"
+content-hash = "cfebfbc8b6246503abd90bbd3a043dabe08b24186a8f7de639d7688a822573d9"
