@@ -21,7 +21,7 @@ lgpio = "^0.2.2.0"
 setuptools = "^75.8.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.9.4"
+ruff = "^0.9.6"
 
 [tool.ruff]
 indent-width = 4
