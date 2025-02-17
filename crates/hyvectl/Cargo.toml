@@ -36,7 +36,7 @@ anyhow = { workspace = true }
 [build-dependencies]
 hyvectl-commands = { workspace = true, optional = true }
 clap_mangen = { version = "0.2.26", optional = true }
-clap_complete = { version = "4.5.44", optional = true }
+clap_complete = { version = "4.5.45", optional = true }
 flate2 = { version = "1.0.35", optional = true }
 
 [features]
