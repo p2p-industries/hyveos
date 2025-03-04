@@ -14,11 +14,11 @@ ltr559 = "^1.0.0"
 st7735 = "^1.0.0"
 fonts = "^0.0.3"
 font-roboto = "^0.0.1"
-gpiod = "^2.2.3"
+gpiod = "^2.3.0"
 gpiodevice = "^0.0.5"
 gpiozero = "^2.0.1"
 lgpio = "^0.2.2.0"
-setuptools = "^75.8.0"
+setuptools = "^75.8.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.4"
