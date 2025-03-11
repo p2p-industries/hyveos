@@ -30,8 +30,8 @@ trait-variant = "0.1.2"
 ulid = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["rustls-tls", "json"] }
 serde_json = { workspace = true }
-chrono = { version = "0.4.39", features = ["serde"] }
-bon = "3.3.2"
+chrono = { version = "0.4.40", features = ["serde"] }
+bon = "3.4.0"
 
 [features]
 default = ["network"]
