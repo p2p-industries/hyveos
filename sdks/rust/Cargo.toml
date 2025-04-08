@@ -12,7 +12,7 @@ readme = "README.md"
 [dependencies]
 derive-where = "1.2.7"
 futures = { workspace = true }
-hyper-util = { version = "0.1.10", features = ["tokio"] }
+hyper-util = { version = "0.1.11", features = ["tokio"] }
 libp2p-identity = { workspace = true, features = ["peerid"] }
 http = { workspace = true, optional = true }
 hyveos-core = { workspace = true }
