@@ -28,7 +28,7 @@ serde_json = { workspace = true }
 ulid = { workspace = true }
 thiserror = { workspace = true }
 libp2p-identity = { workspace = true, features = ["peerid"] }
-miette = { version = "7.5.0", features = ["derive", "fancy"] }
+miette = { version = "7.6.0", features = ["derive", "fancy"] }
 default-net = "0.22.0"
 dialoguer = { version = "0.11.0", default-features = false }
 anyhow = { workspace = true }
@@ -36,8 +36,8 @@ anyhow = { workspace = true }
 [build-dependencies]
 hyvectl-commands = { workspace = true, optional = true }
 clap_mangen = { version = "0.2.26", optional = true }
-clap_complete = { version = "4.5.44", optional = true }
-flate2 = { version = "1.0.35", optional = true }
+clap_complete = { version = "4.5.48", optional = true }
+flate2 = { version = "1.1.1", optional = true }
 
 [features]
 generate-completions = [
