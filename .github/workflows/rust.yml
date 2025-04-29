@@ -206,7 +206,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12
+      - uses: taiki-e/install-action@ab3728c7ba6948b9b429627f4d55a68842b27f18
         with:
           tool: cargo-deny@0.14.24
 
