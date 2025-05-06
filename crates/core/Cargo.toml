@@ -21,7 +21,7 @@ ulid = { workspace = true }
 hex = "0.4.3"
 
 [build-dependencies]
-tonic-build = { version = "0.12.1", features = ["prost"] }
+tonic-build = { version = "0.13.1", features = ["prost"] }
 
 [features]
 default = ["serde"]
