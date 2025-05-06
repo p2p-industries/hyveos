@@ -20,7 +20,7 @@ libp2p = { workspace = true, features = ["serde"] }
 hyveos-macaddress = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
-socket2 = "0.5.7"
+socket2 = "0.5.9"
 tarpc = { workspace = true, features = [
     "serde-transport",
     "serde-transport-bincode",
